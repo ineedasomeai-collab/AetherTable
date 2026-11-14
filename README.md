@@ -1,196 +1,205 @@
 # AetherTable • TTRPG Projector Battlemap Utility
 
-A high-performance, web-based digital battle map utility engineered specifically for **in-person tabletop roleplaying games (D&D, Pathfinder, etc.) played via digital tabletop projection**.
+A high-performance, web-based digital battle map utility engineered specifically for **in-person tabletop roleplaying games (D&D, Pathfinder, Call of Cthulhu, Cyberpunk, etc.) played via digital tabletop projection**.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Key Features Overview
 
-### 1. In-Person Tabletop Projection & Dual-Stage Visual Tuning
-- **Direct Single-Display Projector Utility**: Engineered to run directly on the connected projector display with zero multi-window hassle or unnecessary complexity.
-- **🛡️ 64px Bottom Ad Dead Space (Web Publishing Safe Zone)**: The bottom 64 pixels of the viewport are reserved as a protected dead space so that bottom banner advertisements never block, clip, or interfere with floating menus, calibration pins, HUD bars, or touch buttons. All panel drag boundaries, maximum panel heights, and HUD positions automatically clamp above the safe zone.
-- **🖱️ Draggable Floating Control Windows**: Every control panel (**🌿 Realistic FX**, **📐 Keystone**, **⊞ Grid & Minis**, **📁 Maps**, **⚙ Display**, **✨ Map Finder & AI**, **🎬 Dynamic Scenes**, and **Element Inspector**) can be grabbed by its header bar (styled with a visual grip indicator `⠿`) and freely dragged anywhere around the screen so menus never obscure your effects or miniatures. Clicking anywhere on a panel automatically brings it to the top.
-- **🔄 Intuitive Before/After Phased Map Shift (Direct in 📁 Maps Panel)**: Seamlessly morph between pristine and destroyed states mid-combat right where GMs manage their maps. Features dual slots (**Phase A: Normal** and **Phase B: Destroyed/Shifted**), 1-click **⚡ Instant Flip A/B**, **▶ 3s Cinematic Shift**, a smooth 0%–100% transition slider, and 4 instant scenario presets (*Tavern Taproom ↔ Fire*, *Stone Bridge ↔ Collapse*, *Temple ↔ Blood Ritual*, *Starship ↔ Meltdown*).
-- **🖼️ Independent Map Image Adjustments**: Fine-tune each map's **Image Brightness**, **Image Contrast**, and **Image Sharpness (Detail Boost)** (powered by a real-time 3×3 SVG Laplacian convolution unsharp filter) directly in the **📁 Maps** or **⚙ Display** panel—completely separate from your global projector calibration.
-- **📽️ Global Projector Optics Tuning**: Keep your room/table hardware settings dialed in with **Projector Brightness Boost**, **Projector Contrast Enhancement**, **Color Saturation**, and **Invert Colors** for high-contrast visibility on dark gaming mats.
-- **Dramatic Blackout Curtain (`B` key)**: Instantly blackout the projection to stealthily transition scenes or place physical miniatures without spoiling encounters.
-- **Clean Play Mode (`H` key)**: Hides all UI bars and menus for an immersive, distraction-free tabletop gaming experience.
+1. **🗺️ Dynamic Battle Map Navigation & Multi-Modal Panning**:
+   - **✋ Interactive Map Pan Tool (`P` key)**: Drag anywhere on the map to freely pan across large dungeons, expansive wilderness, or multi-room complexes.
+   - **Universal Right-Click Pan**: Right-click and drag anywhere at any time to pan without switching tools.
+   - **Arrow Key Navigation**: Pan smoothly with `Arrow Keys` (or hold `Shift + Arrow` for rapid 180px navigation).
+   - **Smooth Zoom & Centering**: `+` / `-` keys or on-screen buttons to zoom in and out; `R` key to instantly center and reset view.
+   - **Viewport-Aware Placement**: Dropping any animated feature places it right at the center of your current panned view.
 
-### 2. Built-in 4-Corner Keystone Correction (Perspective Homography)
-- **📱 Touch-Friendly Inset Pins (iPad & Smartphone Optimized)**:
-  - Corners are moved inward from the extreme outer display edges (**default 6.0% Touch-Safe Inset**) so handles sit comfortably inside the viewport—completely eliminating edge swipe interference, status bar blocking, and bezel shadows.
-  - **Large 68px Touch Targets** with an expanded **92px invisible touch cushion (`::after`)**, high-visibility glowing center pinpoint dot, outer dashed bullseye ring, and active grab scaling (`1.45x`).
-  - **Intelligent Offset Badges**: Live coordinate tags (`TL`, `TR`, `BL`, `BR`) are dynamically offset towards the center of the screen so they are never covered by thumbs or pushed off-screen.
-  - **Pointer Events & Pointer Capture**: Uses modern W3C Pointer Events (`setPointerCapture`) for buttery-smooth dragging that prevents touch drop-offs or iPad rubber-band scrolling.
-- **📱 Virtual Touch D-Pad (No Keyboard Needed)**:
-  - On iPads and smartphones without a physical keyboard, tap **↖ TL**, **↗ TR**, **↙ BL**, or **↘ BR** and use the on-screen **▲ ◀ ▶ ▼ D-Pad** to micro-nudge corners with single taps while standing beside the gaming table.
-  - Step precision toggles: **Fine (0.2%)**, **Medium (1.0%)**, and **Fast (5.0%)**.
-- **📐 Corner Inset Margin Slider (0% to 15%) & Presets**:
-  - Adjust the **Corner Inset Slider** to symmetrically move all 4 corners in or out simultaneously, or choose 1-click presets: **📱 6% Touch-Safe Inset**, **📐 10% Table Mat Inset**, or **↔ 0% Outer Edge**.
-- **CSS 3D `matrix3d` Homography**: Real-time 8-parameter projective transformation applied directly to the battle map, animated overlays, video, and grid.
-- **Physical Keyboard Micro-Nudge**:
-  - Click any corner pin and nudge with **Arrow Keys** (0.2% step).
-  - Hold **Shift** for 5x step, **Alt** for 0.2x micro-step.
-  - Press **Tab** to cycle between corners.
-- **Alignment Test Cards**: Built-in crosshatch grid, concentric circles, diagonals, and 90° corner squareness markers to verify square grid lines on your tabletop.
+2. **📌 Realistic FX Placement: Per-Element Lock & Map Anchoring**:
+   - **🔒 Individual Element Lock (`L` key)**: Anchors an effect's position, dimensions, rotation, perspective, and shape handles against accidental dragging or resizing. Locked effects become **click-through**, allowing GMs to effortlessly layer smoke on fire, fire on hearth logs, or water on terrain.
+   - **🗺️ Scale & Move with Map (`mapAnchored`)**: Pins effects directly to the battle map coordinate system so they pan, drift, and zoom in lockstep with the map graphics underneath.
+   - **Bulk Controls**: 1-click **🔒 Lock All**, **🔓 Unlock All**, and **📌 Pin All to Map** in the **🌿 Realistic FX** panel.
 
-### 3. 160 Realistic Animated Features & Hazards (5 Broad Categories: Universal + 4 Genres across 5 Sub-Categories)
-Subtle, high-fidelity physical overlays with natural motion, lighting, and unconstrained **8-Point Corner/Edge Dragging, Full-Map Fit, 3D Perspective Tilt, Density & Entity Quantity** customization:
-- 🗂️ **Organized 160-Feature Matrix with 5 Broad Setting Tabs & 5 Sub-Category Filters**:
-  - **5 Broad Settings (60 Universal + 25 per Genre = 160 Total)**:
-    - **🌍 Universal (60 Features — 12 per Category)**: All setting-agnostic, truly universal environmental animations (Rain, Downpour, Snow, Blizzard, Mist, Dense Fog, Autumn Leaves, Blossom Petals, Dust Motes, Sandstorm, Fireflies, Volcanic Ash, Wildfire, Black Smoke, Gray Ash, Swamp Mud, Quicksand, Tar Pit, Spiderwebs, Ground Lightning, Steam Vents, Magma Fissures, Swamp Gas, Sinkholes, Campfires, Bonfires, Dying Coals, Sunbeams, Moonbeams, Cavern Skylights, Torches, Lanterns, Candles, Hearth Fire, Bioluminescent Flora, Polar Aurora, Cave Bats, Crows/Ravens, Vultures, Seagulls, Rats, Spiders, Scorpions, Beetles, Trout, Koi, Reef Sharks, Tumbleweeds, Flowing Streams/Rivers, River Rapids, Bayou Swamp Water, Molten Lava Rivers, Cliff Waterfalls, Cavern Cascades, Oak Forest Canopies, Boreal Pine Forests, Tropical Jungles, Autumn Maple Groves, Sandy Beach Surf, and Tempestuous Deep Ocean Waves).
-    - **⚔️ Historic & Fantasy (25 Features — 5 per Category)**: Sword & Sorcery, Dark Fantasy, Bronze Age, Medieval Siege, Feywild, Pirates.
-    - **🕵️ Modern & Pulp (25 Features — 5 per Category)**: Pulp Action, Weird West, Noir Detective, Urban Fantasy, Tactical SWAT & Espionage.
-    - **🚀 Future & Sci-Fi (25 Features — 5 per Category)**: Space Opera, Cyberpunk, Hard Sci-Fi, Mecha & Kaiju, Post-Apocalyptic.
-    - **🐙 Other & Eldritch (25 Features — 5 per Category)**: Gothic Horror, Gaslamp & Steampunk, Cosmic & Eldritch Horror, Supernatural.
-  - **5 Distinct Sub-Categories per Setting (12 per category in Universal; 5 per category in each Genre)**:
-    - **☁️ Weather & Ambiance (32 total)**: Localized precipitation, mist, atmospheric motes, and phenomena.
-    - **⚠️ Hazards & Obstacles (32 total)**: Damaging terrain, burning zones, traps, and tactical obstacles.
-    - **💡 Light Sources (32 total)**: Natural and artificial illumination, torches, beams, spotlights, and beacons.
-    - **🐾 Passive Actors (32 total)**: Autonomous critters, flocking silhouettes, ambient life, and roving entities.
-    - **🌿 Environment (32 total)**: Deformable spline rivers, waterfalls, waving forest fills, ocean surf, portals, and architectural fixtures.
-  - **🔍 Live Instant Search (`#fx-search-input`)**: Real-time multi-keyword filter that instantly finds features across all 160 overlays by name, theme, or category (e.g. *rain*, *forest*, *river*, *fire*, *drone*, *tentacles*).
+3. **🌿 160 Unique Animated Realistic FX (5 Broad Categories × 5 Sub-Categories)**:
+   - **60 Universal Features** (Rain, downpour, blizzard, ground mist, fire, campfire, sunbeams, bats, tumbleweeds, deformable rivers, lakes, ponds, and swaying forests).
+   - **25 per Setting** across **Historic & Fantasy**, **Modern & Pulp**, **Future & Sci-Fi**, and **Other & Eldritch** (160 total unique effects with zero duplicate placeholders).
+   - **Collapsible Category Sections**: Save screen space with individual toggles or **▾ Expand All** / **▸ Collapse All**.
+   - **🔍 Live Instant Search**: Filter features across all 160 overlays by keyword (*pond*, *fire*, *river*, *tentacles*, *drone*, etc.).
 
-#### 📜 The 160 Animated Features Breakdown:
-1. **🌍 Universal (60 Features — 12 per Category)**:
-   - *Weather (12)*: 🌧️ Light Rain & Drizzle, ⛈️ Heavy Storm Downpour, ❄️ Gentle Snow Flurry, 🌨️ Howling Whiteout Blizzard, 🌫️ Rolling Ground Mist, 🌫️ Dense Swamp & Moor Fog, 🍂 Swirling Autumn Leaves, 🌸 Drifting Blossom Petals, ✨ Floating Sunlit Dust Motes, 🏜️ Swirling Desert Sandstorm, ✨ Woodland Evening Fireflies, 🌋 Volcanic Soot & Ash Fall.
-   - *Hazards (12)*: 🔥 Spreading Brush & Timber Fire, 💨 Thick Black Fire Smoke, 🌫️ Choking Gray Ash Cloud, 🫧 Sucking Swamp Mud Mire, 🏜️ Churning Desert Quicksand, 🖤 Boiling Natural Tar Pit, 🕸️ Thick Spiderweb Tangle, ⚡ Natural Ground Lightning Zone, 💨 Scalding Geyser Steam Vent, 🌋 Molten Volcanic Magma Fissure, ☠️ Noxious Swamp Gas Fumes, 🕳️ Collapsed Sinkhole Chasm.
-   - *Lights (12)*: 🔥 Campsite Log Campfire, 🔥 Roaring Great Bonfire, 🔥 Smoldering Dying Coals, ☀️ Golden Forest Sunbeams, 🌙 Silvery Midnight Moonbeams, 💎 Cavern Skylight Shafts, 🕯️ Flickering Wall/Post Torch, 🏮 Warm Oil Camp Lantern, 🕯️ Cluster of Wax Candles, 🪔 Indoor Hearth Fireplace, 🍄 Bioluminescent Cave Flora, 🌌 Natural Polar Aurora Skyglow.
-   - *Passive Actors (12)*: 🦇 Flocking Cave Bats, 🦅 Circling Crows & Ravens, 🦅 Soaring Desert Vultures, 🕊️ Coastal Seagulls Flock, 🐀 Skittering Brown Rats, 🕷️ Scuttling Cave Spiders, 🦂 Desert Sand Scorpions, 🪲 Swarming Ground Beetles, 🐟 Freshwater Brook Trout, 🎏 Ornate Pond Koi Fish, 🦈 Reef Sharks & Ocean Fish, 🌾 Rolling Desert Tumbleweeds.
-   - *Environment (12)*: 🌊 Flowing Stream / River (Deformable Spline), 🌊 Deep Rushing River Current (Deformable Spline), 🐊 Murky Bayou & Marsh Water (Deformable Spline), 🌋 Flowing Molten Lava River (Deformable Spline), 🌊 Roaring Cliff Waterfall, 💧 Subterranean Cavern Cascade, 🌳 Swaying Oak Forest Canopy, 🌲 Boreal Pine & Conifer Forest, 🌴 Dense Tropical Jungle Canopy, 🍁 Golden Autumn Maple Grove, 🏖️ Sandy Beach & Reef Surf, 🌊 Tempestuous Deep Ocean Waves.
+4. **🌊 Deformable Water, Custom Pools & Living Forests**:
+   - **Curved River Spline Mode**: Drag cyan control points to bend water around terrain; drag amber diamonds to widen/narrow riverbanks up to 3000px.
+   - **Custom Pond / Lake Polygon Mode**: Mold custom shorelines, flooded dungeon chambers, or oasis pools with perimeter handles.
+   - **Living Forest Tool**: Fill irregular forest clearings and roadsides with swaying oak, pine, tropical palm, or deadwood canopies and falling leaves.
 
-2. **⚔️ Historic & Fantasy (25 Features — 5 per Category)**:
-   - *Weather (5)*: 🧚 Enchanted Feywild Pixie Dust, 🔥 Siege Battlefield Cinders, 🌫️ Ancient Crypt Floor Mist, ✨ Arcane Leyline Breeze, 🌊 Galleon Deck Sea Spray.
-   - *Hazards (5)*: 🕳️ Concealed Iron Punji Spike Pit, 🧪 Alchemical Green Greek Fire, 🔮 Wild Magic Runic Ground Ward, ☀️ Radiant Celestial Sanctuary Seal, ⚔️ Siege Pitch & Snare Trench.
-   - *Lights (5)*: 🕯️ Dungeon Iron Wall Sconce, 🪔 Temple Bronze Tripod Brazier, 🕯️ Great Hall Feast Chandelier, 🌈 Stained-Glass Cathedral Rays, 🔮 Wizard's Floating Magelight.
-   - *Passive Actors (5)*: 🔵 Moorland Will-o'-the-Wisp, 🧚 Fluttering Feywild Sprite, 🐀 Plague Swarm of Crypt Rats, 🦅 Battlefield Carrion Ravens, 🪲 Tomb Golden Scarab Swarm.
-   - *Environment (5)*: 🌀 Ancient Runic Teleport Circle, ⛲ Courtyard Marble Fountain, 🌸 Sacred Shrine Sakura Grove, 🏰 Castle Defensive Moat Channel (Deformable Spline), ⚡ Glowing Arcane Leyline Fracture.
+5. **🎛️ Dedicated Selected Element Attributes Popup Window**:
+   - **Active Element Switcher**: Quickly switch between overlapping elements using `◀ Prev`, `Next ▶`, or the dropdown.
+   - **Speed (`0.1x`–`4.0x`)**, **Intensity (`20%`–`250%`)**, **Quantity (`20%`–`400%`)**, and **Opacity (`10%`–`100%`)**.
+   - **🌈 Color Grading & Tints**: Full-spectrum rainbow Hue Shift (`-180°` to `+180°`) with 1-click tint chips (*Base*, *🔥Gold*, *🧪Green*, *❄️Cyan*, *🔮Void*, *🩸Red*), Saturation (`0%`–`300%`), Brightness (`30%`–`250%`), and Blend Modes (`Normal`, `Screen`, `Color Dodge`, `Multiply`, `Overlay`, `Hard Light`).
+   - **🔍 Edge Blur / Sharpen & Soft Feather**: Real-time 3×3 Laplacian convolution unsharp mask sharpening and smooth radial feathering.
+   - **🌿 6-Octave Procedural Fractal Roughness (`0%` to `200%` Ultra-Gnarled)**: Procedural multi-octave FBM + ridged crevice cascade with tangential curl.
+   - **📐 3D Perspective Tilt & Rotation**: 3D Pitch (`Tilt X`), Bank (`Tilt Y`), and 1-click presets (*Top-Down*, *Isometric*, *Oblique*, *Billboard*).
 
-3. **🕵️ Modern & Pulp (25 Features — 5 per Category)**:
-   - *Weather (5)*: 🌧️ Noir Alleyway Acid Downpour, 🏭 Industrial Chemical Smog Haze, 💨 Subway Grate & Manhole Steam, 🌪️ Route 66 Dust Devil Eddy, 🌨️ Urban Sidewalk Slush Flurry.
-   - *Hazards (5)*: 🚗 Gasoline Vehicle Wreck Blaze, ☠️ SWAT Riot Tear Gas Cloud, ⚡ Sparking Downed Power Line, 🛢️ Iridescent Garage Oil Slick, 🚧 Concertina Razorwire Barrier.
-   - *Lights (5)*: 🚁 Helicopter / Prison Searchlight, 🔦 Tactical SWAT Weapon Light, 💡 Sodium-Vapor City Streetlamp, 🚘 Twin Automotive Headlights, 🛢️ Alleyway 55-Gallon Burn Barrel.
-   - *Passive Actors (5)*: 🕊️ City Plaza Pigeon Flock, 🐈 Prowling Stray Alley Cat, 🐀 Subway Track Sewer Rats, 📰 Windblown Street Newspaper, 🚨 Roving Security Guard Beacon.
-   - *Environment (5)*: 🌊 Concrete Storm Drainage Canal (Deformable Spline), ⛲ Civic Park Plaza Fountain, 🌀 Rooftop HVAC Exhaust Fan, 🍸 Buzzing Dive-Bar Neon Sign, ⚓ Industrial Harbor Pier Wake.
+6. **↩ 16 Levels of Undo & Redo**:
+   - Universal `Ctrl+Z` (Undo) and `Ctrl+Y` / `Ctrl+Shift+Z` (Redo) with live `0/16` step badges across the top nav bar, Realistic FX panel, and Element Inspector.
 
-4. **🚀 Future & Sci-Fi (25 Features — 5 per Category)**:
-   - *Weather (5)*: 🌧️ Cyberpunk Acid Neon Rain, 🚀 Relativistic Warp Starfield, ☢️ Nuclear Fallout Ash Drift, 🦠 Bioluminescent Xeno-Spores, 🤖 Self-Assembling Nanite Cloud.
-   - *Hazards (5)*: 🛡️ High-Voltage Laser Tripwire Grid, ⚡ Superheated Fusion Plasma Vent, ☢️ Mutagen Radioactive Sludge, ❄️ Sub-Zero Cryo Nitrogen Breach, 💥 Warp Core Overload Arc Vent.
-   - *Lights (5)*: 🪐 3D Tactical Planetary Holo-Table, 🎯 Targeting Reticle Hologram, 🔦 Security Drone Scanner Cone, 🚨 Emergency Red Alert Klaxon, ⏩ Floor LED Runway Chevron Strip.
-   - *Passive Actors (5)*: 🛸 Sentry Surveillance Drone Swarm, 🤖 Cyber-Scuttler Maintenance Bots, 🧹 Autonomous Deck Scrubber Droid, 🐟 Digital Holographic Wireframe Koi, 🛰️ Deep-Space Telemetry Probe.
-   - *Environment (5)*: 🛡️ Hexagonal Energy Shield Barrier, 💠 Quantum Transmat Teleporter, 🖥️ Tactical Command HUD Console, ⚙️ Factory Conveyor Belt Track, 🧪 Bio-Mutagen Coolant Conduit (Deformable Spline).
+7. **✨ Map Finder, AI Prompt Studio & Popout Tabs**:
+   - **Landscape / Portrait Orientation Toggle**: Instantly switch output size intents between horizontal tabletop projection and vertical upright displays.
+   - **Output Size Intent Presets**: `24"x36" Mat (2:3)`, `16:9 Widescreen`, `4:3 Projector`, `30"x40" Large`, `18"x24" Medium`, `1:1 Square`, and `21:9 Ultra`.
+   - **Interactive Toggle-Based Prompt Builder**: Assemble professional master cartographer prompts without typing.
+   - **In-Tool 4K Map Search & Keyless AI Generator**: Find community maps from `r/battlemaps` or generate custom maps directly inside the app.
 
-5. **🐙 Other & Eldritch (25 Features — 5 per Category)**:
-   - *Weather (5)*: 🩸 Eldritch Crimson Blood Rain, 💀 Necrotic Cemetery Specter Fog, 🌌 Cosmic Void Dimensional Tear, 🦴 Ashen Necropolis Bone Blizzard, 👻 Swirling Tormented Shadow Spirits.
-   - *Hazards (5)*: 🐙 Writhing Eldritch Void Tentacles, 🔥 Soul-Consuming Brimstone Hellfire, 🩸 Sacrificial Runic Blood Pool, ☣️ Choking Pestilence Plague Miasma, 🧪 Caustic Alchemical Ooze Mire.
-   - *Lights (5)*: 💀 Gothic Skull Ritual Candelabra, 💙 Pale Blue Spectral Witchfire, 💎 Floating Amethyst Soul Crystal, ⚙️ Victorian Steampunk Gaslamp, 🌕 Blood Moon Volumetric Shafts.
-   - *Passive Actors (5)*: 👻 Floating Victorian Phantom Lady, 👁️ Wandering Eldritch All-Seeing Eye, 🕷️ Swarming Abyssal Shadow Spiders, 🐟 Deep-One Bioluminescent Anglers, 🦋 Death's-Head Crypt Lunar Moths.
-   - *Environment (5)*: 🩸 Flowing Sanguine River of Blood (Deformable Spline), ⛲ Vampiric Sanguine Stone Fountain, 🌲 Twisted Haunted Deadwood Thicket, 🍄 Alien Myconid Spore-Cap Grove, 🌀 Shattered Reality Void Rift.
+8. **🎬 Dynamic Scenes: Real-Time Map State Morphing & Infinite Vehicle Chases**:
+   - **Phased Battlemap Morphing**: Smooth 0%–100% crossfade slider and instant flip buttons between pristine and destroyed map states (*Tavern Fire*, *Bridge Collapse*, *Blood Altar*, *Reactor Meltdown*).
+   - **3D Parallax Height**: Independent background (`0.38x`) and foreground (`1.55x`) camera drift for dramatic vertical depth.
+   - **Stationary Center Vehicles**: Keeps your physical train, riverboat, skyship, or war wagon centered for physical miniatures while terrain scrolls continuously underneath.
 
-- 📐 **True 90° Top-Down Orthographic Perspective (Tabletop Gaming Standard)**:
-  - All Living Environmental Overlays and Hazards default to authentic **90° Top-Down Orthographic Satellite View** so effects blend naturally with top-down battlemaps and real physical miniatures standing upright on the table surface.
-- 🎛️ **Dedicated Selected Element Attributes Popup Window (`#element-inspector-panel`)**:
-  - Clicking any animated element on the map (or dropping a new element from the 160-feature library) automatically pops open a **separate, draggable Attributes Popup Window** on the left side of the screen (independent of the right-side FX library so it is never covered or closed when switching menus):
-    - **🎯 Active Map Element Switcher**: Jump between any placed overlays on the map using **◀ Prev**, **Next ▶**, or the **Active Element Dropdown** (`#1`, `#2`, etc.)—ideal when multiple effects overlap.
-    - **🎨 Visual Style / Variant & Layering**: Switch color/material variants, **🗺️ Cover Map (100%)**, **⬆ Bring to Front**, **⬇ Send to Back**, and **⇄ Flip X / ⇅ Flip Y**.
-    - **⚡ Animation Speed, Intensity, Opacity & Entity Density**:
-      - **Animation / Flow Speed (`0.1x`–`4.0x`)**
-      - **Effect Intensity / Radiance (`20%`–`250%`)**
-      - **Entity Quantity / Particle Density (`20%`–`400%`)** + Active Tumbleweed Count (`1`–`50`)
-      - **Overlay Opacity (`10%`–`100%`)**
-    - **🌈 Color Grading: Hue Shift, Saturation, Brightness & Blend Mode**:
-      - **Hue Shift (`-180°` to `+180°`)** with a full-spectrum rainbow slider and 1-click tint presets (*Base 0°*, *🔥Gold*, *🧪Green*, *❄️Cyan*, *🔮Void*, *🩸Red*) to recolor any fire, river, fog, forest, or portal on the fly.
-      - **Color Saturation (`0%` Monochrome to `300%` Hyper-Neon)** & **Element Brightness (`30%`–`250%`)**.
-      - **Blend Mode (`Normal`, `Screen`, `Color Dodge`, `Multiply`, `Overlay`, `Hard Light`)**.
-    - **🔍 Edge Blur / Sharpen & Soft Edge Feathering**:
-      - **Edge Blur (`<0`) ↔ Sharpen (`>0`) (`-100` to `+100`)**: Drag left for smooth Gaussian Blur (`0.1px`–`15px` for soft mist or depth-of-field canopies) or drag right for hardware-accelerated **SVG 3×3 Laplacian Convolution Unsharp Mask** sharpening.
-      - **Soft Edge Feather (`0%`–`100%`)**: Dissolves rectangular element borders smoothly into the map via a radial alpha mask.
-    - **📏 Size, Stretch & 📐 3D Perspective**: Width/Height pixel inputs, non-uniform aspect stretch (`0.1x`–`10.0x`), 3D Pitch (`Tilt X`), Bank (`Tilt Y`), Rotation (`0°–360°`), and 1-click presets (`📐 Top-Down`, `🎮 Isometric`, `🏛️ Oblique`, `👁️ Billboard`).
-- 🌊 **Deformable Flowing Water & Custom Pools (with Interactive Shape Handles)**:
-  - **Curved River Path Mode (`spline`)**: Drag **cyan spine handles** directly on the map to bend and curve the river around terrain, drag **amber diamond handles** to widen or narrow specific riverbanks (up to 3000px wide), click **+** midpoint handles to insert new river bends, or right-click a node to remove it.
-  - **Custom Pool / Lake Mode (`polygon`)**: Switch any water element to Pool Mode to mold custom-shaped lakes, flooded dungeon rooms, or oasis ponds using perimeter handles.
-  - Used by `hist_river`, `mod_canal`, `sci_conduit`, and `oth_blood_river`!
-- 🔊 **Integrated Environment Soundscapes Synced to the Map**: Procedural Web Audio API synthesizer that automatically layers fantasy and sci-fi environments (Tavern Chatter, Cave Echoes, Howling Wilderness, Forest Breeze, Volcanic Rumbling, Train Chases, Starship Bridge Drone, Cyberpunk City AC Hum, and Fusion Reactor Plasma Thrum).
-- 🔒 **Lock Overlays**: Lock all elements when playing so physical miniatures can be placed and moved without accidentally displacing digital graphics.
+9. **📐 Keystone Homography & ⊞ Physical 1-Inch Grid Calibration**:
+   - **4-Corner Homography (`matrix3d`)**: Complete perspective correction for projectors set at angles to the table surface.
+   - **Touch-Friendly Pins**: 68px targets with 92px cushions and on-screen touch D-Pad for tablet/phone calibration without keyboards.
+   - **Physical 1-Inch (25mm) Base Calibrator**: Calibrate the digital grid to match your physical miniature bases with a physical ruler.
 
-### 3B. Dynamic Scenes: Real-Time Map State Morphing, 3D Parallax & Infinite Vehicle Chases (`🎬 Dynamic Scenes`)
-- 🔥 **Real-Time Map State Morphing (Phased Battlemaps)**:
-  - Seamlessly morph between two map states in real time using the **0%–100% Morph Slider** or **1-Click Animated Morph Transition** (*Smooth Crossfade* or *Shockwave / Radial Spread*):
-    - 🍺 **Warm Tavern Taproom ↔ 🔥 Blazing Tavern Inferno (Catching Fire)**
-    - 🌉 **Intact Stone Canyon Bridge ↔ 💥 Collapsed Chasm Bridge (Mid-Combat Collapse)**
-    - 🏛️ **Clean Marble Ritual Sanctum ↔ 🩸 Blood-Soaked Eldritch Altar**
-    - 🌲 **Sunlit Forest Glade ↔ 🌋 Scorched Hellfire Rift**
-    - 📥 **Custom Uploaded State B Map**: Upload any second-state map image to morph between your current map and State B in real time.
-- 🏔️ **Multi-Layer 3D Parallax Vertical Height**:
-  - Separates the **Deep Background Layer** (`0.38x` camera pan speed) and **Elevated Foreground Layer** (`1.55x` camera pan speed) as the camera pans or drifts (plus an optional **Gentle Auto-Sway Camera Drift**), creating a strong sense of vertical height on **High Cliffs & Canyon Chasms**, **City Rooftops & Deep Cobblestone Streets**, **High-Altitude Skyships & Cloud Decks**, or **Giant Forest Treetop Walks**.
-- 🚂 **Infinite Scrolling Backgrounds & Stationary Center Vehicles**:
-  - Built for **train robberies, riverboat chases, war wagon ambushes, or skyship battles**: the vehicle (**Steam Train & Cars**, **Paddlewheel Riverboat**, **Arcane Skyship Galleon**, or **Armored War Wagon**) remains stationary in the center of the table for your physical miniatures while **Desert Canyon Railroad Tracks**, **Whitewater River Rapids**, **High-Altitude Cloud Seas**, **Winding Forest Roads**, or **your current tiled map** continuously scroll past underneath at adjustable speed and direction!
+10. **📖 In-Tool Readme & Manual Viewer (`F9` Key)**:
+    - Press **`F9`** (or **`F2`**, or click the **📖 Readme (F9)** button) at any time to open the complete, draggable user guide directly inside the tool.
 
-### 4. Physical Miniatures & Grid Calibration
-- **Physical 1-Inch (25mm) Base Calibrator**: Place a real miniature base or physical ruler onto the projected table target box, then adjust the slider until the digital box matches your physical miniature base.
-- **Grid Geometries**: Square, Hexagonal (Pointy-top), Hexagonal (Flat-top), Dot Matrix, Crosshairs, and Isometric.
-- **Projector High-Visibility Styling**:
-  - High-contrast colors: Arcane Cyan, High-Contrast White, Parchment Amber, Fluorescent Green, Crimson Red, Stealth Black.
-  - Line styles: Solid, Dashed, Dotted, or **Projector Glow** (neon halo for textured or dark maps).
-  - Thickness (1px–5px) and Opacity sliders.
-- **Tile Offset Alignment**: Nudge buttons (←, →, ↑, ↓) to align grid lines with pre-drawn map artwork.
-- **Tactical Coordinates**: Alphanumeric labels (A1, B2, etc.) for tactical combat callouts.
+---
 
-### 5. Interactive Prompt Builder & In-Tool / Popout Map Studio (Zero API Key Required)
-- **📐 Output Size Intent & Aspect Ratio Presets**: Set the intended physical output mat dimensions or screen ratio with 1-click chips:
-  - **`[24"x36" Mat (2:3)]`**: Standard battlemat format (`24x36 inches, 2:3 aspect ratio`).
-  - **`[16:9 Widescreen]`**: Full-HD/4K standard widescreen TV & projector displays.
-  - **`[4:3 Projector]`**: Traditional 4:3 conference/tabletop projector optics.
-  - **`[30"x40" Large]`**: Large convention tournament battle mat.
-  - **`[18"x24" Medium]`**: Compact tabletop gaming mat.
-  - **`[1:1 Square]`**: Square grid combat arena.
-  - **`[21:9 Ultra]`**: Ultrawide immersive cinema panoramic display.
-  - Automatically injects size constraints into your assembled prompt and formats the keyless generator resolution!
-- **Interactive Toggle-Based Prompt Builder**: Every clause of the master cartographer prompt (*"Masterpiece tabletop RPG battle map"*, *"ultra-high resolution 4K orthographic top-down satellite view"*, *"completely flat 2D perspective, perfectly perpendicular 90-degree camera angle"*, *"razor sharp 8K textures"*, *"raytraced ambient occlusion"*, *"cinematic lighting"*, *"clean tactical gaming surface"*, *"ungridded seamless floor, no grid lines, no hexes"*, *"no miniatures, no characters, no figures"*, *"no text labels, no watermark"*, *"trending on Artstation"*, etc.) is an interactive toggle chip that **auto-pastes** directly into the search/prompt box as you toggle it on or off.
-- **In-Tool 4K Map Search**: Search thousands of ultra-HD community battlemaps (`r/battlemaps`) directly inside the tool and load or save them with one click.
-- **In-Tool Keyless AI Map Generator**: Render custom top-down AI maps right inside the panel with zero API keys.
-- **1-Click Pop-Out Browser Tabs**: Launch a dedicated side-by-side popout window for **Google Gemini** (using your existing Google Pro login), **Google Images (pre-filtered for Large 4K)**, **Reddit `r/battlemaps`**, or **Pinterest** with your assembled toggle prompt automatically copied to the clipboard.
-- **Instant Clipboard Paste (`Ctrl+V`) & Save to Disk**: Right-click *"Copy Image"* in any popout tab and press **`Ctrl+V`** anywhere in AetherTable (or drag-and-drop across windows) to immediately project the map onto your table, and click **💾 Save Current Map** to save it to your computer.
+## ⌨️ Complete Keyboard Shortcuts Reference
 
-### 6. Battle Map Media Support
-- **Preset Tactical Maps**: Built-in high-res procedural vector maps (Forest Glade, Desert Oasis Dunes, Ancient Crypt Vault, Tavern Taproom, Volcanic Lava Chasm).
-- **Custom Local Files**: Drag-and-drop or upload PNG, JPG, WEBP, and GIF images.
-- **Animated Video Battlemaps**: Full support for looping MP4 and WebM video battlemaps (e.g. Dynamic Dungeons, Beneos).
-- **Web URLs**: Paste direct image or video URLs.
-- **Pan & Zoom**: Mouse wheel zoom, Space + drag pan, Middle-click pan, and 🔄 Reset Zoom.
+| Key / Shortcut | Action | Description |
+|----------------|--------|-------------|
+| **F9** *(or F2)* | **Open Readme & Manual** | Opens or toggles the in-tool Readme guide and keybindings reference window |
+| **P** | **Toggle Map Pan Mode** | Switches left mouse drag between element selection and free map panning |
+| **D** | **Toggle Freehand Draw FX** | Sketch custom paths (rivers, fire walls) or shapes (lakes, groves) directly on map |
+| **Right-Click + Drag** | **Universal Pan** | Pans the battle map smoothly in any tool mode without switching tools |
+| **Space + Left Drag** | **Pan Map** | Hold Space and drag with left mouse button to pan |
+| **Middle-Click + Drag** | **Pan Map** | Press mouse wheel and drag to pan the map |
+| **Arrow Keys** | **Pan Map / Keystone Nudge** | Pans the map by 60px (or micro-nudges active keystone corner by 0.2% when calibrating) |
+| **Shift + Arrow Keys** | **Fast Pan / Large Nudge** | Rapidly pans the map by 180px (or 5× keystone nudge) |
+| **+** or **=** | **Zoom In** | Zooms the map in by +15% centered on the screen |
+| **-** or **_** | **Zoom Out** | Zooms the map out by -13% centered on the screen |
+| **Mouse Wheel** | **Cursor Zoom** | Zooms in or out centered directly on the mouse cursor position |
+| **R** | **Center / Reset Map View** | Resets map pan to `(0,0)` and zoom to `100%` |
+| **L** | **Lock / Unlock Effect** | Toggles position and size lock on the currently selected animated effect |
+| **Ctrl + Z** | **Undo** | Reverts the last overlay, weather, or transform change (up to 16 levels) |
+| **Ctrl + Y** / **Ctrl + Shift + Z** | **Redo** | Re-applies the last undone change (up to 16 levels) |
+| **Delete** / **Backspace** | **Delete Effect** | Removes selected effect from map (ignored if effect is locked) |
+| **H** | **Clean Play Mode (Hide UI)** | Hides all navigation bars, floating windows, and HUD for distraction-free play |
+| **B** | **Blackout Curtain** | Instantly blackouts the screen to place miniatures or transition scenes secretly |
+| **C** | **Keystone Calibration** | Toggles 4-corner perspective keystone calibration handles |
+| **G** | **Tactical Grid Toggle** | Toggles physical tactical grid overlay On or Off |
+| **F** | **Fullscreen** | Toggles browser fullscreen mode |
+| **Tab** | **Cycle Keystone Corner** | Cycles active keystone pin (`TL` → `TR` → `BR` → `BL`) |
+| **Escape** | **Close Windows & Deselect** | Closes all floating windows and deselects the active animated element |
+
+---
+
+## 📌 Lock, Anchoring & Panning Guide
+
+### 1. 🔒 Locking Overlays for Multi-Layered FX
+When building complex tactical scenes (such as laying smoke over fire, fire over wooden logs, and water around shores):
+- Select any element and check **🔒 Lock Position & Size** in the Attributes popup (or press **`L`** on your keyboard).
+- **Click-Through Layering**: Locked elements ignore drag and resize events, allowing you to freely click, drag, and adjust other effects on top of or behind them.
+- **Accident-Proof**: Locked effects cannot be accidentally dragged, resized, rotated, or deleted with the `Delete` key.
+- **Selecting Locked Elements**: Because clicks pass through locked elements on the canvas, select them using the **Active Map Element Switcher** (`◀ Prev` / `Next ▶` / dropdown) in the Attributes popup.
+- **Bulk Controls**: Use **🔒 Lock All** and **🔓 Unlock All** in the **🌿 Realistic FX** panel to lock your entire scene for physical miniature play.
+
+### 2. 🗺️ Scaling and Moving with the Battle Map
+- **Map Space vs. Screen Space**:
+  - **Scale & Move with Map (ON)**: The effect is locked to the battle map graphics. When you pan across the map or zoom in on a room, the effect stays anchored to that exact spot on the map artwork.
+  - **Scale & Move with Map (OFF)**: The effect stays stationary relative to the projector display screen (ideal for fullscreen ambient weather, HUD scanners, or global downpours).
+- **Default for New Effects**: New effects drop with **Scale & Move with Map** enabled by default. You can change this default via the checkbox in the **🌿 Realistic FX** panel.
+- **Seamless Toggling**: Toggling an effect's anchor mode automatically converts its coordinates between screen space and map space without visual jumping.
+- **1:1 Mouse Precision**: When dragging or resizing an effect while zoomed in or out, mouse handles automatically scale to track your cursor with exact 1:1 screen precision.
+
+### 3. ✋ Map Panning & Navigation
+- **Pan Mode Toggle**: Click **✋ Pan Mode** in the bottom HUD bar or in the **🌿 Realistic FX** panel (or press **`P`**). While Pan Mode is active, clicking and dragging anywhere on the canvas pans the map.
+- **Right-Click Drag**: In any tool mode, right-clicking and dragging immediately pans the map.
+- **Adding Effects While Panned**: When you pan over to a distant corner of a 4K battlemap, newly added features appear at the center of your current view rather than off-screen.
+
+### 4. ✏️ Freehand Draw FX Tool (Lines, Paths & Shapes)
+Instead of relying on corner handles to stretch a rectangle, sketch directly on the battlemap:
+- **Activate Draw Mode**: Click **✏️ Draw (D)** in the bottom HUD bar, click **✏️ Draw Mode** in the Realistic FX panel, or press **`D`** on your keyboard.
+- **Open Lines / Paths**: The chosen effect follows your freehand stroke as a curved ribbon.
+  - *Rivers, Streams, Canals, Moats & Lava*: Water and magma shader currents flow smoothly along the drawn path with banks and bed textures.
+  - *Walls of Fire, Laser Fences & Electric Arcs*: Hazards follow the drawn line, turning straight lines or winding curves into barriers.
+  - *Treelines & Hedgerows*: Trees and bushes line the drawn path for natural borders and winding woodland roads.
+- **Closed Shapes / Areas**: The chosen effect fills the enclosed area.
+  - *Custom Lakes & Ponds*: Irregular lake perimeters, cavern pools, and swamp bogs fill the drawn shape with water ripples and lily pads.
+  - *Forest Groves & Clearings*: Dense trees fill custom clearings around rocks, roads, and buildings.
+  - *Hazard Pools & Weather Zones*: Spiderweb patches, boiling mud bogs, toxic chemical spills, and dense fog banks fill the custom shape.
+- **Auto-Detect Loop**: If you sketch a loop and end near where you started (< 45px), the tool automatically closes the shape into an area. You can also explicitly lock **〰️ Line / Path** or **⭕ Closed Shape** mode.
+- **Stroke Width & Ribbon Thickness**: Choose from `40px` (Thin), `90px` (Medium), `160px` (Wide), and `260px` (Massive), or use the continuous slider from 20px to 360px.
+- **Re-Draw Existing Effects**: Select any placed effect on the battlemap and click **✏️ Redraw** in the Attributes popup (or press **`D`**) to re-sketch its curve or shape instantly.
+- **Full Camera Synchronization & Undo**: Drawn strokes translate into map coordinates, staying anchored and scaled during pan/zoom. Every draw stroke is captured in the **16-level undo/redo** history (`Ctrl+Z` / `Ctrl+Y`).
+
+---
+
+## 🌿 160 Realistic Animated Features Catalog
+
+### 🌍 Universal (60 Features — 12 per Category)
+- **☁️ Weather & Ambiance**: 🌧️ Light Rain & Drizzle, ⛈️ Heavy Storm Downpour, ❄️ Gentle Snow Flurry, 🌨️ Howling Whiteout Blizzard, 🌫️ Rolling Ground Mist, 🌫️ Dense Swamp & Moor Fog, 🍂 Swirling Autumn Leaves, 🌸 Drifting Blossom Petals, ✨ Floating Sunlit Dust Motes, 🏜️ Swirling Desert Sandstorm, ✨ Woodland Evening Fireflies, 🌋 Volcanic Soot & Ash Fall.
+- **⚠️ Hazards & Obstacles**: 🔥 Spreading Brush & Timber Fire, 💨 Thick Black Fire Smoke, 🌫️ Choking Gray Ash Cloud, 🫧 Sucking Swamp Mud Mire, 🏜️ Churning Desert Quicksand, 🖤 Boiling Natural Tar Pit, 🕸️ Thick Spiderweb Tangle, ⚡ Natural Ground Lightning Zone, 💨 Scalding Geyser Steam Vent, 🌋 Molten Volcanic Magma Fissure, ☠️ Noxious Swamp Gas Fumes, 🕳️ Collapsed Sinkhole Chasm.
+- **💡 Light Sources**: 🔥 Campsite Log Campfire, 🔥 Roaring Great Bonfire, 🔥 Smoldering Dying Coals, ☀️ Golden Forest Sunbeams, 🌙 Silvery Midnight Moonbeams, 💎 Cavern Skylight Shafts, 🕯️ Flickering Wall/Post Torch, 🏮 Warm Oil Camp Lantern, 🕯️ Cluster of Wax Candles, 🪔 Indoor Hearth Fireplace, 🍄 Bioluminescent Cave Flora, 🌌 Natural Polar Aurora Skyglow.
+- **🐾 Passive Actors**: 🦇 Flocking Cave Bats, 🦅 Circling Crows & Ravens, 🦅 Soaring Desert Vultures, 🕊️ Coastal Seagulls Flock, 🐀 Skittering Brown Rats, 🕷️ Scuttling Cave Spiders, 🦂 Desert Sand Scorpions, 🪲 Swarming Ground Beetles, 🐟 Freshwater Brook Trout, 🎏 Ornate Pond Koi Fish, 🦈 Reef Sharks & Ocean Fish, 🌾 Rolling Desert Tumbleweeds.
+- **🌿 Environment**: 🌊 Flowing Stream / River (Deformable Spline), 🌊 Deep Rushing River Current (Deformable Spline), 🐊 Murky Bayou & Marsh Water (Deformable Spline), 🌋 Flowing Molten Lava River (Deformable Spline), 🌊 Roaring Cliff Waterfall, 💧 Subterranean Cavern Cascade, 🌳 Swaying Oak Forest Canopy, 🌲 Boreal Pine & Conifer Forest, 🌴 Dense Tropical Jungle Canopy, 🍁 Golden Autumn Maple Grove, 🏖️ Sandy Beach & Reef Surf, 🌊 Tempestuous Deep Ocean Waves.
+
+### ⚔️ Historic & Fantasy (25 Features — 5 per Category)
+- **☁️ Weather**: 🧚 Enchanted Feywild Pixie Dust, 🔥 Siege Battlefield Cinders, 🌫️ Ancient Crypt Floor Mist, ✨ Arcane Leyline Breeze, 🌊 Galleon Deck Sea Spray.
+- **⚠️ Hazards**: 🕳️ Concealed Iron Punji Spike Pit, 🧪 Alchemical Green Greek Fire, 🔮 Wild Magic Runic Ground Ward, ☀️ Radiant Celestial Sanctuary Seal, ⚔️ Siege Pitch & Snare Trench.
+- **💡 Lights**: 🕯️ Dungeon Iron Wall Sconce, 🪔 Temple Bronze Tripod Brazier, 🕯️ Great Hall Feast Chandelier, 🌈 Stained-Glass Cathedral Rays, 🔮 Wizard's Floating Magelight.
+- **🐾 Passive Actors**: 🔵 Moorland Will-o'-the-Wisp, 🧚 Fluttering Feywild Sprite, 🐀 Plague Swarm of Crypt Rats, 🦅 Battlefield Carrion Ravens, 🪲 Tomb Golden Scarab Swarm.
+- **🌿 Environment**: 🌀 Ancient Runic Teleport Circle, ⛲ Courtyard Marble Fountain, 🌸 Sacred Shrine Sakura Grove, 🏰 Castle Defensive Moat Channel (Deformable Spline), ⚡ Glowing Arcane Leyline Fracture.
+
+### 🕵️ Modern & Pulp (25 Features — 5 per Category)
+- **☁️ Weather**: 🌧️ Noir Alleyway Acid Downpour, 🏭 Industrial Chemical Smog Haze, 💨 Subway Grate & Manhole Steam, 🌪️ Route 66 Dust Devil Eddy, 🌨️ Urban Sidewalk Slush Flurry.
+- **⚠️ Hazards**: 🚗 Gasoline Vehicle Wreck Blaze, ☠️ SWAT Riot Tear Gas Cloud, ⚡ Sparking Downed Power Line, 🛢️ Iridescent Garage Oil Slick, 🚧 Concertina Razorwire Barrier.
+- **💡 Lights**: 🚁 Helicopter / Prison Searchlight, 🔦 Tactical SWAT Weapon Light, 💡 Sodium-Vapor City Streetlamp, 🚘 Twin Automotive Headlights, 🛢️ Alleyway 55-Gallon Burn Barrel.
+- **🐾 Passive Actors**: 🕊️ City Plaza Pigeon Flock, 🐈 Prowling Stray Alley Cat, 🐀 Subway Track Sewer Rats, 📰 Windblown Street Newspaper, 🚨 Roving Security Guard Beacon.
+- **🌿 Environment**: 🌊 Concrete Storm Drainage Canal (Deformable Spline), ⛲ Civic Park Plaza Fountain, 🌀 Rooftop HVAC Exhaust Fan, 🍸 Buzzing Dive-Bar Neon Sign, ⚓ Industrial Harbor Pier Wake.
+
+### 🚀 Future & Sci-Fi (25 Features — 5 per Category)
+- **☁️ Weather**: 🌧️ Cyberpunk Acid Neon Rain, 🚀 Relativistic Warp Starfield, ☢️ Nuclear Fallout Ash Drift, 🦠 Bioluminescent Xeno-Spores, 🤖 Self-Assembling Nanite Cloud.
+- **⚠️ Hazards**: 🛡️ High-Voltage Laser Tripwire Grid, ⚡ Superheated Fusion Plasma Vent, ☢️ Mutagen Radioactive Sludge, ❄️ Sub-Zero Cryo Nitrogen Breach, 💥 Warp Core Overload Arc Vent.
+- **💡 Lights**: 🪐 3D Tactical Planetary Holo-Table, 🎯 Targeting Reticle Hologram, 🔦 Security Drone Scanner Cone, 🚨 Emergency Red Alert Klaxon, ⏩ Floor LED Runway Chevron Strip.
+- **🐾 Passive Actors**: 🛸 Sentry Surveillance Drone Swarm, 🤖 Cyber-Scuttler Maintenance Bots, 🧹 Autonomous Deck Scrubber Droid, 🐟 Digital Holographic Wireframe Koi, 🛰️ Deep-Space Telemetry Probe.
+- **🌿 Environment**: 🛡️ Hexagonal Energy Shield Barrier, 💠 Quantum Transmat Teleporter, 🖥️ Tactical Command HUD Console, ⚙️ Factory Conveyor Belt Track, 🧪 Bio-Mutagen Coolant Conduit (Deformable Spline).
+
+### 🐙 Other & Eldritch (25 Features — 5 per Category)
+- **☁️ Weather**: 🩸 Eldritch Crimson Blood Rain, 💀 Necrotic Cemetery Specter Fog, 🌌 Cosmic Void Dimensional Tear, 🦴 Ashen Necropolis Bone Blizzard, 👻 Swirling Tormented Shadow Spirits.
+- **⚠️ Hazards**: 🐙 Writhing Eldritch Void Tentacles, 🔥 Soul-Consuming Brimstone Hellfire, 🩸 Sacrificial Runic Blood Pool, ☣️ Choking Pestilence Plague Miasma, 🧪 Caustic Alchemical Ooze Mire.
+- **💡 Lights**: 💀 Gothic Skull Ritual Candelabra, 💙 Pale Blue Spectral Witchfire, 💎 Floating Amethyst Soul Crystal, ⚙️ Victorian Steampunk Gaslamp, 🌕 Blood Moon Volumetric Shafts.
+- **🐾 Passive Actors**: 👻 Floating Victorian Phantom Lady, 👁️ Wandering Eldritch All-Seeing Eye, 🕷️ Swarming Abyssal Shadow Spiders, 🐟 Deep-One Bioluminescent Anglers, 🦋 Death's-Head Crypt Lunar Moths.
+- **🌿 Environment**: 🩸 Flowing Sanguine River of Blood (Deformable Spline), ⛲ Vampiric Sanguine Stone Fountain, 🌲 Twisted Haunted Deadwood Thicket, 🍄 Alien Myconid Spore-Cap Grove, 🌀 Shattered Reality Void Rift.
+
+---
+
+## 🎛️ Element Inspector & Visual Tuning
+
+### Procedural 6-Octave Fractal Geometry Engine
+All organic shapes (forest canopies, deciduous trees, pine whorls, palm fronds, tumbleweeds, and deformable shorelines) are driven by a procedural 6-octave harmonic modulation algorithm:
+- **Fractal Roughness Slider (`0%` to `200%` Ultra-Gnarled)**:
+  - `0%`: Perfectly smooth geometric circles and curves.
+  - `75%` *(Default)*: Natural botanical tree silhouettes and organic riverbanks.
+  - `150%`–`200%`: Craggy, deeply notched, gnarled ancient trees, skeletal briars, and jagged coves.
+- **Internal Entity Scale (`0.25x` to `3.0x`)**: Adjusts the size of internal components (leaves, twigs, needles, fish, tumbleweed barbs) independent of the bounding box size.
+
+### Color Grading, Blend Modes & Filters
+- **Full-Spectrum Hue Shift**: Rotate hues `-180°` to `+180°` or choose 1-click presets (*Gold*, *Fel Green*, *Arcane Cyan*, *Void Purple*, *Crimson Blood*).
+- **Color Saturation (`0%` to `300%`)** & **Brightness (`30%` to `250%`)**.
+- **Blend Modes**: `Normal`, `Screen` (luminescent fire and magic), `Color Dodge` (blinding lightning and portals), `Multiply` (chasm shadows and blood stains), `Overlay`, and `Hard Light`.
+- **Edge Blur / Sharpen**: Smooth Gaussian edge softening (`-100` to `0`) or razor-sharp SVG 3×3 convolution filter (`0` to `+100`).
+- **Soft Edge Feathering (`0%` to `100%`)**: Blends outer element boundaries smoothly into the battle map.
 
 ---
 
 ## 🚀 Quick Start Guide
 
-### Running the Utility
-1. Open `index.html` in any modern web browser (Google Chrome, Microsoft Edge, Mozilla Firefox, or Brave).
-2. Press **F11** or click the fullscreen icon for a full tabletop view.
-3. Open **"📐 Keystone"** (or press **C**) to align corner pins with your table surface or battle mat.
-4. In **"⊞ Grid & Minis"**, turn on **Physical Miniature Calibrator**, place a physical miniature on the table, and adjust the slider to lock in your 1-inch scale!
-5. Drop realistic animated campfires, flowing water, or tumbleweeds onto the map, lock overlays, and begin your campaign.
-6. Press **H** whenever you want to hide all UI menus for clean tabletop play.
-
----
-
-## ⌨️ Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| **H** | Toggle / Hide all UI menus (Clean view for physical play) |
-| **B** | Instant Blackout curtain (Stealth room transitions) |
-| **C** | Toggle Keystone corner pin calibration |
-| **G** | Toggle tactical grid On / Off |
-| **F** | Toggle Fullscreen |
-| **R** | Reset Pan & Zoom to fit screen |
-| **Space + Drag** | Pan battle map |
-| **Mouse Wheel** | Zoom in / Zoom out |
-| **Arrow Keys** | Micro-nudge active keystone corner pin (0.2% precision) |
-| **Shift + Arrow** | Large-nudge active keystone corner (5x step) |
-| **Alt + Arrow** | Ultra-fine nudge active keystone corner (0.2x step) |
-| **Tab** | Cycle between keystone corners (TL → TR → BR → BL) |
-| **Delete / Backspace** | Delete currently selected living element / overlay |
-| **Escape** | Close open floating panels and deselect active element |
+1. Open `index.html` in your web browser (Chrome, Edge, Firefox, or Brave).
+2. Press **`F`** or **`F11`** for fullscreen projection mode.
+3. Open **"📐 Keystone"** (or press **`C`**) to align the 4 corner pins with your table surface.
+4. Open **"⊞ Grid & Minis"**, enable **Physical Miniature Calibrator**, place a miniature base on the table, and adjust the slider to lock in 1 inch = 25mm scale.
+5. In **"📁 Maps"**, load a preset, drop a custom file, or enter an online URL.
+6. Press **`P`** or hold **Right-Click Drag** to pan to the desired encounter area.
+7. Open **"🌿 Realistic FX"**, drop animated campfires, rivers, or mist, adjust attributes in the inspector, and press **`L`** to lock them in place.
+8. Press **`F9`** anytime to view this manual, or **`H`** to hide all UI menus for clean tabletop play!
 
 ---
 
@@ -198,15 +207,15 @@ Subtle, high-fidelity physical overlays with natural motion, lighting, and uncon
 
 ```
 ttrpg-projector-battlemap/
-├── index.html              # Single-screen projector battlemap utility & floating UI
+├── index.html              # Main single-screen projector battlemap utility & floating UI
 ├── css/
-│   └── style.css           # Dark UI, keystone handles, water shape handles & prompt studio styles
+│   └── style.css           # Dark theme, keystone handles, river handles, inspector & HUD styles
 ├── js/
-│   ├── keystone.js         # 4-corner homography solver & CSS matrix3d engine
+│   ├── keystone.js         # 4-corner perspective homography solver & CSS matrix3d engine
 │   ├── grid.js             # Canvas tactical grid & 1-inch miniature calibrator
-│   ├── living-elements.js  # Seamless waterfalls, lava seams, canopies, sunbeams, rivers, fire, weather & synced soundscapes
-│   ├── dynamic-scenes.js   # Real-time map state morphing, 3D parallax vertical height & infinite scrolling vehicle chases
-│   ├── ai-generator.js     # Toggle prompt builder, in-tool 4K search & popout launchers
-│   └── app.js              # Coordinator, 2.5K raster preset maps, clipboard paste & hotkeys
+│   ├── living-elements.js  # 160 realistic features, fractal geometry engine & synced audio
+│   ├── dynamic-scenes.js   # Map state morphing, 3D parallax height & infinite vehicle chases
+│   ├── ai-generator.js     # Toggle prompt builder, in-tool 4K map search & popout tabs
+│   └── app.js              # Application coordinator, panning engine, hotkeys & presets
 └── README.md               # User guide & documentation
 ```

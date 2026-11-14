@@ -268,6 +268,10 @@ class LivingElementsEngine {
         this.nextId = 1;
         this.listeners = [];
 
+        // Map camera (mirrors BattlemapApp.panZoom) so effects can be anchored to the map
+        this.camera = { x: 0, y: 0, scale: 1.0 };
+        this.anchorNewToMap = true; // New effects default to "Scale & Move with Map"
+
         // 16-Level Undo / Redo History Stack
         this.maxUndoSteps = 16;
         this.undoStack = [];
@@ -296,6 +300,17 @@ class LivingElementsEngine {
         this.soundscapeMode = 'auto'; // 'auto', 'tavern', 'cave', 'wind', 'forest', 'volcano', 'chase', 'none'
         this.detectedEnvironment = 'forest';
 
+        // Freehand Draw FX Engine State (Draw lines/paths or closed shapes directly on map)
+        this.isDrawingMode = false;
+        this.drawSubMode = 'auto'; // 'auto', 'line', 'shape'
+        this.drawStrokeWidth = 90;
+        this.drawTargetType = 'uni_river';
+        this.drawTargetElementId = null;
+        this.drawCanvas = null;
+        this.drawCtx = null;
+        this.rawDrawPoints = [];
+        this.isPointerDownDrawing = false;
+
         this.animFrameId = null;
         this.lastTime = performance.now();
     }
@@ -307,6 +322,8 @@ class LivingElementsEngine {
             this.weatherCtx = this.weatherCanvas.getContext('2d');
             this.resizeWeather();
         }
+
+        this.initDrawCanvas();
 
         this.loadSettings();
         this.lastCommittedSnapshot = JSON.stringify(this.getState());
@@ -751,6 +768,16 @@ class LivingElementsEngine {
         }
 
         const mergedConfig = Object.assign(defaultConfig, customConfig ? JSON.parse(JSON.stringify(customConfig)) : {});
+        // Map anchoring: brand-new effects (no explicit position) follow the map by default;
+        // restored/legacy effects keep whatever mode they were saved with.
+        const isFreshPlacement = (x === undefined && !forcedId);
+        if (mergedConfig.mapAnchored === undefined) {
+            mergedConfig.mapAnchored = !!(isFreshPlacement && this.anchorNewToMap);
+        }
+        mergedConfig.mapAnchored = !!mergedConfig.mapAnchored;
+        mergedConfig.locked = !!mergedConfig.locked;
+        if (mergedConfig.fractalRoughness === undefined) mergedConfig.fractalRoughness = 0.75;
+        if (mergedConfig.elementScale === undefined) mergedConfig.elementScale = mergedConfig.scale || 1.0;
         const isDeform = this.isRiverType(type);
         if (isDeform && (!Array.isArray(mergedConfig.nodes) || mergedConfig.nodes.length < 2)) {
             if (this.isForestType(type)) {
@@ -770,11 +797,16 @@ class LivingElementsEngine {
             }
         }
 
+        // New effects drop at the centre of the CURRENT view (converted into map space when anchored)
+        const camScale = this.camera.scale || 1;
+        const viewCx = mergedConfig.mapAnchored ? (window.innerWidth / 2 - this.camera.x) / camScale : window.innerWidth / 2;
+        const viewCy = mergedConfig.mapAnchored ? (window.innerHeight / 2 - this.camera.y) / camScale : window.innerHeight / 2;
+
         const elObj = {
             id,
             type,
-            x: x !== undefined ? x : (isDeform ? window.innerWidth / 2 : (window.innerWidth / 2 - defaultWidth / 2)),
-            y: y !== undefined ? y : (isDeform ? window.innerHeight / 2 : (window.innerHeight / 2 - defaultHeight / 2)),
+            x: x !== undefined ? x : (isDeform ? viewCx : (viewCx - defaultWidth / 2)),
+            y: y !== undefined ? y : (isDeform ? viewCy : (viewCy - defaultHeight / 2)),
             width: width || defaultWidth,
             height: height || defaultHeight,
             rotation: rotation || 0,
@@ -801,22 +833,146 @@ class LivingElementsEngine {
         return elObj;
     }
 
-    applyElementTransform(el) {
+    // ------------------------------------------------------------------------
+    // MAP CAMERA, MAP ANCHORING & PER-ELEMENT LOCK
+    // el.x / el.y are stored in "map space" when config.mapAnchored is true
+    // (screen = camera.pan + mapPoint * camera.scale) and in screen space otherwise.
+    // ------------------------------------------------------------------------
+
+    setCamera(x, y, scale) {
+        this.camera.x = x;
+        this.camera.y = y;
+        this.camera.scale = scale || 1;
+        for (let i = 0; i < this.elements.length; i++) {
+            const el = this.elements[i];
+            if (el.config && el.config.mapAnchored) this.positionElementDOM(el);
+        }
+    }
+
+    getElementViewScale(el) {
+        return (el && el.config && el.config.mapAnchored) ? (this.camera.scale || 1) : 1;
+    }
+
+    isElementLocked(el) {
+        return !!(el && el.config && el.config.locked);
+    }
+
+    /** Places the wrapper on screen (position + scale + rotation + tilt) from el.x / el.y and the camera. */
+    positionElementDOM(el) {
         if (!el || !el.dom) return;
         const cfg = el.config || {};
+        const anchored = !!cfg.mapAnchored;
+        const s = anchored ? (this.camera.scale || 1) : 1;
+        const isDeform = this.isRiverType(el.type);
+        const w = isDeform ? 0 : (el.width || 0);
+        const h = isDeform ? 0 : (el.height || 0);
+
+        let left = el.x;
+        let top = el.y;
+        if (anchored) {
+            left = this.camera.x + (el.x + w / 2) * s - w / 2;
+            top = this.camera.y + (el.y + h / 2) * s - h / 2;
+        }
+        el.dom.style.left = `${left}px`;
+        el.dom.style.top = `${top}px`;
+
         const rot = el.rotation || 0;
         const tiltX = cfg.tiltX ? parseFloat(cfg.tiltX) : 0;
         const tiltY = cfg.tiltY ? parseFloat(cfg.tiltY) : 0;
+        const scalePart = s !== 1 ? ` scale(${s})` : '';
+        el.dom.style.transformOrigin = isDeform ? '0 0' : 'center center';
+        if (tiltX !== 0 || tiltY !== 0) {
+            el.dom.style.transform = `perspective(800px)${scalePart} rotate(${rot}deg) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+        } else {
+            el.dom.style.transform = `${scalePart ? scalePart.trim() + ' ' : ''}rotate(${rot}deg)`;
+        }
+    }
+
+    applyElementLockState(el) {
+        if (!el || !el.dom) return;
+        el.dom.classList.toggle('element-locked', this.isElementLocked(el));
+        el.dom.classList.toggle('element-map-anchored', !!(el.config && el.config.mapAnchored));
+    }
+
+    setElementLocked(id, locked) {
+        const el = this.elements.find(e => e.id === id);
+        if (!el) return;
+        el.config.locked = !!locked;
+        this.applyElementLockState(el);
+        this.notify();
+        if (window.onElementSelected && this.selectedElementId === id) window.onElementSelected(el);
+    }
+
+    lockAllElements(locked = true) {
+        this.elements.forEach(el => {
+            el.config.locked = !!locked;
+            this.applyElementLockState(el);
+        });
+        this.notify();
+        const sel = this.elements.find(e => e.id === this.selectedElementId);
+        if (sel && window.onElementSelected) window.onElementSelected(sel);
+    }
+
+    /** Switches an effect between "fixed to screen" and "Scale & Move with Map" without it visually jumping. */
+    setElementAnchored(id, anchored) {
+        const el = this.elements.find(e => e.id === id);
+        if (!el) return;
+        anchored = !!anchored;
+        if (!!el.config.mapAnchored === anchored) return;
+
+        const cam = this.camera;
+        const s = cam.scale || 1;
+        const isDeform = this.isRiverType(el.type);
+        const w = isDeform ? 0 : el.width;
+        const h = isDeform ? 0 : el.height;
+        const cx = el.x + w / 2;
+        const cy = el.y + h / 2;
+
+        if (anchored) {
+            el.x = (cx - cam.x) / s - w / 2;
+            el.y = (cy - cam.y) / s - h / 2;
+            if (isDeform && Array.isArray(el.config.nodes) && s !== 1) {
+                el.config.nodes.forEach(n => {
+                    n.dx /= s;
+                    n.dy /= s;
+                    if (n.w) n.w /= s;
+                });
+            }
+        } else {
+            el.x = cam.x + cx * s - w / 2;
+            el.y = cam.y + cy * s - h / 2;
+            if (isDeform && Array.isArray(el.config.nodes) && s !== 1) {
+                el.config.nodes.forEach(n => {
+                    n.dx *= s;
+                    n.dy *= s;
+                    if (n.w) n.w *= s;
+                });
+            }
+        }
+        el.config.mapAnchored = anchored;
+        this.applyElementTransform(el);
+        if (isDeform) {
+            this.updateRiverBounds(el);
+            this.rebuildRiverHandles(el);
+        }
+        this.applyElementLockState(el);
+        this.notify();
+        if (window.onElementSelected && this.selectedElementId === id) window.onElementSelected(el);
+    }
+
+    setAnchorAllToMap(anchored = true) {
+        this.elements.forEach(el => this.setElementAnchored(el.id, anchored));
+    }
+
+    applyElementTransform(el) {
+        if (!el || !el.dom) return;
+        const cfg = el.config || {};
         const opacity = cfg.opacity !== undefined ? parseFloat(cfg.opacity) : 1.0;
         const flipX = cfg.flipX ? -1 : 1;
         const flipY = cfg.flipY ? -1 : 1;
 
-        el.dom.style.transformOrigin = 'center center';
-        if (tiltX !== 0 || tiltY !== 0) {
-            el.dom.style.transform = `perspective(800px) rotate(${rot}deg) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
-        } else {
-            el.dom.style.transform = `rotate(${rot}deg)`;
-        }
+        this.positionElementDOM(el);
+        this.applyElementLockState(el);
 
         // Blend Mode (applied to element wrapper so it blends with the battlemap underneath)
         const blendMode = cfg.blendMode || 'normal';
@@ -928,6 +1084,9 @@ class LivingElementsEngine {
             flowSpeed: 1.0,
             intensity: 1.0,
             quantity: 1.0,
+            fractalRoughness: 0.75,
+            elementScale: 1.0,
+            scale: 1.0,
             opacity: this.isRiverType(el.type) ? 0.72 : 0.90,
             hue: 0,
             saturation: 100,
@@ -946,6 +1105,160 @@ class LivingElementsEngine {
         }
         this.applyElementTransform(el);
         this.notify();
+    }
+
+    // ------------------------------------------------------------------------
+    // PROCEDURAL MULTI-OCTAVE FRACTAL GEOMETRY & ENTITY SCALE ENGINE
+    // Converts simple geometric circles/ellipses/stars into rich organic shapes
+    // ------------------------------------------------------------------------
+    fractalHarmonicMod(theta, seed = 0, rough = 0.75) {
+        if (rough <= 0.01) return 1.0;
+        // 6-octave FBM + ridged crevice cascade for deep, craggy organic profiles
+        const n1 = Math.sin(theta * 3 + seed * 1.13) * 0.36;
+        const n2 = Math.cos(theta * 5 - seed * 1.79) * 0.27;
+        const n3 = Math.sin(theta * 9 + seed * 2.41) * 0.21;
+        const n4 = Math.cos(theta * 15 - seed * 3.07) * 0.15;
+        const n5 = Math.sin(theta * 23 + seed * 4.19) * 0.10;
+        const n6 = (1.0 - 2.0 * Math.abs(Math.sin(theta * 11.5 - seed * 2.63))) * 0.13;
+        const raw = n1 + n2 + n3 + n4 + n5 + n6;
+        return Math.max(0.26, 1.0 + rough * 0.44 * raw);
+    }
+
+    traceFractalLobe(ctx, cx, cy, rx, ry, rot = 0, rough = 0.75, seed = 0, steps = 32, beginNewPath = true) {
+        if (beginNewPath) {
+            ctx.beginPath();
+        }
+        const safeRx = Math.max(0.5, rx);
+        const safeRy = Math.max(0.5, ry);
+        const useOrig = ctx._origEllipse || ctx.ellipse.bind(ctx);
+        if (rough <= 0.02 || safeRx < 2 || safeRy < 2) {
+            const startX = cx + safeRx * Math.cos(rot);
+            const startY = cy + safeRx * Math.sin(rot);
+            ctx.moveTo(startX, startY);
+            useOrig(cx, cy, safeRx, safeRy, rot, 0, Math.PI * 2);
+            return;
+        }
+        const effSteps = rough > 0.25 ? Math.max(steps, 36) : steps;
+        const cosR = Math.cos(rot);
+        const sinR = Math.sin(rot);
+        for (let i = 0; i <= effSteps; i++) {
+            const theta = (i / effSteps) * Math.PI * 2;
+            const mod = this.fractalHarmonicMod(theta, seed, rough);
+            const curl = theta + rough * 0.042 * Math.sin(theta * 6 + seed * 1.9);
+            const lx = Math.cos(curl) * safeRx * mod;
+            const ly = Math.sin(curl) * safeRy * mod;
+            const px = cx + lx * cosR - ly * sinR;
+            const py = cy + lx * sinR + ly * cosR;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+    }
+
+    drawFractalTwigBranch(ctx, x1, y1, length, angle, width = 2.5, depth = 3, rough = 0.75, seed = 0, color = null) {
+        const safeDepth = Math.min(4, Math.max(0, Math.round(depth)));
+        if (safeDepth <= 0 || length < 1.5) return;
+        if (color) {
+            ctx.strokeStyle = color;
+        }
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        const bend1 = Math.sin(seed * 3.7 + safeDepth * 1.9) * 0.34 * (0.4 + rough * 0.85);
+        const bend2 = Math.cos(seed * 5.3 - safeDepth * 2.3) * 0.30 * (0.4 + rough * 0.85);
+        const seg1 = length * 0.36;
+        const seg2 = length * 0.34;
+        const seg3 = length - seg1 - seg2;
+
+        const q1x = x1 + Math.cos(angle + bend1) * seg1;
+        const q1y = y1 + Math.sin(angle + bend1) * seg1;
+        const q2x = q1x + Math.cos(angle - bend2 * 0.85) * seg2;
+        const q2y = q1y + Math.sin(angle - bend2 * 0.85) * seg2;
+        const ex = q2x + Math.cos(angle + bend1 * 0.55) * seg3;
+        const ey = q2y + Math.sin(angle + bend1 * 0.55) * seg3;
+
+        ctx.lineWidth = Math.max(0.6, width);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(q1x, q1y);
+        ctx.lineTo(q2x, q2y);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+
+        if (safeDepth > 1) {
+            const spread = 0.44 + Math.min(1.4, rough) * 0.28;
+            this.drawFractalTwigBranch(ctx, q1x, q1y, length * 0.64, angle + spread, width * 0.65, safeDepth - 1, rough, seed + 1.7, color);
+            this.drawFractalTwigBranch(ctx, q2x, q2y, length * 0.60, angle - spread * 0.92, width * 0.60, safeDepth - 1, rough, seed + 3.1, color);
+            if (rough > 0.35) {
+                this.drawFractalTwigBranch(ctx, ex, ey, length * 0.52, angle + spread * 0.65, width * 0.52, safeDepth - 1, rough, seed + 4.9, color);
+            }
+            if (rough > 0.85 && safeDepth >= 2) {
+                this.drawFractalTwigBranch(ctx, ex, ey, length * 0.44, angle - spread * 0.55, width * 0.46, safeDepth - 1, rough, seed + 6.7, color);
+            }
+        }
+    }
+
+    installFractalContext(ctx, el) {
+        if (!ctx || ctx._fractalInstalled) return;
+        ctx._fractalInstalled = true;
+        const origArc = ctx.arc.bind(ctx);
+        const origEllipse = ctx.ellipse.bind(ctx);
+        ctx._origArc = origArc;
+        ctx._origEllipse = origEllipse;
+        const self = this;
+
+        ctx.arc = function (x, y, r, startAngle, endAngle, ccw) {
+            const cfg = (el && el.config) || {};
+            const rough = cfg.fractalRoughness !== undefined ? parseFloat(cfg.fractalRoughness) : 0.75;
+            const elScale = cfg.elementScale !== undefined ? parseFloat(cfg.elementScale) : (cfg.scale || 1.0);
+            let adjR = Math.max(0.1, r);
+
+            if (el && el._autoScaleEntities && elScale !== 1.0 && adjR < (el._maxEntityRadius || 120)) {
+                adjR *= elScale;
+            }
+
+            const isFullCircle = Math.abs((endAngle || 0) - (startAngle || 0)) >= Math.PI * 1.95;
+            const isSolidFill = typeof ctx.fillStyle === 'string';
+            if (rough > 0.04 && isFullCircle && isSolidFill && adjR >= 2.6 && !(el && el._disableAutoFractalArc)) {
+                const sizeRamp = Math.max(0, Math.min(1, (adjR - 2.6) / 3.2));
+                const effRough = rough * sizeRamp;
+                if (effRough > 0.02) {
+                    const tVal = (el && el.stateTime) || 0;
+                    const seed = Math.sin(x * 0.025) * 1.7 + Math.cos(y * 0.025) * 1.7 + tVal * 0.35;
+                    self.traceFractalLobe(ctx, x, y, adjR, adjR, 0, effRough, seed, 28, false);
+                    return;
+                }
+            }
+            origArc(x, y, adjR, startAngle, endAngle, ccw);
+        };
+
+        ctx.ellipse = function (x, y, rx, ry, rot, startAngle, endAngle, ccw) {
+            const cfg = (el && el.config) || {};
+            const rough = cfg.fractalRoughness !== undefined ? parseFloat(cfg.fractalRoughness) : 0.75;
+            const elScale = cfg.elementScale !== undefined ? parseFloat(cfg.elementScale) : (cfg.scale || 1.0);
+            let adjRx = Math.max(0.1, rx);
+            let adjRy = Math.max(0.1, ry);
+
+            if (el && el._autoScaleEntities && elScale !== 1.0 && Math.max(adjRx, adjRy) < (el._maxEntityRadius || 120)) {
+                adjRx *= elScale;
+                adjRy *= elScale;
+            }
+
+            const isFullOval = Math.abs((endAngle || 0) - (startAngle || 0)) >= Math.PI * 1.95;
+            const isSolidFill = typeof ctx.fillStyle === 'string';
+            const minR = Math.min(adjRx, adjRy);
+            if (rough > 0.04 && isFullOval && isSolidFill && minR >= 2.6 && !(el && el._disableAutoFractalArc)) {
+                const sizeRamp = Math.max(0, Math.min(1, (minR - 2.6) / 3.2));
+                const effRough = rough * sizeRamp;
+                if (effRough > 0.02) {
+                    const tVal = (el && el.stateTime) || 0;
+                    const seed = Math.sin(x * 0.025) * 1.7 + Math.cos(y * 0.025) * 1.7 + tVal * 0.35;
+                    self.traceFractalLobe(ctx, x, y, adjRx, adjRy, rot || 0, effRough, seed, 28, false);
+                    return;
+                }
+            }
+            origEllipse(x, y, adjRx, adjRy, rot || 0, startAngle, endAngle, ccw);
+        };
     }
 
     renderElementDOM(el) {
@@ -973,6 +1286,7 @@ class LivingElementsEngine {
         el.dom = wrapper;
         el.canvas = canvas;
         el.ctx = canvas.getContext('2d');
+        this.installFractalContext(el.ctx, el);
         this.applyElementTransform(el);
 
         const box = document.createElement('div');
@@ -1023,6 +1337,7 @@ class LivingElementsEngine {
         el.canvas = canvas;
         el.ctx = canvas.getContext('2d');
         el.handlesLayer = handlesLayer;
+        this.installFractalContext(el.ctx, el);
         this.applyElementTransform(el);
 
         this.updateRiverBounds(el);
@@ -1223,7 +1538,7 @@ class LivingElementsEngine {
         let startX = 0, startY = 0;
 
         const onPointerDown = (e) => {
-            if (this.isLocked) return;
+            if (this.isLocked || this.isElementLocked(el)) return;
             const target = e.target.closest('.water-handle');
             const isCanvas = e.target === el.canvas;
 
@@ -1312,14 +1627,14 @@ class LivingElementsEngine {
             if (!dragMode) return;
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            const dx = clientX - startClientX;
-            const dy = clientY - startClientY;
+            const viewScale = this.getElementViewScale(el);
+            const dx = (clientX - startClientX) / viewScale;
+            const dy = (clientY - startClientY) / viewScale;
 
             if (dragMode === 'move-all') {
                 el.x = startX + dx;
                 el.y = startY + dy;
-                el.dom.style.left = `${el.x}px`;
-                el.dom.style.top = `${el.y}px`;
+                this.positionElementDOM(el);
             } else if (dragMode === 'drag-node') {
                 const node = el.config.nodes[activeIdx];
                 if (node) {
@@ -1332,8 +1647,8 @@ class LivingElementsEngine {
                 const node = el.config.nodes[activeIdx];
                 if (node) {
                     const rect = el.dom.getBoundingClientRect();
-                    const localMouseX = clientX - rect.left;
-                    const localMouseY = clientY - rect.top;
+                    const localMouseX = (clientX - rect.left) / viewScale;
+                    const localMouseY = (clientY - rect.top) / viewScale;
                     const dist = Math.hypot(localMouseX - node.dx, localMouseY - node.dy);
                     node.w = Math.max(24, Math.min(3000, Math.round(dist * 2)));
                     this.updateRiverBounds(el);
@@ -1364,7 +1679,7 @@ class LivingElementsEngine {
 
     setRiverShapeMode(id, mode) {
         const el = this.elements.find(e => e.id === id);
-        if (!el || !this.isRiverType(el.type)) return;
+        if (!el || !this.isRiverType(el.type) || this.isElementLocked(el)) return;
         if (el.config.shapeMode === mode) return;
 
         el.config.shapeMode = mode;
@@ -1383,7 +1698,7 @@ class LivingElementsEngine {
 
     addRiverNode(id) {
         const el = this.elements.find(e => e.id === id);
-        if (!el || !this.isRiverType(el.type)) return;
+        if (!el || !this.isRiverType(el.type) || this.isElementLocked(el)) return;
         const nodes = el.config.nodes;
         if (nodes.length < 2) return;
 
@@ -1415,7 +1730,7 @@ class LivingElementsEngine {
 
     removeRiverNode(id, index = -1) {
         const el = this.elements.find(e => e.id === id);
-        if (!el || !this.isRiverType(el.type)) return;
+        if (!el || !this.isRiverType(el.type) || this.isElementLocked(el)) return;
         const nodes = el.config.nodes;
         const minNodes = el.config.shapeMode === 'polygon' ? 3 : 2;
         if (nodes.length <= minNodes) return;
@@ -1432,7 +1747,7 @@ class LivingElementsEngine {
 
     scaleRiverWidth(id, factorOrWidth) {
         const el = this.elements.find(e => e.id === id);
-        if (!el || !this.isRiverType(el.type)) return;
+        if (!el || !this.isRiverType(el.type) || this.isElementLocked(el)) return;
         const nodes = el.config.nodes || [];
         const isFactor = factorOrWidth > 0 && factorOrWidth < 5;
 
@@ -1469,7 +1784,7 @@ class LivingElementsEngine {
         let origX = 0, origY = 0, origW = 0, origH = 0, origAngle = 0, origTiltX = 0, origTiltY = 0;
 
         const onPointerDown = (e) => {
-            if (this.isLocked) return;
+            if (this.isLocked || this.isElementLocked(el)) return;
             this.selectElement(el.id);
 
             const handleEl = e.target.closest('.element-handle');
@@ -1533,14 +1848,16 @@ class LivingElementsEngine {
 
         const onPointerMove = (e) => {
             if (!mode) return;
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
+            const viewScale = this.getElementViewScale(el);
+            const rawDx = e.clientX - startX;
+            const rawDy = e.clientY - startY;
+            const dx = rawDx / viewScale;
+            const dy = rawDy / viewScale;
 
             if (mode === 'drag') {
                 el.x = origX + dx;
                 el.y = origY + dy;
-                wrapper.style.left = `${el.x}px`;
-                wrapper.style.top = `${el.y}px`;
+                this.positionElementDOM(el);
             } else if (mode === 'rotate') {
                 const rect = wrapper.getBoundingClientRect();
                 const cx = rect.left + rect.width / 2;
@@ -1550,8 +1867,8 @@ class LivingElementsEngine {
                 this.applyElementTransform(el);
                 if (window.onElementSelected) window.onElementSelected(el);
             } else if (mode === 'perspective') {
-                el.config.tiltX = Math.max(-85, Math.min(85, Math.round(origTiltX - dy * 0.45)));
-                el.config.tiltY = Math.max(-85, Math.min(85, Math.round(origTiltY + dx * 0.45)));
+                el.config.tiltX = Math.max(-85, Math.min(85, Math.round(origTiltX - rawDy * 0.45)));
+                el.config.tiltY = Math.max(-85, Math.min(85, Math.round(origTiltY + rawDx * 0.45)));
                 this.applyElementTransform(el);
                 if (window.onElementSelected) window.onElementSelected(el);
             } else if (mode && mode.startsWith('handle-')) {
@@ -1597,10 +1914,9 @@ class LivingElementsEngine {
                 el.width = newW;
                 el.height = newH;
 
-                wrapper.style.left = `${el.x}px`;
-                wrapper.style.top = `${el.y}px`;
                 wrapper.style.width = `${el.width}px`;
                 wrapper.style.height = `${el.height}px`;
+                this.positionElementDOM(el);
 
                 if (el.canvas) {
                     if (el.canvas.width !== el.width) el.canvas.width = el.width;
@@ -1641,20 +1957,18 @@ class LivingElementsEngine {
 
     fitElementToCanvas(id) {
         const el = this.elements.find(e => e.id === id);
-        if (!el) return;
+        if (!el || this.isElementLocked(el)) return;
 
         const mapViewport = document.getElementById('map-viewport') || this.container;
         const rect = mapViewport ? mapViewport.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
         const fullW = Math.round(rect.width || window.innerWidth);
         const fullH = Math.round(rect.height || window.innerHeight);
 
+        // Anchored effects cover the map itself (map space); fixed effects cover the screen.
         if (this.isRiverType(el.type)) {
             el.x = Math.round(fullW / 2);
             el.y = Math.round(fullH / 2);
-            if (el.dom) {
-                el.dom.style.left = `${el.x}px`;
-                el.dom.style.top = `${el.y}px`;
-            }
+            this.positionElementDOM(el);
             const spanX = fullW * 0.45;
             const spanY = fullH * 0.40;
             if (el.config.shapeMode === 'polygon') {
@@ -1697,8 +2011,6 @@ class LivingElementsEngine {
         }
 
         if (el.dom) {
-            el.dom.style.left = '0px';
-            el.dom.style.top = '0px';
             el.dom.style.width = `${fullW}px`;
             el.dom.style.height = `${fullH}px`;
             this.applyElementTransform(el);
@@ -1714,7 +2026,7 @@ class LivingElementsEngine {
 
     setElementDimensions(id, width, height) {
         const el = this.elements.find(e => e.id === id);
-        if (!el || el.type === 'river') return;
+        if (!el || el.type === 'river' || this.isElementLocked(el)) return;
         const MAX_DIM = 6000;
         if (width !== undefined && !isNaN(width)) {
             el.width = Math.max(20, Math.min(MAX_DIM, Math.round(parseFloat(width))));
@@ -1725,6 +2037,7 @@ class LivingElementsEngine {
         if (el.dom) {
             el.dom.style.width = `${el.width}px`;
             el.dom.style.height = `${el.height}px`;
+            this.positionElementDOM(el);
         }
         if (el.canvas) {
             el.canvas.width = el.width;
@@ -1787,7 +2100,7 @@ class LivingElementsEngine {
             original.width,
             original.height,
             original.rotation,
-            JSON.parse(JSON.stringify(original.config))
+            Object.assign(JSON.parse(JSON.stringify(original.config)), { locked: false })
         );
     }
 
@@ -1801,6 +2114,522 @@ class LivingElementsEngine {
             this.updateRiverHandlePositions(el);
         }
         this.notify(false);
+    }
+
+    // ------------------------------------------------------------------------
+    // FREEHAND DRAW FX ENGINE (DRAW LINES / SPLINES OR CLOSED SHAPES / AREAS)
+    // ------------------------------------------------------------------------
+
+    initDrawCanvas() {
+        this.drawCanvas = document.getElementById('freehand-draw-canvas');
+        if (this.drawCanvas) {
+            this.drawCtx = this.drawCanvas.getContext('2d');
+            this.resizeDrawCanvas();
+        }
+
+        const onPointerDown = (e) => {
+            if (!this.isDrawingMode) return;
+            // Ignore right-click pan or secondary buttons
+            if (e.button !== 0 && e.touches === undefined) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            this.rawDrawPoints = [{ x: cx, y: cy }];
+            this.isPointerDownDrawing = true;
+            this.renderDrawLivePreview();
+        };
+
+        const onPointerMove = (e) => {
+            if (!this.isDrawingMode || !this.isPointerDownDrawing) return;
+            e.preventDefault();
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            const last = this.rawDrawPoints[this.rawDrawPoints.length - 1];
+            if (!last || Math.hypot(cx - last.x, cy - last.y) >= 6) {
+                this.rawDrawPoints.push({ x: cx, y: cy });
+                this.renderDrawLivePreview();
+            }
+        };
+
+        const onPointerUp = (e) => {
+            if (!this.isDrawingMode || !this.isPointerDownDrawing) return;
+            this.isPointerDownDrawing = false;
+            this.finishFreehandStroke(this.rawDrawPoints);
+            this.rawDrawPoints = [];
+            if (this.drawCtx && this.drawCanvas) {
+                this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+            }
+        };
+
+        const onPointerCancel = () => {
+            if (!this.isDrawingMode || !this.isPointerDownDrawing) return;
+            this.isPointerDownDrawing = false;
+            this.rawDrawPoints = [];
+            if (this.drawCtx && this.drawCanvas) {
+                this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+            }
+        };
+
+        if (this.drawCanvas) {
+            this.drawCanvas.addEventListener('mousedown', onPointerDown);
+            this.drawCanvas.addEventListener('touchstart', onPointerDown, { passive: false });
+        }
+        window.addEventListener('mousemove', onPointerMove, { passive: false });
+        window.addEventListener('touchmove', onPointerMove, { passive: false });
+        window.addEventListener('mouseup', onPointerUp);
+        window.addEventListener('touchend', onPointerUp);
+        window.addEventListener('touchcancel', onPointerCancel);
+        window.addEventListener('resize', () => this.resizeDrawCanvas());
+    }
+
+    resizeDrawCanvas() {
+        if (!this.drawCanvas) return;
+        const parent = this.drawCanvas.parentElement;
+        const rect = parent ? parent.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+        const w = rect.width || window.innerWidth;
+        const h = rect.height || window.innerHeight;
+        if (this.drawCanvas.width !== w || this.drawCanvas.height !== h) {
+            this.drawCanvas.width = w;
+            this.drawCanvas.height = h;
+        }
+    }
+
+    toggleDrawMode(targetType = null, elementId = null) {
+        this.setDrawMode(!this.isDrawingMode, targetType, elementId);
+    }
+
+    setDrawMode(active, targetType = null, elementId = null) {
+        this.isDrawingMode = !!active;
+
+        if (elementId) {
+            this.drawTargetElementId = elementId;
+            const el = this.elements.find(e => e.id === elementId);
+            if (el) this.drawTargetType = el.type;
+        } else if (targetType) {
+            this.drawTargetType = targetType;
+            this.drawTargetElementId = null;
+        } else if (!this.drawTargetType) {
+            if (this.selectedElementId) {
+                const el = this.elements.find(e => e.id === this.selectedElementId);
+                if (el) {
+                    this.drawTargetType = el.type;
+                    this.drawTargetElementId = el.id;
+                }
+            } else {
+                this.drawTargetType = 'uni_river';
+            }
+        }
+
+        document.body.classList.toggle('draw-mode-active', this.isDrawingMode);
+
+        if (this.drawCanvas) {
+            this.drawCanvas.style.display = this.isDrawingMode ? 'block' : 'none';
+            if (this.isDrawingMode) {
+                this.resizeDrawCanvas();
+            } else if (this.drawCtx) {
+                this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+            }
+        }
+
+        const banner = document.getElementById('draw-mode-banner');
+        if (banner) {
+            banner.style.display = this.isDrawingMode ? 'block' : 'none';
+        }
+
+        this.updateDrawUI();
+    }
+
+    setDrawSubMode(subMode) {
+        if (subMode === 'auto' || subMode === 'line' || subMode === 'shape') {
+            this.drawSubMode = subMode;
+            this.updateDrawUI();
+        }
+    }
+
+    setDrawStrokeWidth(w) {
+        this.drawStrokeWidth = Math.max(10, Math.min(600, parseInt(w, 10) || 90));
+        this.updateDrawUI();
+    }
+
+    setDrawTargetType(type) {
+        this.drawTargetType = type;
+        this.drawTargetElementId = null;
+        this.updateDrawUI();
+    }
+
+    getFeatureName(type) {
+        if (!type) return 'Effect';
+        if (typeof window !== 'undefined' && window.FEATURE_CATALOG && window.FEATURE_CATALOG[type]) {
+            return window.FEATURE_CATALOG[type].name;
+        }
+        return type.toUpperCase().replace(/_/g, ' ');
+    }
+
+    updateDrawUI() {
+        const toggleBtn = document.getElementById('btn-toggle-draw-mode');
+        const hudBtn = document.getElementById('hud-btn-draw');
+        if (toggleBtn) {
+            toggleBtn.classList.toggle('active', this.isDrawingMode);
+            toggleBtn.innerHTML = this.isDrawingMode ? '✏️ Draw Mode: ON' : '✏️ Draw Mode: OFF';
+        }
+        if (hudBtn) {
+            hudBtn.classList.toggle('active', this.isDrawingMode);
+        }
+
+        const featName = this.drawTargetElementId
+            ? `(Re-drawing #${this.drawTargetElementId}) ${this.getFeatureName(this.drawTargetType)}`
+            : this.getFeatureName(this.drawTargetType);
+
+        const bannerTarget = document.getElementById('draw-banner-target-name');
+        if (bannerTarget) bannerTarget.textContent = featName;
+
+        const panelTarget = document.getElementById('fx-draw-target-name');
+        if (panelTarget) panelTarget.textContent = featName;
+
+        // Submode buttons sync
+        document.querySelectorAll('.draw-submode-btn').forEach(btn => {
+            const sm = btn.getAttribute('data-submode');
+            btn.classList.toggle('active', sm === this.drawSubMode);
+        });
+
+        // Width slider & readouts
+        const slider = document.getElementById('fx-draw-width-slider');
+        const valDisp = document.getElementById('fx-draw-width-val');
+        if (slider) slider.value = this.drawStrokeWidth;
+        if (valDisp) valDisp.textContent = `${this.drawStrokeWidth}px`;
+
+        document.querySelectorAll('.fx-draw-width-chip').forEach(chip => {
+            const cw = parseInt(chip.getAttribute('data-width'), 10);
+            chip.classList.toggle('active', cw === this.drawStrokeWidth);
+        });
+    }
+
+    simplifyPoints(pts, tolerance = 16) {
+        if (!pts || pts.length <= 3) return pts ? pts.slice() : [];
+        const res = [pts[0]];
+        let lastPt = pts[0];
+        const tolSq = tolerance * tolerance;
+        for (let i = 1; i < pts.length - 1; i++) {
+            const p = pts[i];
+            const distSq = (p.x - lastPt.x) ** 2 + (p.y - lastPt.y) ** 2;
+            if (distSq >= tolSq) {
+                res.push(p);
+                lastPt = p;
+            }
+        }
+        res.push(pts[pts.length - 1]);
+        return res;
+    }
+
+    createRibbonPolygon(pts, width) {
+        if (!pts || pts.length === 0) return [];
+        if (pts.length === 1) {
+            const r = (width || 80) / 2;
+            const res = [];
+            for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+                res.push({ x: pts[0].x + Math.cos(a) * r, y: pts[0].y + Math.sin(a) * r });
+            }
+            return res;
+        }
+        const halfW = (width || 80) / 2;
+        const leftPts = [];
+        const rightPts = [];
+        const n = pts.length;
+        for (let i = 0; i < n; i++) {
+            let prev = pts[Math.max(0, i - 1)];
+            let next = pts[Math.min(n - 1, i + 1)];
+            let dx = next.x - prev.x;
+            let dy = next.y - prev.y;
+            let len = Math.hypot(dx, dy) || 1;
+            let nx = -dy / len;
+            let ny = dx / len;
+            leftPts.push({ x: pts[i].x + nx * halfW, y: pts[i].y + ny * halfW });
+            rightPts.push({ x: pts[i].x - nx * halfW, y: pts[i].y - ny * halfW });
+        }
+        // Rounded end cap (forwards)
+        const capEnd = [];
+        const endP = pts[n - 1];
+        const dxN = pts[n - 1].x - pts[n - 2].x;
+        const dyN = pts[n - 1].y - pts[n - 2].y;
+        const baseAngN = Math.atan2(dyN, dxN);
+        for (let a = -Math.PI / 2; a <= Math.PI / 2; a += Math.PI / 6) {
+            capEnd.push({
+                x: endP.x + Math.cos(baseAngN + a) * halfW,
+                y: endP.y + Math.sin(baseAngN + a) * halfW
+            });
+        }
+        // Rounded start cap (backwards)
+        const capStart = [];
+        const startP = pts[0];
+        const dx0 = pts[1].x - pts[0].x;
+        const dy0 = pts[1].y - pts[0].y;
+        const baseAng0 = Math.atan2(dy0, dx0);
+        for (let a = Math.PI / 2; a <= Math.PI * 1.5; a += Math.PI / 6) {
+            capStart.push({
+                x: startP.x + Math.cos(baseAng0 + a) * halfW,
+                y: startP.y + Math.sin(baseAng0 + a) * halfW
+            });
+        }
+        return leftPts.concat(capEnd, rightPts.reverse(), capStart);
+    }
+
+    renderDrawLivePreview() {
+        const ctx = this.drawCtx;
+        if (!ctx || !this.drawCanvas) return;
+        const W = this.drawCanvas.width;
+        const H = this.drawCanvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        const pts = this.rawDrawPoints;
+        if (!pts || pts.length < 2) return;
+
+        const rect = this.drawCanvas.getBoundingClientRect();
+        const p0 = pts[0];
+        const pN = pts[pts.length - 1];
+        const closeDist = Math.hypot(p0.x - pN.x, p0.y - pN.y);
+
+        let isClosed = false;
+        if (this.drawSubMode === 'shape') {
+            isClosed = true;
+        } else if (this.drawSubMode === 'auto') {
+            let totalLen = 0;
+            for (let i = 1; i < pts.length; i++) totalLen += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+            const closeThreshold = Math.max(30, this.drawStrokeWidth * 0.40);
+            if (pts.length >= 6 && closeDist < closeThreshold && totalLen >= closeThreshold * 2.2) {
+                isClosed = true;
+            }
+        }
+
+        ctx.save();
+
+        // 1. Soft Fill Preview when Closed Shape is detected or active
+        if (isClosed) {
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x - rect.left, pts[0].y - rect.top);
+            for (let i = 1; i < pts.length; i++) {
+                ctx.lineTo(pts[i].x - rect.left, pts[i].y - rect.top);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 255, 200, 0.18)';
+            ctx.fill();
+        }
+
+        // 2. Stroke Width Rails (Guide lines indicating thickness)
+        const ribbon = this.createRibbonPolygon(pts.map(p => ({ x: p.x - rect.left, y: p.y - rect.top })), this.drawStrokeWidth);
+        if (ribbon.length >= 3 && !isClosed) {
+            ctx.beginPath();
+            ctx.moveTo(ribbon[0].x, ribbon[0].y);
+            for (let r = 1; r < ribbon.length; r++) ctx.lineTo(ribbon[r].x, ribbon[r].y);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 255, 200, 0.12)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0, 255, 200, 0.40)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // 3. Main Center Glowing Neon Spine
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x - rect.left, pts[0].y - rect.top);
+        for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i].x - rect.left, pts[i].y - rect.top);
+        }
+        if (isClosed) ctx.closePath();
+
+        ctx.strokeStyle = '#00ffc8';
+        ctx.lineWidth = 3.5;
+        ctx.shadowColor = '#00ffc8';
+        ctx.shadowBlur = 12;
+        ctx.stroke();
+
+        // 4. Start Bead
+        ctx.beginPath();
+        ctx.arc(p0.x - rect.left, p0.y - rect.top, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+
+        // 5. Pulsing Head Marker at pointer
+        ctx.beginPath();
+        ctx.arc(pN.x - rect.left, pN.y - rect.top, 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#00ffc8';
+        ctx.shadowBlur = 14;
+        ctx.fill();
+
+        // If loop is ready to close, draw snapping indicator
+        if (isClosed && this.drawSubMode === 'auto') {
+            ctx.beginPath();
+            ctx.arc(p0.x - rect.left, p0.y - rect.top, 14, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ffbb00';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    finishFreehandStroke(rawPoints) {
+        if (!rawPoints || rawPoints.length < 3) return;
+
+        const simplified = this.simplifyPoints(rawPoints, 18);
+        if (simplified.length < 2) return;
+
+        const p0 = simplified[0];
+        const pN = simplified[simplified.length - 1];
+        const closeDist = Math.hypot(p0.x - pN.x, p0.y - pN.y);
+
+        let totalLen = 0;
+        for (let i = 1; i < simplified.length; i++) {
+            totalLen += Math.hypot(simplified[i].x - simplified[i - 1].x, simplified[i].y - simplified[i - 1].y);
+        }
+
+        let isClosed = false;
+        if (this.drawSubMode === 'shape') {
+            isClosed = true;
+        } else if (this.drawSubMode === 'auto') {
+            const closeThreshold = Math.max(30, this.drawStrokeWidth * 0.40);
+            if (simplified.length >= 4 && closeDist < closeThreshold && totalLen >= closeThreshold * 2.2) {
+                isClosed = true;
+            }
+        }
+
+        // Convert coordinates from screen to map space if target element or new element is map-anchored
+        const existingEl = this.drawTargetElementId ? this.elements.find(e => e.id === this.drawTargetElementId) : null;
+        const isAnchored = existingEl ? !!(existingEl.config && existingEl.config.mapAnchored) : this.anchorNewToMap;
+
+        const rect = this.container ? this.container.getBoundingClientRect() : { left: 0, top: 0 };
+        const cam = this.camera || { x: 0, y: 0, scale: 1.0 };
+        const s = isAnchored ? (cam.scale || 1.0) : 1.0;
+
+        const targetType = existingEl ? existingEl.type : (this.drawTargetType || 'uni_river');
+        const isDeform = this.isRiverType(targetType);
+
+        const mapPoints = simplified.map(pt => {
+            const screenX = pt.x - rect.left;
+            const screenY = pt.y - rect.top;
+            if (isAnchored) {
+                return {
+                    x: (screenX - cam.x) / s,
+                    y: (screenY - cam.y) / s
+                };
+            }
+            return { x: screenX, y: screenY };
+        });
+
+        const effStrokeWidth = Math.max(4, Math.round(isAnchored ? (this.drawStrokeWidth / s) : this.drawStrokeWidth));
+
+        if (isDeform) {
+            // Deformable river/pond/forest: centroid + relative node deltas
+            let cx = 0, cy = 0;
+            mapPoints.forEach(p => { cx += p.x; cy += p.y; });
+            cx = Math.round(cx / mapPoints.length);
+            cy = Math.round(cy / mapPoints.length);
+
+            const nodes = mapPoints.map(p => ({
+                dx: Math.round(p.x - cx),
+                dy: Math.round(p.y - cy),
+                w: effStrokeWidth
+            }));
+
+            const shapeMode = isClosed ? 'polygon' : 'spline';
+
+            if (existingEl) {
+                existingEl.x = cx;
+                existingEl.y = cy;
+                existingEl.config.nodes = nodes;
+                existingEl.config.shapeMode = shapeMode;
+                this.updateRiverBounds(existingEl);
+                this.positionElementDOM(existingEl);
+                this.rebuildRiverHandles(existingEl);
+                this.notify();
+                this.selectElement(existingEl.id);
+            } else {
+                const newEl = this.addElement(
+                    targetType,
+                    cx,
+                    cy,
+                    null,
+                    null,
+                    0,
+                    {
+                        nodes: nodes,
+                        shapeMode: shapeMode,
+                        mapAnchored: isAnchored
+                    }
+                );
+                if (newEl) this.selectElement(newEl.id);
+            }
+        } else {
+            // All other features: bounding box + drawPolygon / drawPath
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            mapPoints.forEach(p => {
+                if (p.x < minX) minX = p.x;
+                if (p.y < minY) minY = p.y;
+                if (p.x > maxX) maxX = p.x;
+                if (p.y > maxY) maxY = p.y;
+            });
+
+            const pad = Math.ceil(effStrokeWidth * 0.55) + 16;
+            const w = Math.max(80, Math.ceil(maxX - minX + pad * 2));
+            const h = Math.max(80, Math.ceil(maxY - minY + pad * 2));
+            const elX = Math.round(minX - pad);
+            const elY = Math.round(minY - pad);
+
+            const localPts = mapPoints.map(p => ({
+                x: Math.round(p.x - elX),
+                y: Math.round(p.y - elY)
+            }));
+
+            const drawPolygon = isClosed ? localPts : this.createRibbonPolygon(localPts, effStrokeWidth);
+
+            if (existingEl) {
+                existingEl.x = elX;
+                existingEl.y = elY;
+                existingEl.width = w;
+                existingEl.height = h;
+                if (existingEl.dom) {
+                    existingEl.dom.style.width = `${w}px`;
+                    existingEl.dom.style.height = `${h}px`;
+                }
+                if (existingEl.canvas) {
+                    existingEl.canvas.width = w;
+                    existingEl.canvas.height = h;
+                }
+                existingEl.config.drawPolygon = drawPolygon;
+                existingEl.config.drawPath = localPts;
+                existingEl.config.drawMode = isClosed ? 'shape' : 'line';
+                existingEl.config.strokeWidth = effStrokeWidth;
+                this.positionElementDOM(existingEl);
+                this.notify();
+                this.selectElement(existingEl.id);
+            } else {
+                const newEl = this.addElement(
+                    targetType,
+                    elX,
+                    elY,
+                    w,
+                    h,
+                    0,
+                    {
+                        drawPolygon: drawPolygon,
+                        drawPath: localPts,
+                        drawMode: isClosed ? 'shape' : 'line',
+                        strokeWidth: effStrokeWidth,
+                        mapAnchored: isAnchored
+                    }
+                );
+                if (newEl) this.selectElement(newEl.id);
+            }
+        }
+
+        // Clear re-draw target after successful stroke
+        this.drawTargetElementId = null;
+        this.updateDrawUI();
     }
 
     // ------------------------------------------------------------------------
@@ -1853,9 +2682,223 @@ class LivingElementsEngine {
         this.animFrameId = requestAnimationFrame(loop);
     }
 
+    drawPathFollowFeature(el, ctx, W, H, dt, effectiveType) {
+        if (!el.config || !Array.isArray(el.config.drawPath) || el.config.drawPath.length < 2) return false;
+
+        const path = el.config.drawPath;
+        const isClosed = el.config.drawMode === 'shape';
+        const strokeW = el.config.strokeWidth || 60;
+        const time = el.stateTime;
+        const cfg = el.config;
+        const intensity = cfg.intensity !== undefined ? cfg.intensity : 1.0;
+        const speed = cfg.speed !== undefined ? cfg.speed : 1.0;
+        const rough = Math.max(0, Math.min(2.0, parseFloat(cfg.fractalRoughness !== undefined ? cfg.fractalRoughness : 0.75)));
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
+
+        // Sample points along path with step size proportional to stroke width
+        const samples = [];
+        const stepDist = Math.max(14, Math.round(strokeW * 0.45));
+        let accum = 0;
+        samples.push(path[0]);
+        for (let i = 1; i < path.length; i++) {
+            const pA = path[i - 1];
+            const pB = path[i];
+            const segLen = Math.hypot(pB.x - pA.x, pB.y - pA.y);
+            if (segLen === 0) continue;
+            accum += segLen;
+            while (accum >= stepDist) {
+                accum -= stepDist;
+                const ratio = 1 - (accum / segLen);
+                samples.push({
+                    x: pA.x + (pB.x - pA.x) * ratio,
+                    y: pA.y + (pB.y - pA.y) * ratio
+                });
+            }
+        }
+        if (samples.length < 2) samples.push(path[path.length - 1]);
+
+        // Draw depending on effect category
+        const isFire = (effectiveType === 'inferno' || effectiveType === 'campfire' || effectiveType === 'torch' || effectiveType === 'lava_seam' || effectiveType === 'plasma_leak');
+        const isSmoke = (effectiveType === 'smoke' || effectiveType === 'fog' || effectiveType === 'steam');
+        const isMud = (effectiveType === 'mud' || effectiveType === 'toxic_spill');
+        const isSparks = (effectiveType === 'sparks' || effectiveType === 'spores' || effectiveType === 'fireflies');
+
+        if (isFire) {
+            const pal = this.getFirePalette(cfg.variant || 'wildfire');
+            // 1. Ambient warm radiant heat along the path
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = `rgba(${pal.glowOuter}, ${0.45 * intensity})`;
+            ctx.lineWidth = strokeW * 1.35;
+            ctx.beginPath();
+            ctx.moveTo(samples[0].x, samples[0].y);
+            for (let i = 1; i < samples.length; i++) ctx.lineTo(samples[i].x, samples[i].y);
+            if (isClosed) ctx.closePath();
+            ctx.stroke();
+
+            ctx.strokeStyle = `rgba(${pal.glowMid}, ${0.60 * intensity})`;
+            ctx.lineWidth = strokeW * 0.85;
+            ctx.stroke();
+            ctx.restore();
+
+            // 2. Multi-point flickering flame bodies along the path samples
+            const flameRadius = strokeW * 0.55 * elScale;
+            samples.forEach((pt, sIdx) => {
+                const seed = sIdx * 13.37;
+                const flick = Math.sin(time * 6.5 * speed + seed) * 0.18 + Math.cos(time * 9.2 * speed - seed * 1.3) * 0.12;
+                const r = Math.max(10, flameRadius * (1 + flick));
+
+                ctx.save();
+                ctx.translate(pt.x, pt.y);
+                const grad = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r);
+                grad.addColorStop(0, `rgba(${pal.core}, ${0.95 * intensity})`);
+                grad.addColorStop(0.35, `rgba(${pal.mid}, ${0.85 * intensity})`);
+                grad.addColorStop(0.70, `rgba(${pal.glowMid}, ${0.50 * intensity})`);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+
+                ctx.beginPath();
+                const numPetals = 8;
+                for (let a = 0; a <= Math.PI * 2; a += Math.PI / numPetals) {
+                    const mod = this.fractalHarmonicMod(a + time * 2.5 * speed, seed, rough);
+                    const pr = r * mod;
+                    const px = Math.cos(a) * pr;
+                    const py = Math.sin(a) * pr;
+                    if (a === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+
+                // Spark embers rising
+                const sparkPhase = (time * 1.5 * speed + sIdx * 0.23) % 1.0;
+                const sparkY = -sparkPhase * r * 1.4;
+                const sparkX = Math.sin(sparkPhase * 6 + seed) * (r * 0.5);
+                ctx.beginPath();
+                ctx.arc(sparkX, sparkY, Math.max(1, 2.5 * (1 - sparkPhase)), 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${pal.spark}, ${(1 - sparkPhase) * 0.9})`;
+                ctx.fill();
+
+                ctx.restore();
+            });
+            return true;
+        }
+
+        if (isSmoke) {
+            const puffRadius = strokeW * 0.65 * elScale;
+            samples.forEach((pt, sIdx) => {
+                const seed = sIdx * 7.73;
+                const puffPhase = (time * 0.45 * speed + sIdx * 0.31) % 1.0;
+                const r = puffRadius * (0.8 + 0.4 * puffPhase);
+                const driftX = Math.sin(time * 0.8 + seed) * (r * 0.3);
+                const driftY = -puffPhase * r * 0.6;
+
+                ctx.save();
+                ctx.translate(pt.x + driftX, pt.y + driftY);
+                const grad = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r);
+                grad.addColorStop(0, `rgba(160, 168, 178, ${0.45 * (1 - puffPhase * 0.4) * intensity})`);
+                grad.addColorStop(0.55, `rgba(120, 128, 138, ${0.25 * (1 - puffPhase * 0.4) * intensity})`);
+                grad.addColorStop(1, 'rgba(100, 108, 118, 0)');
+                ctx.fillStyle = grad;
+
+                ctx.beginPath();
+                const numPetals = 8;
+                for (let a = 0; a <= Math.PI * 2; a += Math.PI / numPetals) {
+                    const mod = this.fractalHarmonicMod(a + time * 0.6, seed, rough);
+                    const pr = r * mod;
+                    const px = Math.cos(a) * pr;
+                    const py = Math.sin(a) * pr;
+                    if (a === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            });
+            return true;
+        }
+
+        if (isMud) {
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = `rgba(38, 28, 20, ${0.85 * intensity})`;
+            ctx.lineWidth = strokeW;
+            ctx.beginPath();
+            ctx.moveTo(samples[0].x, samples[0].y);
+            for (let i = 1; i < samples.length; i++) ctx.lineTo(samples[i].x, samples[i].y);
+            if (isClosed) ctx.closePath();
+            ctx.stroke();
+
+            ctx.strokeStyle = `rgba(68, 52, 38, ${0.65 * intensity})`;
+            ctx.lineWidth = strokeW * 0.65;
+            ctx.stroke();
+
+            // Bubbles popping along path
+            samples.forEach((pt, sIdx) => {
+                const seed = sIdx * 5.17;
+                const bPhase = (time * 0.8 * speed + sIdx * 0.37) % 1.0;
+                if (bPhase > 0.4) {
+                    const bR = (strokeW * 0.22) * Math.sin((bPhase - 0.4) / 0.6 * Math.PI);
+                    const bx = pt.x + Math.sin(seed * 3) * (strokeW * 0.25);
+                    const by = pt.y + Math.cos(seed * 3) * (strokeW * 0.25);
+                    ctx.beginPath();
+                    ctx.arc(bx, by, Math.max(1, bR), 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(110, 88, 64, ${0.75 * intensity})`;
+                    ctx.fill();
+                    ctx.strokeStyle = `rgba(160, 135, 105, ${0.60 * intensity})`;
+                    ctx.lineWidth = 1.2;
+                    ctx.stroke();
+                }
+            });
+            ctx.restore();
+            return true;
+        }
+
+        if (isSparks) {
+            samples.forEach((pt, sIdx) => {
+                const seed = sIdx * 9.21;
+                const count = 3;
+                for (let k = 0; k < count; k++) {
+                    const phase = (time * 2.2 * speed + sIdx * 0.21 + k * 0.33) % 1.0;
+                    const ang = seed + k * (Math.PI * 2 / count) + time * 1.5;
+                    const dist = phase * (strokeW * 0.6);
+                    const sx = pt.x + Math.cos(ang) * dist;
+                    const sy = pt.y + Math.sin(ang) * dist;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, Math.max(1, 3.2 * (1 - phase)), 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 220, 120, ${(1 - phase) * 0.95 * intensity})`;
+                    ctx.shadowColor = '#ffbb00';
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                }
+            });
+            return true;
+        }
+
+        // Generic fallback: draw glowing stroke along the path
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = `rgba(0, 255, 200, ${0.45 * intensity})`;
+        ctx.lineWidth = strokeW;
+        ctx.beginPath();
+        ctx.moveTo(samples[0].x, samples[0].y);
+        for (let i = 1; i < samples.length; i++) ctx.lineTo(samples[i].x, samples[i].y);
+        if (isClosed) ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+        return true;
+    }
+
     renderSingleElement(el, dt) {
         const ctx = el.ctx;
         if (!ctx) return;
+
+        el._shapeIdx = 1;
+        const cfg = el.config || {};
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         const catDef = (typeof window !== 'undefined' && window.FEATURE_CATALOG && window.FEATURE_CATALOG[el.type]);
         const effectiveType = catDef ? catDef.base : el.type;
@@ -1865,8 +2908,11 @@ class LivingElementsEngine {
             const H = el.canvas.height;
             ctx.clearRect(0, 0, W, H);
             if (effectiveType === 'forest' || this.isForestType(el.type)) {
+                el._autoScaleEntities = false;
                 this.drawDeformableForest(el, ctx, dt);
             } else {
+                el._autoScaleEntities = true;
+                el._maxEntityRadius = 85;
                 this.drawDeformableWater(el, ctx, dt);
             }
             return;
@@ -1876,7 +2922,75 @@ class LivingElementsEngine {
         const H = el.height;
         ctx.clearRect(0, 0, W, H);
 
+        const isMultiEntityField = (
+            effectiveType === 'rain' || effectiveType === 'snow' || effectiveType === 'fog' ||
+            effectiveType === 'dust' || effectiveType === 'leaves' || effectiveType === 'fireflies' ||
+            effectiveType === 'bats' || effectiveType === 'rats' || effectiveType === 'fish' ||
+            effectiveType === 'inferno' || effectiveType === 'smoke' || effectiveType === 'mud' ||
+            effectiveType === 'sparks' || effectiveType === 'spores' || effectiveType === 'steam' ||
+            effectiveType === 'webs' || effectiveType === 'hyperspace'
+        );
+
+        el._autoScaleEntities = isMultiEntityField;
+        el._maxEntityRadius = Math.min(W, H) * 0.42;
+
+        const hasDrawClip = Array.isArray(el.config && el.config.drawPolygon) && el.config.drawPolygon.length >= 3;
+        if (hasDrawClip) {
+            ctx.save();
+            ctx.beginPath();
+            const poly = el.config.drawPolygon;
+            ctx.moveTo(poly[0].x, poly[0].y);
+            for (let p = 1; p < poly.length; p++) {
+                ctx.lineTo(poly[p].x, poly[p].y);
+            }
+            ctx.closePath();
+            ctx.clip();
+        }
+
+        if (hasDrawClip && this.drawPathFollowFeature && this.drawPathFollowFeature(el, ctx, W, H, dt, effectiveType)) {
+            ctx.restore();
+            if (this.selectedElementId === el.id && !this.isElementLocked(el)) {
+                ctx.save();
+                ctx.beginPath();
+                const poly = el.config.drawPolygon;
+                ctx.moveTo(poly[0].x, poly[0].y);
+                for (let p = 1; p < poly.length; p++) ctx.lineTo(poly[p].x, poly[p].y);
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(0, 255, 200, 0.85)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.restore();
+            }
+            return;
+        }
+
+        const applyMotifScale = !isMultiEntityField && effectiveType !== 'tumbleweed' && Math.abs(elScale - 1.0) > 0.01;
+        if (applyMotifScale) {
+            ctx.save();
+            ctx.translate(W * 0.5, H * 0.5);
+            ctx.scale(elScale, elScale);
+            ctx.translate(-W * 0.5, -H * 0.5);
+        }
+
         if (this.drawBespokeFeature && this.drawBespokeFeature(el, ctx, W, H, dt)) {
+            if (applyMotifScale) ctx.restore();
+            if (hasDrawClip) {
+                ctx.restore();
+                if (this.selectedElementId === el.id && !this.isElementLocked(el)) {
+                    ctx.save();
+                    ctx.beginPath();
+                    const poly = el.config.drawPolygon;
+                    ctx.moveTo(poly[0].x, poly[0].y);
+                    for (let p = 1; p < poly.length; p++) ctx.lineTo(poly[p].x, poly[p].y);
+                    ctx.closePath();
+                    ctx.strokeStyle = 'rgba(0, 255, 200, 0.85)';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([6, 4]);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
             return;
         }
 
@@ -2011,6 +3125,28 @@ class LivingElementsEngine {
             default:
                 this.drawRealisticTorch(el, ctx, W, H, dt);
                 break;
+        }
+
+        if (applyMotifScale) {
+            ctx.restore();
+        }
+
+        if (hasDrawClip) {
+            ctx.restore();
+            // If the element is currently selected, draw an elegant glowing neon contour along the drawn perimeter
+            if (this.selectedElementId === el.id && !this.isElementLocked(el)) {
+                ctx.save();
+                ctx.beginPath();
+                const poly = el.config.drawPolygon;
+                ctx.moveTo(poly[0].x, poly[0].y);
+                for (let p = 1; p < poly.length; p++) ctx.lineTo(poly[p].x, poly[p].y);
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(0, 255, 200, 0.85)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.restore();
+            }
         }
     }
 
@@ -3033,12 +4169,20 @@ class LivingElementsEngine {
 
     traceSplineRibbonPath(ctx, samples, widthMultiplier = 1.0) {
         if (samples.length < 2) return;
+        const rough = ctx._fractalRough !== undefined ? ctx._fractalRough : 0;
         ctx.beginPath();
 
-        // Left bank forward (0 -> N)
+        // Left bank forward (0 -> N) with multi-octave fractal bank crags
         for (let i = 0; i < samples.length; i++) {
             const s = samples[i];
-            const hw = (s.w * widthMultiplier) / 2;
+            const bankMod = rough > 0.02
+                ? Math.max(0.55, 1.0 + rough * 0.14 * (
+                    Math.sin(i * 0.85 + 1.1) * 0.50 +
+                    Math.cos(i * 2.15 - 0.7) * 0.30 +
+                    (1.0 - 2.0 * Math.abs(Math.sin(i * 3.8 + 0.4))) * 0.20
+                ))
+                : 1.0;
+            const hw = (s.w * widthMultiplier * bankMod) / 2;
             const lx = s.x - s.nx * hw;
             const ly = s.y - s.ny * hw;
             if (i === 0) ctx.moveTo(lx, ly);
@@ -3051,10 +4195,17 @@ class LivingElementsEngine {
         const endAngle = Math.atan2(last.ny, last.nx);
         ctx.arc(last.x, last.y, lastHW, endAngle + Math.PI, endAngle, true);
 
-        // Right bank backward (N -> 0)
+        // Right bank backward (N -> 0) with multi-octave fractal bank crags
         for (let i = samples.length - 1; i >= 0; i--) {
             const s = samples[i];
-            const hw = (s.w * widthMultiplier) / 2;
+            const bankMod = rough > 0.02
+                ? Math.max(0.55, 1.0 + rough * 0.14 * (
+                    Math.cos(i * 0.92 + 2.3) * 0.50 +
+                    Math.sin(i * 2.35 + 1.2) * 0.30 +
+                    (1.0 - 2.0 * Math.abs(Math.cos(i * 4.1 - 0.9))) * 0.20
+                ))
+                : 1.0;
+            const hw = (s.w * widthMultiplier * bankMod) / 2;
             const rx = s.x + s.nx * hw;
             const ry = s.y + s.ny * hw;
             ctx.lineTo(rx, ry);
@@ -3139,20 +4290,20 @@ class LivingElementsEngine {
 
         // 1. Multi-Pass Feathered Water Body (Soft shoreline banks -> deep channel core)
         this.traceSplineRibbonPath(ctx, samples, 1.0);
-        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.32})`;
+        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.65})`;
         ctx.fill();
 
-        this.traceSplineRibbonPath(ctx, samples, 0.84);
-        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.44})`;
+        this.traceSplineRibbonPath(ctx, samples, 0.88);
+        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.80})`;
         ctx.fill();
 
-        this.traceSplineRibbonPath(ctx, samples, 0.62);
-        ctx.fillStyle = `rgba(${deepRgb}, ${opacity * 0.48})`;
+        this.traceSplineRibbonPath(ctx, samples, 0.70);
+        ctx.fillStyle = `rgba(${deepRgb}, ${opacity * 0.88})`;
         ctx.fill();
 
         // 2. Clip to River Ribbon for Curved Flowing Caustics & Specular Filaments
         ctx.save();
-        this.traceSplineRibbonPath(ctx, samples, 0.94);
+        this.traceSplineRibbonPath(ctx, samples, 0.96);
         ctx.clip();
 
         // A. Sunlit Caustic Network Moving Downstream Along the Curve
@@ -3338,11 +4489,14 @@ class LivingElementsEngine {
     }
 
     /**
-     * Renders a Custom Pond / Pool / Lake / Flooded Room using Perimeter Handles
+     * Renders a Custom Pond / Pool / Lake / Flooded Room using Perimeter Handles.
+     * Uses a closed Catmull-Rom spline that interpolates smoothly through all node vertices
+     * so that the finished geometry exactly matches the drawn stroke shape.
      */
     traceSmoothClosedPolygon(ctx, nodes, scale = 1.0) {
         const n = nodes.length;
         if (n < 3) return;
+        const rough = ctx._fractalRough !== undefined ? ctx._fractalRough : 0;
 
         let cx = 0, cy = 0;
         nodes.forEach(p => { cx += p.dx; cy += p.dy; });
@@ -3355,16 +4509,54 @@ class LivingElementsEngine {
         }));
 
         ctx.beginPath();
-        const firstMidX = (pts[n - 1].x + pts[0].x) / 2;
-        const firstMidY = (pts[n - 1].y + pts[0].y) / 2;
-        ctx.moveTo(firstMidX, firstMidY);
+        const subSteps = rough > 0.02 ? 10 : 8;
 
         for (let i = 0; i < n; i++) {
-            const curr = pts[i];
-            const next = pts[(i + 1) % n];
-            const midX = (curr.x + next.x) / 2;
-            const midY = (curr.y + next.y) / 2;
-            ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
+            const p0 = pts[(i - 1 + n) % n];
+            const p1 = pts[i];
+            const p2 = pts[(i + 1) % n];
+            const p3 = pts[(i + 2) % n];
+
+            for (let s = 0; s < subSteps; s++) {
+                const t = s / subSteps;
+                const t2 = t * t;
+                const t3 = t2 * t;
+
+                // Catmull-Rom spline formula: passes precisely through p1 at t=0 and p2 at t=1
+                let x = 0.5 * (
+                    (2 * p1.x) +
+                    (-p0.x + p2.x) * t +
+                    (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+                    (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+                );
+                let y = 0.5 * (
+                    (2 * p1.y) +
+                    (-p0.y + p2.y) * t +
+                    (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+                    (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+                );
+
+                if (rough > 0.02) {
+                    const tx = 0.5 * ((-p0.x + p2.x) + 2 * (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t + 3 * (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t2);
+                    const ty = 0.5 * ((-p0.y + p2.y) + 2 * (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t + 3 * (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t2);
+                    const tLen = Math.hypot(tx, ty) || 1;
+                    const nx = -ty / tLen;
+                    const ny = tx / tLen;
+
+                    const windowEnv = Math.sin(t * Math.PI);
+                    const phase = (i * subSteps + s) * 0.78;
+                    const fbm = Math.sin(phase * 1.7 + i * 2.1) * 0.50
+                        + Math.cos(phase * 3.9 - i * 1.3) * 0.30
+                        + (1.0 - 2.0 * Math.abs(Math.sin(phase * 6.3 + i))) * 0.20;
+                    const spanLen = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
+                    const disp = rough * Math.min(26, spanLen * 0.16) * windowEnv * fbm;
+                    x += nx * disp;
+                    y += ny * disp;
+                }
+
+                if (i === 0 && s === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
         }
         ctx.closePath();
     }
@@ -3374,19 +4566,17 @@ class LivingElementsEngine {
         if (n < 3) return [];
         const poly = [];
         for (let i = 0; i < n; i++) {
-            const prev = nodes[(i - 1 + n) % n];
-            const curr = nodes[i];
-            const next = nodes[(i + 1) % n];
-            const p0x = (prev.dx + curr.dx) * 0.5;
-            const p0y = (prev.dy + curr.dy) * 0.5;
-            const p2x = (curr.dx + next.dx) * 0.5;
-            const p2y = (curr.dy + next.dy) * 0.5;
+            const p0 = nodes[(i - 1 + n) % n];
+            const p1 = nodes[i];
+            const p2 = nodes[(i + 1) % n];
+            const p3 = nodes[(i + 2) % n];
             for (let s = 0; s < subdivisions; s++) {
                 const t = s / subdivisions;
-                const inv = 1 - t;
+                const t2 = t * t;
+                const t3 = t2 * t;
                 poly.push({
-                    x: inv * inv * p0x + 2 * inv * t * curr.dx + t * t * p2x,
-                    y: inv * inv * p0y + 2 * inv * t * curr.dy + t * t * p2y
+                    x: 0.5 * ((2 * p1.dx) + (-p0.dx + p2.dx) * t + (2 * p0.dx - 5 * p1.dx + 4 * p2.dx - p3.dx) * t2 + (-p0.dx + 3 * p1.dx - 3 * p2.dx + p3.dx) * t3),
+                    y: 0.5 * ((2 * p1.dy) + (-p0.dy + p2.dy) * t + (2 * p0.dy - 5 * p1.dy + 4 * p2.dy - p3.dy) * t2 + (-p0.dy + 3 * p1.dy - 3 * p2.dy + p3.dy) * t3)
                 });
             }
         }
@@ -3416,28 +4606,28 @@ class LivingElementsEngine {
         const { waterRgb, deepRgb, causticRgb, foamRgb } = this.getWaterPalette(style);
 
         // 0. Soft Shoreline Bank / Shallow Rim
-        this.traceSmoothClosedPolygon(ctx, nodes, 1.04);
+        this.traceSmoothClosedPolygon(ctx, nodes, 1.05);
         ctx.fillStyle = style === 'blood_pool'
             ? `rgba(55, 8, 14, ${opacity * 0.45})`
-            : `rgba(180, 165, 130, ${opacity * 0.25})`;
+            : `rgba(180, 165, 130, ${opacity * 0.28})`;
         ctx.fill();
 
         // 1. Feathered Multi-Layer Pond / Pool Body (Shallow shelf -> Mid water -> Deep basin)
         this.traceSmoothClosedPolygon(ctx, nodes, 1.0);
-        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.42})`;
+        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.72})`;
         ctx.fill();
 
-        this.traceSmoothClosedPolygon(ctx, nodes, 0.86);
-        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.52})`;
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.94);
+        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.85})`;
         ctx.fill();
 
-        this.traceSmoothClosedPolygon(ctx, nodes, 0.68);
-        ctx.fillStyle = `rgba(${deepRgb}, ${opacity * 0.58})`;
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.82);
+        ctx.fillStyle = `rgba(${deepRgb}, ${opacity * 0.90})`;
         ctx.fill();
 
         // 2. Clip to Pond Polygon for Caustics, Concentric Ripples & Lily Pads / Crystals / Runes
         ctx.save();
-        this.traceSmoothClosedPolygon(ctx, nodes, 0.96);
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.98);
         ctx.clip();
 
         const { minX, minY, width, height } = el.bbox;
@@ -3624,6 +4814,8 @@ class LivingElementsEngine {
         const intensity = cfg.intensity !== undefined ? cfg.intensity : 1.0;
         const speed = cfg.speed !== undefined ? cfg.speed : 1.0;
         const qty = Math.max(0.2, Math.min(4.0, cfg.quantity !== undefined ? cfg.quantity : 1.0));
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale !== undefined ? cfg.scale : 1.0)) || 1.0));
+        const rough = Math.max(0, Math.min(2.0, parseFloat(cfg.fractalRoughness !== undefined ? cfg.fractalRoughness : 0.75)));
         const variant = cfg.variant || 'ancient_oak';
         const pal = this.getForestPalette(variant);
         const isPolygon = (cfg.shapeMode || 'polygon') === 'polygon';
@@ -3649,7 +4841,7 @@ class LivingElementsEngine {
         // 2. Deterministically Populate Swaying Trees Inside the Deformable Polygon or Along the Treeline Spline
         const candidateTrees = [];
         const { minX, minY, width, height } = el.bbox;
-        const spacing = Math.max(30, Math.round(72 / Math.sqrt(qty)));
+        const spacing = Math.max(28, Math.round(72 / Math.sqrt(qty)));
 
         if (isPolygon && polyPts.length >= 3) {
             // Grid-aligned in local (dx, dy) space so dragging a single handle keeps existing trees anchored!
@@ -3671,7 +4863,7 @@ class LivingElementsEngine {
                         candidateTrees.push({
                             cx: tx,
                             cy: ty,
-                            radius: (26 + hash3 * 24) * (0.85 + 0.15 * Math.min(1.5, 1 / Math.sqrt(qty))),
+                            radius: (26 + hash3 * 24) * (0.85 + 0.15 * Math.min(1.5, 1 / Math.sqrt(qty))) * elScale,
                             aspect: 0.88 + (hash1 * 0.22),
                             phase: hash1 * Math.PI * 2,
                             lobes: 6 + Math.floor(hash2 * 4),
@@ -3694,7 +4886,7 @@ class LivingElementsEngine {
                     candidateTrees.push({
                         cx: s.x + s.nx * (lat * s.w),
                         cy: s.y + s.ny * (lat * s.w),
-                        radius: 26 + h2 * 22,
+                        radius: (26 + h2 * 22) * elScale,
                         aspect: 0.9 + h1 * 0.2,
                         phase: h1 * Math.PI * 2,
                         lobes: 6 + (seed % 4),
@@ -3711,7 +4903,7 @@ class LivingElementsEngine {
         const forestWindY = (Math.cos(time * 0.95 * speed) * 0.6 + Math.sin(time * 0.7 * speed) * 0.4) * 7.5 * intensity;
         const baseOpacity = cfg.opacity !== undefined ? cfg.opacity : 0.96;
 
-        // 3. Render Each Top-Down Tree with Species-Specific Architecture
+        // 3. Render Each Top-Down Tree with Fractal Botanical Architecture
         for (let t = 0; t < candidateTrees.length; t++) {
             const tree = candidateTrees[t];
             const cx = tree.cx;
@@ -3722,172 +4914,312 @@ class LivingElementsEngine {
             const localSwayY = forestWindY + Math.cos(time * 1.5 * speed + tree.phase) * (ry * 0.06) * intensity;
             const localRot = Math.sin(time * 1.4 * speed + tree.phase) * 0.07 * intensity;
 
-            // Ground shadow
+            // Fractal Dappled Ground Shadow
             ctx.fillStyle = pal.shadow;
-            ctx.beginPath();
-            ctx.ellipse(cx + rx * 0.16 + localSwayX * 0.4, cy + ry * 0.22 + localSwayY * 0.4, rx * 0.88, ry * 0.85, 0, 0, Math.PI * 2);
+            this.traceFractalLobe(
+                ctx,
+                cx + rx * 0.16 + localSwayX * 0.4,
+                cy + ry * 0.22 + localSwayY * 0.4,
+                rx * 0.90,
+                ry * 0.86,
+                localRot * 0.4,
+                rough * 0.85,
+                tree.phase + 0.5,
+                22
+            );
             ctx.fill();
 
             if (variant === 'boreal_pine') {
-                // Conifer Star-Whorl Evergreen Tiers tapering to a central needle spire
+                // Conifer Multi-Octave Needle-Bough Whorls tapering smoothly across 4 layered evergreen tiers
                 const tiers = [
-                    { color: pal.deep, r: rx * 0.95, points: 11, sway: 0.5 },
-                    { color: pal.mid, r: rx * 0.72, points: 10, sway: 0.85 },
-                    { color: pal.light, r: rx * 0.48, points: 8, sway: 1.2 },
-                    { color: pal.highlight, r: rx * 0.24, points: 6, sway: 1.45 }
+                    { color: pal.deep, r: rx * 0.98, points: 11, sway: 0.48, alpha: 0.95 },
+                    { color: pal.mid, r: rx * 0.75, points: 10, sway: 0.80, alpha: 0.94 },
+                    { color: pal.light, r: rx * 0.53, points: 9, sway: 1.12, alpha: 0.92 },
+                    { color: pal.highlight, r: rx * 0.31, points: 7, sway: 1.40, alpha: 0.90 }
                 ];
                 tiers.forEach((tier, ti) => {
                     ctx.fillStyle = tier.color;
-                    ctx.globalAlpha = 0.94 * baseOpacity;
+                    ctx.globalAlpha = tier.alpha * baseOpacity;
                     ctx.beginPath();
                     const scx = cx + localSwayX * tier.sway;
                     const scy = cy + localSwayY * tier.sway;
-                    for (let p = 0; p < tier.points * 2; p++) {
-                        const isTip = p % 2 === 0;
-                        const ang = (p / (tier.points * 2)) * Math.PI * 2 + tree.phase + ti * 0.3 + localRot;
-                        const rad = isTip ? tier.r : tier.r * 0.52;
+                    const subSteps = 96;
+                    for (let p = 0; p <= subSteps; p++) {
+                        const theta = (p / subSteps) * Math.PI * 2;
+                        const ang = theta + tree.phase + ti * 0.42 + localRot * (1 + ti * 0.12);
+                        const primaryWhorl = 0.72 + 0.28 * Math.cos(theta * tier.points);
+                        const subWhorl = 0.14 * Math.sin(theta * tier.points * 3 + tree.phase + ti * 1.3);
+                        const needleBristle = 0.09 * Math.cos(theta * tier.points * 7 - tree.phase * 1.7 + ti)
+                            + 0.06 * (1.0 - 2.0 * Math.abs(Math.sin(theta * (tier.points * 2 + 3) + tree.phase)));
+                        const rad = tier.r * Math.max(0.28, primaryWhorl + rough * (subWhorl + needleBristle));
                         const px = scx + Math.cos(ang) * rad;
-                        const py = scy + Math.sin(ang) * rad;
+                        const py = scy + Math.sin(ang) * (rad * (ry / rx));
                         if (p === 0) ctx.moveTo(px, py);
                         else ctx.lineTo(px, py);
                     }
                     ctx.closePath();
                     ctx.fill();
                 });
+                // Central pine leader spire
+                ctx.fillStyle = pal.highlight;
+                this.traceFractalLobe(ctx, cx + localSwayX * 1.5, cy + localSwayY * 1.5, Math.max(2.5, rx * 0.12), Math.max(2.5, ry * 0.12), localRot, rough * 0.6, tree.phase, 14);
+                ctx.fill();
             } else if (variant === 'tropical_jungle') {
-                // Radiating Tropical Palm Fronds & Coconut Crown
-                const frondCount = 8;
-                for (let f = 0; f < frondCount; f++) {
-                    const fAng = (f / frondCount) * Math.PI * 2 + tree.phase + localRot * 1.3;
-                    const fLen = rx * (0.85 + 0.18 * Math.sin(f * 2.3));
-                    ctx.save();
-                    ctx.translate(cx + localSwayX * 0.8, cy + localSwayY * 0.8);
-                    ctx.rotate(fAng);
-                    ctx.fillStyle = (f % 2 === 0) ? pal.mid : pal.light;
-                    ctx.globalAlpha = 0.92 * baseOpacity;
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.quadraticCurveTo(fLen * 0.5, -rx * 0.26, fLen, 0);
-                    ctx.quadraticCurveTo(fLen * 0.5, rx * 0.26, 0, 0);
-                    ctx.fill();
-                    ctx.strokeStyle = pal.highlight;
-                    ctx.lineWidth = 1.1;
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(fLen * 0.9, 0);
-                    ctx.stroke();
-                    ctx.restore();
-                }
+                // Multi-Tiered Radiating Tropical Palm Crown (Understory Shade Fronds -> Upper Sunlit Fronds)
+                const palmTiers = [
+                    { count: 7, lenMult: 0.96, widthMult: 0.26, sway: 0.65, colEven: pal.deep, colOdd: pal.mid, alpha: 0.92, rotOff: 0 },
+                    { count: 7, lenMult: 0.82, widthMult: 0.23, sway: 1.05, colEven: pal.mid, colOdd: pal.light, alpha: 0.94, rotOff: 0.45 }
+                ];
+                palmTiers.forEach((pt, pti) => {
+                    for (let f = 0; f < pt.count; f++) {
+                        const fAng = (f / pt.count) * Math.PI * 2 + tree.phase + pt.rotOff + localRot * (1.0 + pti * 0.35);
+                        const fLen = rx * pt.lenMult * (0.86 + 0.14 * Math.sin(f * 2.3 + tree.phase + pti));
+                        const fDroop = Math.sin(time * 2.2 * speed + f + pti) * rx * 0.045 * intensity;
+                        ctx.save();
+                        ctx.translate(cx + localSwayX * pt.sway, cy + localSwayY * pt.sway);
+                        ctx.rotate(fAng);
+                        ctx.fillStyle = (f % 2 === 0) ? pt.colEven : pt.colOdd;
+                        ctx.globalAlpha = pt.alpha * baseOpacity;
+
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        const segs = 28;
+                        for (let s = 1; s <= segs; s++) {
+                            const u = s / segs;
+                            const env = Math.sin(u * Math.PI) * rx * pt.widthMult;
+                            const leafletNotch = (Math.sin(u * Math.PI * 14 + f) * 0.65 + (1.0 - 2.0 * Math.abs(Math.cos(u * Math.PI * 9 - f))) * 0.35);
+                            const riffle = rough * rx * 0.068 * Math.sin(u * Math.PI) * leafletNotch;
+                            ctx.lineTo(u * fLen, -Math.max(0.5, env + riffle) + fDroop * u);
+                        }
+                        ctx.lineTo(fLen * 1.03, fDroop);
+                        for (let s = segs; s >= 1; s--) {
+                            const u = s / segs;
+                            const env = Math.sin(u * Math.PI) * rx * pt.widthMult;
+                            const leafletNotch = (Math.cos(u * Math.PI * 14 + f) * 0.65 + (1.0 - 2.0 * Math.abs(Math.sin(u * Math.PI * 9 + f))) * 0.35);
+                            const riffle = rough * rx * 0.068 * Math.sin(u * Math.PI) * leafletNotch;
+                            ctx.lineTo(u * fLen, Math.max(0.5, env + riffle) + fDroop * u);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Central frond spine (rachis)
+                        ctx.strokeStyle = pal.highlight;
+                        ctx.lineWidth = Math.max(1.0, rx * 0.028);
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.quadraticCurveTo(fLen * 0.5, fDroop * 0.5, fLen * 0.92, fDroop);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                });
                 // Central coconut cluster
                 ctx.fillStyle = pal.trunk;
-                ctx.beginPath();
-                ctx.arc(cx + localSwayX, cy + localSwayY, rx * 0.14, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.globalAlpha = 0.95 * baseOpacity;
+                for (let c = 0; c < 3; c++) {
+                    const ca = (c / 3) * Math.PI * 2 + tree.phase;
+                    ctx.beginPath();
+                    ctx.arc(cx + localSwayX + Math.cos(ca) * rx * 0.07, cy + localSwayY + Math.sin(ca) * rx * 0.07, rx * 0.085, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             } else if (variant === 'haunted_deadwood') {
-                // Skeletal Gnarled Deadwood Branches & Hanging Moss
-                ctx.strokeStyle = pal.trunk;
-                ctx.lineCap = 'round';
-                const branches = 7;
+                // Recursive Fractal Skeletal Gnarled Deadwood Branches & Tattered Spanish Moss
+                ctx.globalAlpha = 0.95 * baseOpacity;
+                const branches = 6 + (tree.lobes % 3);
+                const maxDepth = rough > 0.85 ? 4 : (rough > 0.45 ? 3 : 2);
                 for (let b = 0; b < branches; b++) {
                     const bAng = (b / branches) * Math.PI * 2 + tree.phase + localRot;
-                    const mx = cx + localSwayX * 0.5 + Math.cos(bAng + 0.18) * rx * 0.5;
-                    const my = cy + localSwayY * 0.5 + Math.sin(bAng + 0.18) * ry * 0.5;
-                    const ex = cx + localSwayX + Math.cos(bAng) * rx * 0.92;
-                    const ey = cy + localSwayY + Math.sin(bAng) * ry * 0.92;
-                    ctx.lineWidth = Math.max(2.5, rx * 0.13);
-                    ctx.beginPath();
-                    ctx.moveTo(cx, cy);
-                    ctx.quadraticCurveTo(mx, my, ex, ey);
-                    ctx.stroke();
-
-                    // Forked twigs
-                    ctx.lineWidth = Math.max(1.2, rx * 0.06);
-                    ctx.beginPath();
-                    ctx.moveTo(mx, my);
-                    ctx.lineTo(mx + Math.cos(bAng + 0.65) * rx * 0.35, my + Math.sin(bAng + 0.65) * ry * 0.35);
-                    ctx.moveTo(mx, my);
-                    ctx.lineTo(mx + Math.cos(bAng - 0.55) * rx * 0.32, my + Math.sin(bAng - 0.55) * ry * 0.32);
-                    ctx.stroke();
+                    const bLen = rx * (0.52 + 0.14 * Math.sin(b * 2.1 + tree.phase));
+                    this.drawFractalTwigBranch(
+                        ctx,
+                        cx + localSwayX * 0.35,
+                        cy + localSwayY * 0.35,
+                        bLen,
+                        bAng,
+                        Math.max(2.4, rx * 0.11),
+                        maxDepth,
+                        rough,
+                        tree.phase + b * 1.9,
+                        pal.trunk
+                    );
                 }
-                // Tattered Spanish moss wisps
+                // Gnarled central trunk burl
+                ctx.fillStyle = pal.trunk;
+                this.traceFractalLobe(ctx, cx + localSwayX * 0.35, cy + localSwayY * 0.35, rx * 0.20, ry * 0.19, localRot, rough, tree.phase, 14);
+                ctx.fill();
+
+                // Tattered fractal Spanish moss wisps layered in two depth tiers
+                ctx.fillStyle = pal.mid;
+                ctx.globalAlpha = 0.68 * baseOpacity;
+                for (let m = 0; m < 5; m++) {
+                    const ma = (m / 5) * Math.PI * 2 + tree.phase;
+                    const mx = cx + localSwayX * 0.95 + Math.cos(ma) * rx * 0.42;
+                    const my = cy + localSwayY * 0.95 + Math.sin(ma) * ry * 0.42;
+                    this.traceFractalLobe(ctx, mx, my, rx * 0.26, rx * 0.14, ma + localRot, Math.max(0.3, rough), tree.phase + m, 14);
+                    ctx.fill();
+                }
                 ctx.fillStyle = pal.highlight;
-                ctx.globalAlpha = 0.55 * baseOpacity;
-                for (let m = 0; m < 4; m++) {
-                    const ma = m * 1.57 + tree.phase;
-                    ctx.beginPath();
-                    ctx.ellipse(cx + localSwayX * 1.2 + Math.cos(ma) * rx * 0.45, cy + localSwayY * 1.2 + Math.sin(ma) * ry * 0.45, rx * 0.22, rx * 0.09, ma, 0, Math.PI * 2);
+                ctx.globalAlpha = 0.62 * baseOpacity;
+                for (let m = 0; m < 5; m++) {
+                    const ma = (m / 5) * Math.PI * 2 + tree.phase + 0.5;
+                    const mx = cx + localSwayX * 1.15 + Math.cos(ma) * rx * 0.48;
+                    const my = cy + localSwayY * 1.15 + Math.sin(ma) * ry * 0.48;
+                    this.traceFractalLobe(ctx, mx, my, rx * 0.22, rx * 0.11, ma + localRot, Math.max(0.35, rough), tree.phase + m + 2.1, 14);
                     ctx.fill();
                 }
             } else if (variant === 'alien_fungal') {
-                // Giant Bioluminescent Myconid Spore-Cap Mushroom
+                // Giant Bioluminescent Myconid Spore-Cap Mushroom with Multi-Tier Ruffled Fractal Margin
                 const capX = cx + localSwayX * 0.85;
                 const capY = cy + localSwayY * 0.85;
-                const capGrad = ctx.createRadialGradient(capX - rx * 0.15, capY - ry * 0.15, rx * 0.05, capX, capY, rx * 0.85);
-                capGrad.addColorStop(0, pal.light);
-                capGrad.addColorStop(0.65, pal.mid);
-                capGrad.addColorStop(1, pal.deep);
-                ctx.fillStyle = capGrad;
-                ctx.globalAlpha = 0.94 * baseOpacity;
-                ctx.beginPath();
-                ctx.ellipse(capX, capY, rx * 0.82, ry * 0.80, localRot, 0, Math.PI * 2);
+                ctx.globalAlpha = 0.95 * baseOpacity;
+                ctx.fillStyle = pal.deep;
+                this.traceFractalLobe(ctx, capX, capY, rx * 0.90, ry * 0.86, localRot, rough * 0.95, tree.phase, 26);
                 ctx.fill();
 
-                // Radial gill striations
-                ctx.strokeStyle = 'rgba(45, 10, 68, 0.45)';
-                ctx.lineWidth = 1.0;
-                for (let g = 0; g < 12; g++) {
-                    const ga = (g / 12) * Math.PI * 2 + localRot;
+                ctx.fillStyle = pal.mid;
+                this.traceFractalLobe(ctx, capX - rx * 0.03, capY - ry * 0.03, rx * 0.70, ry * 0.67, localRot + 0.3, rough * 0.85, tree.phase + 1.7, 24);
+                ctx.fill();
+
+                ctx.fillStyle = pal.light;
+                this.traceFractalLobe(ctx, capX - rx * 0.06, capY - ry * 0.06, rx * 0.46, ry * 0.44, localRot + 0.6, rough * 0.75, tree.phase + 3.1, 20);
+                ctx.fill();
+
+                // Wavy organic radial gill striations
+                ctx.strokeStyle = 'rgba(45, 10, 68, 0.44)';
+                ctx.lineWidth = Math.max(1.0, rx * 0.024);
+                const gillCount = 14;
+                for (let g = 0; g < gillCount; g++) {
+                    const ga = (g / gillCount) * Math.PI * 2 + localRot;
+                    const gBend = Math.sin(g * 2.3 + tree.phase) * rough * rx * 0.10;
                     ctx.beginPath();
-                    ctx.moveTo(capX + Math.cos(ga) * rx * 0.2, capY + Math.sin(ga) * ry * 0.2);
-                    ctx.lineTo(capX + Math.cos(ga) * rx * 0.78, capY + Math.sin(ga) * ry * 0.76);
+                    ctx.moveTo(capX + Math.cos(ga) * rx * 0.18, capY + Math.sin(ga) * ry * 0.18);
+                    ctx.quadraticCurveTo(
+                        capX + Math.cos(ga + 0.15) * rx * 0.48 + gBend,
+                        capY + Math.sin(ga + 0.15) * ry * 0.48 + gBend,
+                        capX + Math.cos(ga) * rx * 0.78,
+                        capY + Math.sin(ga) * ry * 0.76
+                    );
                     ctx.stroke();
                 }
 
-                // Glowing cyan/teal bioluminescent pustule spots
+                // Glowing cyan/teal bioluminescent fractal pustule clusters
                 const pulse = 0.65 + 0.35 * Math.sin(time * 3 + tree.phase);
                 ctx.fillStyle = pal.highlight;
                 ctx.globalAlpha = pulse * baseOpacity;
-                for (let sp = 0; sp < 6; sp++) {
-                    const sa = (sp / 6) * Math.PI * 2 + tree.phase;
-                    const sd = rx * (0.35 + (sp % 2) * 0.22);
-                    ctx.beginPath();
-                    ctx.arc(capX + Math.cos(sa) * sd, capY + Math.sin(sa) * sd, rx * 0.10, 0, Math.PI * 2);
+                for (let sp = 0; sp < 7; sp++) {
+                    const sa = (sp / 7) * Math.PI * 2 + tree.phase;
+                    const sd = rx * (0.32 + (sp % 3) * 0.16);
+                    const spx = capX + Math.cos(sa) * sd;
+                    const spy = capY + Math.sin(sa) * sd;
+                    const spR = rx * (0.09 + 0.03 * Math.sin(sp * 1.9));
+                    this.traceFractalLobe(ctx, spx, spy, spR, spR * 0.9, sa, rough * 0.7, tree.phase + sp, 12);
                     ctx.fill();
                 }
             } else {
-                // Deciduous Billowy Canopy (Ancient Oak, Autumn Maple, Sacred Cherry Blossom)
-                ctx.strokeStyle = pal.trunk;
-                ctx.lineWidth = Math.max(2, rx * 0.08);
-                ctx.lineCap = 'round';
+                // Deciduous Billowy 4-Tier Fractal Canopy (Ancient Oak, Autumn Maple, Sacred Cherry Blossom)
+                // 1. Interior Forked Trunk & Boughs peeking through understory foliage
+                ctx.globalAlpha = 0.85 * baseOpacity;
+                const boughDepth = rough > 0.65 ? 3 : 2;
                 for (let b = 0; b < 5; b++) {
                     const bAng = (b / 5) * Math.PI * 2 + tree.phase + localRot * 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(cx + localSwayX * 0.25, cy + localSwayY * 0.25);
-                    ctx.lineTo(cx + localSwayX * 0.6 + Math.cos(bAng) * rx * 0.62, cy + localSwayY * 0.6 + Math.sin(bAng) * ry * 0.62);
-                    ctx.stroke();
+                    this.drawFractalTwigBranch(
+                        ctx,
+                        cx + localSwayX * 0.25,
+                        cy + localSwayY * 0.25,
+                        rx * 0.48,
+                        bAng,
+                        Math.max(2, rx * 0.08),
+                        boughDepth,
+                        rough,
+                        tree.phase + b,
+                        pal.trunk
+                    );
                 }
 
+                // 2. Multi-Tiered Billowing Foliage Crown (Deep Understory -> Mid Boughs -> Sunlit Crown -> Top Highlights)
                 const tiers = [
-                    { color: pal.deep, count: tree.lobes, rMult: 0.68, sway: 0.65, alpha: 0.94 },
-                    { color: pal.mid, count: tree.lobes + 1, rMult: 0.52, sway: 0.90, alpha: 0.92 },
-                    { color: pal.light, count: tree.lobes, rMult: 0.38, sway: 1.15, alpha: 0.88 },
-                    { color: pal.highlight, count: Math.max(3, tree.lobes - 2), rMult: 0.22, sway: 1.35, alpha: 0.82 }
+                    { color: pal.deep, count: tree.lobes, rMult: 0.54, sizeMult: 0.52, centerMult: 0.62, sway: 0.65, alpha: 0.95 },
+                    { color: pal.mid, count: tree.lobes + 1, rMult: 0.42, sizeMult: 0.45, centerMult: 0.48, sway: 0.90, alpha: 0.93 },
+                    { color: pal.light, count: tree.lobes, rMult: 0.29, sizeMult: 0.38, centerMult: 0.35, sway: 1.15, alpha: 0.90 },
+                    { color: pal.highlight, count: Math.max(4, tree.lobes - 1), rMult: 0.16, sizeMult: 0.29, centerMult: 0.22, sway: 1.35, alpha: 0.86 }
                 ];
 
                 for (let ti = 0; ti < tiers.length; ti++) {
                     const tier = tiers[ti];
+                    const tierCx = cx + localSwayX * tier.sway;
+                    const tierCy = cy + localSwayY * tier.sway;
+
+                    // Deep inter-bough crevice shadows tucked under upper canopy tiers for rich 3D layering
+                    if (ti === 1 && rough > 0.2) {
+                        ctx.fillStyle = pal.shadow;
+                        ctx.globalAlpha = Math.min(0.65, 0.28 + rough * 0.18) * baseOpacity;
+                        for (let c = 0; c < tier.count; c++) {
+                            const cAng = ((c + 0.5) / tier.count) * Math.PI * 2 + tree.phase;
+                            const cxOff = tierCx + Math.cos(cAng + localRot) * rx * 0.46;
+                            const cyOff = tierCy + Math.sin(cAng + localRot) * ry * 0.46;
+                            this.traceFractalLobe(ctx, cxOff, cyOff, rx * 0.22, ry * 0.20, cAng, rough * 0.9, tree.phase + c * 2.1, 14);
+                            ctx.fill();
+                        }
+                    }
+
                     ctx.fillStyle = tier.color;
                     ctx.globalAlpha = tier.alpha * baseOpacity;
+
+                    // Central cohesive canopy dome for this tier
+                    this.traceFractalLobe(
+                        ctx,
+                        tierCx,
+                        tierCy,
+                        rx * tier.centerMult,
+                        ry * tier.centerMult,
+                        localRot + ti * 0.4,
+                        rough * 0.85,
+                        tree.phase + ti * 2.3,
+                        20
+                    );
+                    ctx.fill();
+
+                    // Ring of billowing fractal leaf-cluster lobes + peripheral sub-clump leaf tufts around this tier
                     for (let l = 0; l < tier.count; l++) {
-                        const lAng = (l / tier.count) * Math.PI * 2 + ti * 0.45 + tree.phase;
-                        const flutter = Math.sin(time * 2.5 * speed + l * 2.1 + tree.phase) * (rx * 0.04) * intensity;
-                        const lx = cx + localSwayX * tier.sway + Math.cos(lAng + localRot) * rx * tier.rMult + flutter;
-                        const ly = cy + localSwayY * tier.sway + Math.sin(lAng + localRot) * ry * tier.rMult - flutter * 0.5;
-                        const lobeRx = rx * 0.45 * (0.85 + 0.15 * Math.sin(l * 1.9));
-                        const lobeRy = ry * 0.42 * (0.85 + 0.15 * Math.cos(l * 2.3));
-                        ctx.beginPath();
-                        ctx.ellipse(lx, ly, lobeRx, lobeRy, lAng + localRot, 0, Math.PI * 2);
+                        const lAng = (l / tier.count) * Math.PI * 2 + ti * 0.48 + tree.phase;
+                        const flutter = Math.sin(time * 2.5 * speed + l * 2.1 + tree.phase) * (rx * 0.035) * intensity;
+                        const lx = tierCx + Math.cos(lAng + localRot) * rx * tier.rMult + flutter;
+                        const ly = tierCy + Math.sin(lAng + localRot) * ry * tier.rMult - flutter * 0.5;
+                        const lobeRx = rx * tier.sizeMult * (0.88 + 0.12 * Math.sin(l * 1.9 + ti));
+                        const lobeRy = ry * tier.sizeMult * (0.86 + 0.12 * Math.cos(l * 2.3 + ti));
+
+                        this.traceFractalLobe(
+                            ctx,
+                            lx,
+                            ly,
+                            lobeRx,
+                            lobeRy,
+                            lAng + localRot,
+                            rough,
+                            tree.phase + ti * 3.1 + l * 1.37,
+                            20
+                        );
                         ctx.fill();
+
+                        // Secondary fractal sub-clump leaf tufts on the outer rim of each bough
+                        if (rough > 0.25 && ti < 3) {
+                            for (let sub = -1; sub <= 1; sub += 2) {
+                                const subAng = lAng + localRot + sub * (0.38 + 0.08 * rough);
+                                const subX = lx + Math.cos(subAng) * lobeRx * 0.62;
+                                const subY = ly + Math.sin(subAng) * lobeRy * 0.62;
+                                this.traceFractalLobe(
+                                    ctx,
+                                    subX,
+                                    subY,
+                                    lobeRx * 0.52,
+                                    lobeRy * 0.50,
+                                    subAng,
+                                    rough * 1.05,
+                                    tree.phase + ti * 5.3 + l * 2.7 + sub,
+                                    16
+                                );
+                                ctx.fill();
+                            }
+                        }
                     }
                 }
             }
@@ -3904,8 +5236,7 @@ class LivingElementsEngine {
             ctx.save();
             ctx.translate(lx, ly);
             ctx.rotate(time * 2.2 + lp);
-            ctx.beginPath();
-            ctx.ellipse(0, 0, 3.6, 1.8, 0, 0, Math.PI * 2);
+            this.traceFractalLobe(ctx, 0, 0, 3.6 * elScale, 1.8 * elScale, 0, rough * 0.65, lp * 1.7, 10);
             ctx.fill();
             ctx.restore();
         }
@@ -3944,16 +5275,19 @@ class LivingElementsEngine {
     }
 
     // ========================================================================
-    // 4. PHOTOREALISTIC DESERT TUMBLEWEEDS
+    // 4. PHOTOREALISTIC DESERT TUMBLEWEEDS (Fractal Tangled Briar Cage)
     // ========================================================================
     drawRealisticTumbleweed(el, ctx, W, H, dt) {
         if (!el.particles) el.particles = [];
         if (!el.dustParticles) el.dustParticles = [];
 
-        const baseCount = el.config.count !== undefined ? el.config.count : 12;
-        const qty = el.config.quantity !== undefined ? el.config.quantity : 1.0;
+        const cfg = el.config || {};
+        const baseCount = cfg.count !== undefined ? cfg.count : 12;
+        const qty = cfg.quantity !== undefined ? cfg.quantity : 1.0;
         const targetCount = Math.max(1, Math.min(50, Math.round(baseCount * qty)));
-        const speed = (el.config.speed || 1.8) * 85;
+        const speed = (cfg.speed || 1.8) * 85;
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale !== undefined ? cfg.scale : 1.0)) || 1.0));
+        const rough = Math.max(0, Math.min(2.0, parseFloat(cfg.fractalRoughness !== undefined ? cfg.fractalRoughness : 0.75)));
 
         // Trim if entity count decreased
         if (el.particles.length > targetCount) {
@@ -3962,9 +5296,9 @@ class LivingElementsEngine {
 
         const isInitial = el.particles.length === 0;
         while (el.particles.length < targetCount) {
-            const radius = (18 + Math.random() * 16) * (el.config.scale || 1.0);
+            const baseRadius = 18 + Math.random() * 16;
+            const radius = baseRadius * elScale;
             // On initial spawn, distribute tumbleweeds across the full width [0, W]
-            // so the entire map is populated immediately rather than waiting for them to drift in from off-screen
             const initX = isInitial
                 ? (Math.random() * W)
                 : (-Math.random() * W * 0.4 - radius * 2);
@@ -3972,6 +5306,7 @@ class LivingElementsEngine {
             el.particles.push({
                 x: initX,
                 y: 20 + Math.random() * Math.max(20, H - 40),
+                baseRadius: baseRadius,
                 radius: radius,
                 rotation: Math.random() * Math.PI * 2,
                 dustCooldown: Math.random() * 0.3,
@@ -3979,13 +5314,13 @@ class LivingElementsEngine {
             });
         }
 
-        // 1. Update and render Ground Dust Puffs kick-up
+        // 1. Update and render Fractal Ground Dust Puffs kick-up
         for (let d = el.dustParticles.length - 1; d >= 0; d--) {
             const dp = el.dustParticles[d];
             dp.life -= dt * 1.8;
             dp.x += dp.vx * dt;
             dp.y += dp.vy * dt;
-            dp.size += dt * 14;
+            dp.size += dt * 14 * elScale;
 
             if (dp.life <= 0) {
                 el.dustParticles.splice(d, 1);
@@ -3994,93 +5329,136 @@ class LivingElementsEngine {
 
             ctx.save();
             ctx.fillStyle = `rgba(200, 175, 135, ${dp.life * 0.28})`;
-            ctx.beginPath();
-            ctx.arc(dp.x, dp.y, dp.size, 0, Math.PI * 2);
+            this.traceFractalLobe(ctx, dp.x, dp.y, dp.size * 1.15, dp.size * 0.85, dp.life * 2, rough * 0.8, d * 1.7, 14);
             ctx.fill();
             ctx.restore();
         }
 
-        // 2. Render each Tumbleweed
+        // 2. Render each Tumbleweed with Live Element Scale & Fractal Briar Brambles
         for (let i = 0; i < el.particles.length; i++) {
             const tw = el.particles[i];
+            if (!tw.baseRadius) tw.baseRadius = tw.radius || 22;
+            const r = tw.baseRadius * elScale;
+            tw.radius = r;
+
             tw.x += speed * dt;
 
-            const rotSpeed = speed / tw.radius;
+            const rotSpeed = speed / Math.max(8, r);
             tw.rotation += rotSpeed * dt;
 
-            const terrainMicroBump = Math.sin(tw.x * 0.08) * 2;
+            const terrainMicroBump = Math.sin(tw.x * 0.08 + tw.seed) * 2.5 * elScale;
             const currentY = tw.y + terrainMicroBump;
 
             tw.dustCooldown -= dt;
-            if (tw.dustCooldown <= 0 && el.config.dustPuffs !== false) {
+            if (tw.dustCooldown <= 0 && cfg.dustPuffs !== false) {
                 el.dustParticles.push({
-                    x: tw.x - tw.radius * 0.4,
-                    y: currentY + tw.radius * 0.85,
+                    x: tw.x - r * 0.4,
+                    y: currentY + r * 0.85,
                     vx: -speed * 0.2,
                     vy: -(Math.random() * 8),
-                    size: 3 + Math.random() * 4,
+                    size: (3 + Math.random() * 4) * elScale,
                     life: 1.0
                 });
                 tw.dustCooldown = 0.25 + Math.random() * 0.3;
             }
 
-            if (tw.x > W + tw.radius * 2) {
-                tw.x = -tw.radius * 2 - Math.random() * 60;
+            if (tw.x > W + r * 2) {
+                tw.x = -r * 2 - Math.random() * 60;
                 tw.y = 20 + Math.random() * Math.max(20, H - 40);
             }
 
-            // Soft Ground Shadow
+            // Soft Fractal Ground Shadow
             ctx.save();
-            ctx.fillStyle = 'rgba(40, 28, 18, 0.32)';
-            ctx.beginPath();
-            ctx.ellipse(tw.x + 4, currentY + tw.radius * 0.88, tw.radius * 0.85, tw.radius * 0.28, 0.1, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(40, 28, 18, 0.34)';
+            this.traceFractalLobe(ctx, tw.x + 4 * elScale, currentY + r * 0.86, r * 0.88, r * 0.30, 0.1, rough * 0.75, tw.seed, 16);
             ctx.fill();
             ctx.restore();
 
-            // Render Tangled Fibrous Thistle Mesh
+            // Render 3D Tangled Fractal Briar & Thistle Cage
             ctx.save();
             ctx.translate(tw.x, currentY);
             ctx.rotate(tw.rotation);
 
-            const colDeep = '#5c4832';
-            const colMid = '#856f4e';
-            const colLight = '#a68f6a';
+            const colDeep = '#4f3c28';
+            const colMid = '#7d6645';
+            const colLight = '#a89068';
+            const colHighlight = '#cbb48c';
 
-            ctx.strokeStyle = colDeep;
-            ctx.lineWidth = 1.3;
-            ctx.beginPath();
-            const coreSpokes = 16;
-            for (let s = 0; s < coreSpokes; s++) {
-                const angle = (Math.PI * 2 / coreSpokes) * s;
-                const r = tw.radius * (0.55 + Math.sin(s * 3.3 + tw.seed) * 0.2);
-                ctx.moveTo(0, 0);
-                ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+            // A. Central Gnarled Root Knot
+            ctx.fillStyle = colDeep;
+            this.traceFractalLobe(ctx, 0, 0, r * 0.22, r * 0.18, tw.seed, Math.max(0.3, rough), tw.seed, 12);
+            ctx.fill();
+
+            // B. Recursive Bifurcating Woody Stems (Fractal Twig Branches)
+            const mainBranches = 7 + Math.floor(rough * 6);
+            const branchDepth = rough > 0.9 ? 4 : (rough > 0.45 ? 3 : 2);
+            const baseStemWidth = Math.max(1.2, r * 0.068);
+            for (let b = 0; b < mainBranches; b++) {
+                const bAng = (Math.PI * 2 / mainBranches) * b + Math.sin(b * 2.3 + tw.seed) * 0.22;
+                const bLen = r * (0.46 + 0.14 * Math.sin(b * 3.1 + tw.seed));
+                this.drawFractalTwigBranch(
+                    ctx,
+                    0,
+                    0,
+                    bLen,
+                    bAng,
+                    baseStemWidth,
+                    branchDepth,
+                    rough,
+                    tw.seed + b * 1.73,
+                    (b % 2 === 0) ? colDeep : colMid
+                );
             }
-            ctx.stroke();
 
-            ctx.strokeStyle = colMid;
-            ctx.lineWidth = 1.2;
-            for (let r = 0; r < 5; r++) {
-                ctx.save();
-                ctx.rotate((Math.PI / 5) * r);
-                ctx.beginPath();
-                ctx.ellipse(0, 0, tw.radius * 0.88, tw.radius * 0.58, 0.3, 0, Math.PI * 2);
+            // C. 6 Foreshortened 3D Fractal-Perturbed Briar Cage Hoops
+            ctx.lineWidth = Math.max(1.0, r * 0.045);
+            const hoopCount = 6;
+            for (let h = 0; h < hoopCount; h++) {
+                ctx.strokeStyle = (h % 2 === 0) ? colMid : colLight;
+                const hRot = (Math.PI / hoopCount) * h + (tw.seed % 3) * 0.2;
+                const hoopRx = r * (0.86 + 0.08 * Math.sin(h * 1.9));
+                const hoopRy = r * (0.48 + 0.18 * Math.cos(h * 2.3));
+                this.traceFractalLobe(
+                    ctx,
+                    0,
+                    0,
+                    hoopRx,
+                    hoopRy,
+                    hRot,
+                    Math.max(0.18, rough * 0.92),
+                    tw.seed + h * 4.1,
+                    24
+                );
                 ctx.stroke();
-                ctx.restore();
             }
 
-            ctx.strokeStyle = colLight;
-            ctx.lineWidth = 1.0;
+            // D. Outer Hooked Bramble Spurs & Dry Thistle Barbs
+            const spurCount = Math.round(20 + rough * 22);
+            ctx.strokeStyle = colHighlight;
+            ctx.lineWidth = Math.max(0.85, r * 0.032);
             ctx.beginPath();
-            const outerTwigs = 22;
-            for (let t = 0; t < outerTwigs; t++) {
-                const angle = (Math.PI * 2 / outerTwigs) * t;
-                const rOuter = tw.radius * (0.8 + Math.cos(t * 2.7) * 0.2);
+            for (let t = 0; t < spurCount; t++) {
+                const angle = (Math.PI * 2 / spurCount) * t;
+                const rInner = r * (0.56 + 0.16 * Math.sin(t * 3.7 + tw.seed));
+                const rOuter = r * (0.86 + 0.24 * this.fractalHarmonicMod(angle, tw.seed + t, rough));
+                const midAng = angle + (t % 2 === 0 ? 1 : -1) * (0.16 + rough * 0.20);
+                const x0 = Math.cos(angle) * rInner;
+                const y0 = Math.sin(angle) * rInner;
+                const xm = Math.cos(midAng) * ((rInner + rOuter) * 0.52);
+                const ym = Math.sin(midAng) * ((rInner + rOuter) * 0.52);
                 const tipX = Math.cos(angle) * rOuter;
                 const tipY = Math.sin(angle) * rOuter;
-                ctx.moveTo(tipX * 0.65, tipY * 0.65);
-                ctx.lineTo(tipX, tipY);
-                ctx.lineTo(tipX + Math.sin(angle) * 3, tipY - Math.cos(angle) * 3);
+                ctx.moveTo(x0, y0);
+                ctx.quadraticCurveTo(xm, ym, tipX, tipY);
+                // Hooked bramble barb at tip
+                const barbLen = Math.max(2.0, r * (0.09 + rough * 0.09));
+                ctx.lineTo(tipX + Math.sin(angle) * barbLen, tipY - Math.cos(angle) * barbLen);
+                // Secondary lateral thorn spur on midpoint when rough > 0.35
+                if (rough > 0.35) {
+                    const latDir = (t % 2 === 0 ? 1 : -1);
+                    ctx.moveTo(xm, ym);
+                    ctx.lineTo(xm + Math.cos(midAng + latDir * 0.85) * barbLen * 0.85, ym + Math.sin(midAng + latDir * 0.85) * barbLen * 0.85);
+                }
             }
             ctx.stroke();
 
@@ -4536,8 +5914,10 @@ class LivingElementsEngine {
 
     drawRealisticCanopy(el, ctx, W, H, dt) {
         const time = el.stateTime;
-        const intensity = el.config.intensity || 1.0;
-        const pal = this.getCanopyPalette(el.config.variant || 'oak_canopy');
+        const cfg = el.config || {};
+        const intensity = cfg.intensity || 1.0;
+        const rough = Math.max(0, Math.min(2.0, parseFloat(cfg.fractalRoughness !== undefined ? cfg.fractalRoughness : 0.75)));
+        const pal = this.getCanopyPalette(cfg.variant || 'oak_canopy');
         const cx = W * 0.5;
         const cy = H * 0.5;
         const rx = W * 0.38;
@@ -4557,52 +5937,87 @@ class LivingElementsEngine {
             const ang = (i / shadowLobes) * Math.PI * 2;
             const lx = cx + W * 0.045 + windX * 0.5 + Math.cos(ang) * rx * 0.52;
             const ly = cy + H * 0.055 + windY * 0.5 + Math.sin(ang) * ry * 0.52;
-            ctx.beginPath();
-            ctx.ellipse(lx, ly, rx * 0.46, ry * 0.44, ang * 0.5, 0, Math.PI * 2);
+            this.traceFractalLobe(ctx, lx, ly, rx * 0.46, ry * 0.44, ang * 0.5, rough * 0.85, i * 1.37, 18);
             ctx.fill();
         }
 
         // 2. Interior Subtle Trunk / Main Boughs (partially visible under foliage)
-        ctx.strokeStyle = 'rgba(42, 28, 18, 0.55)';
-        ctx.lineCap = 'round';
-        ctx.lineWidth = Math.max(3, Math.min(W, H) * 0.032);
+        const boughDepth = rough > 0.65 ? 3 : 2;
         for (let b = 0; b < 6; b++) {
             const ang = (b / 6) * Math.PI * 2 + 0.3 + windRot * 0.5;
-            ctx.beginPath();
-            ctx.moveTo(cx + windX * 0.3, cy + windY * 0.3);
-            ctx.lineTo(cx + windX * 0.7 + Math.cos(ang) * rx * 0.65, cy + windY * 0.7 + Math.sin(ang) * ry * 0.65);
-            ctx.stroke();
+            this.drawFractalTwigBranch(
+                ctx,
+                cx + windX * 0.3,
+                cy + windY * 0.3,
+                rx * 0.54,
+                ang,
+                Math.max(2.5, Math.min(W, H) * 0.032),
+                boughDepth,
+                rough,
+                b * 1.7,
+                'rgba(42, 28, 18, 0.62)'
+            );
         }
 
-        // 3. Multi-Tiered Leaf Clusters (Deep Understory -> Mid Boughs -> Sunlit Crown)
+        // 3. Multi-Tiered Leaf Clusters (Deep Understory -> Mid Boughs -> Sunlit Crown -> Top Highlights)
         const tiers = [
-            { color: pal.deep, count: 10, dist: 0.55, size: 0.46, swayMult: 0.65, alpha: 0.88 },
-            { color: pal.mid, count: 12, dist: 0.44, size: 0.40, swayMult: 0.90, alpha: 0.90 },
-            { color: pal.light, count: 10, dist: 0.32, size: 0.34, swayMult: 1.15, alpha: 0.86 },
-            { color: pal.highlight, count: 7, dist: 0.20, size: 0.25, swayMult: 1.35, alpha: 0.75 }
+            { color: pal.deep, count: 10, dist: 0.54, size: 0.48, centerMult: 0.62, swayMult: 0.65, alpha: 0.94 },
+            { color: pal.mid, count: 12, dist: 0.42, size: 0.42, centerMult: 0.48, swayMult: 0.90, alpha: 0.92 },
+            { color: pal.light, count: 10, dist: 0.30, size: 0.35, centerMult: 0.34, swayMult: 1.15, alpha: 0.89 },
+            { color: pal.highlight, count: 7, dist: 0.18, size: 0.27, centerMult: 0.22, swayMult: 1.35, alpha: 0.84 }
         ];
 
         tiers.forEach((tier, tIdx) => {
+            const tierCx = cx + windX * tier.swayMult;
+            const tierCy = cy + windY * tier.swayMult;
+
+            // Deep inter-bough crevice shadows tucked under upper canopy tiers
+            if (tIdx === 1 && rough > 0.2) {
+                ctx.fillStyle = pal.shadow;
+                ctx.globalAlpha = Math.min(0.65, 0.28 + rough * 0.18);
+                for (let c = 0; c < tier.count; c++) {
+                    const cAng = ((c + 0.5) / tier.count) * Math.PI * 2;
+                    const cxOff = tierCx + Math.cos(cAng + windRot) * rx * 0.46;
+                    const cyOff = tierCy + Math.sin(cAng + windRot) * ry * 0.46;
+                    this.traceFractalLobe(ctx, cxOff, cyOff, rx * 0.22, ry * 0.20, cAng, rough * 0.9, c * 2.1, 14);
+                    ctx.fill();
+                }
+            }
+
             ctx.fillStyle = tier.color;
             ctx.globalAlpha = tier.alpha;
+
+            // Central cohesive dome for this canopy tier
+            this.traceFractalLobe(ctx, tierCx, tierCy, rx * tier.centerMult, ry * tier.centerMult, windRot + tIdx * 0.4, rough * 0.85, tIdx * 2.3, 20);
+            ctx.fill();
+
             for (let c = 0; c < tier.count; c++) {
                 const baseAngle = (c / tier.count) * Math.PI * 2 + tIdx * 0.55;
                 const localFlutter = Math.sin(time * 2.1 + c * 1.7 + tIdx) * (rx * 0.028) * intensity;
-                const distR = tier.dist * (0.82 + 0.18 * Math.sin(c * 2.3 + tIdx));
-                const lx = cx + windX * tier.swayMult + Math.cos(baseAngle + windRot) * rx * distR + localFlutter;
-                const ly = cy + windY * tier.swayMult + Math.sin(baseAngle + windRot) * ry * distR - localFlutter * 0.6;
-                const lobeRx = rx * tier.size * (0.88 + 0.15 * Math.cos(c * 1.9));
-                const lobeRy = ry * tier.size * (0.85 + 0.15 * Math.sin(c * 2.7));
+                const distR = tier.dist * (0.84 + 0.16 * Math.sin(c * 2.3 + tIdx));
+                const lx = tierCx + Math.cos(baseAngle + windRot) * rx * distR + localFlutter;
+                const ly = tierCy + Math.sin(baseAngle + windRot) * ry * distR - localFlutter * 0.6;
+                const lobeRx = rx * tier.size * (0.88 + 0.14 * Math.cos(c * 1.9));
+                const lobeRy = ry * tier.size * (0.86 + 0.14 * Math.sin(c * 2.7));
 
-                ctx.beginPath();
-                ctx.ellipse(lx, ly, lobeRx, lobeRy, baseAngle + windRot, 0, Math.PI * 2);
+                this.traceFractalLobe(ctx, lx, ly, lobeRx, lobeRy, baseAngle + windRot, rough, tIdx * 3.1 + c * 1.37, 20);
                 ctx.fill();
+
+                if (rough > 0.25 && tIdx < 3) {
+                    for (let sub = -1; sub <= 1; sub += 2) {
+                        const subAng = baseAngle + windRot + sub * (0.38 + 0.08 * rough);
+                        const subX = lx + Math.cos(subAng) * lobeRx * 0.62;
+                        const subY = ly + Math.sin(subAng) * lobeRy * 0.62;
+                        this.traceFractalLobe(ctx, subX, subY, lobeRx * 0.52, lobeRy * 0.50, subAng, rough * 1.05, tIdx * 5.3 + c * 2.7 + sub, 16);
+                        ctx.fill();
+                    }
+                }
             }
         });
 
         // 4. Drifting Windblown Leaves (Seamless Phase-Wrapped Loop)
         ctx.globalAlpha = 1.0;
-        const leafCount = Math.max(2, Math.floor(8 * intensity * (el.config.quantity || 1.0)));
+        const leafCount = Math.max(2, Math.floor(8 * intensity * (cfg.quantity || 1.0)));
         for (let l = 0; l < leafCount; l++) {
             const lPhase = (time * (0.28 + (l % 3) * 0.07) + l / leafCount) % 1.0;
             const env = Math.sin(lPhase * Math.PI);
@@ -4615,8 +6030,7 @@ class LivingElementsEngine {
             ctx.translate(lx, ly);
             ctx.rotate(leafRot);
             ctx.fillStyle = `rgba(${pal.leaf}, ${env * 0.85})`;
-            ctx.beginPath();
-            ctx.ellipse(0, 0, Math.max(2.5, W * 0.016), Math.max(1.3, H * 0.008), 0, 0, Math.PI * 2);
+            this.traceFractalLobe(ctx, 0, 0, Math.max(2.5, W * 0.016), Math.max(1.3, H * 0.008), 0, rough * 0.65, l * 1.7, 10);
             ctx.fill();
             ctx.restore();
         }
@@ -4731,13 +6145,10 @@ class LivingElementsEngine {
         const qty = el.config.quantity !== undefined ? el.config.quantity : 1.0;
         const variant = el.config.variant || 'tactical_planet';
 
-        const flicker = 0.88 + 0.12 * Math.sin(time * 24) + (Math.random() < 0.03 ? -0.22 : 0);
-        const glitchX = (Math.random() < 0.03) ? (Math.random() - 0.5) * 5 : 0;
-        const glitchY = (Math.random() < 0.02) ? (Math.random() - 0.5) * 3 : 0;
+        const flicker = 0.92 + 0.08 * Math.sin(time * 4.2);
 
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        ctx.translate(glitchX, glitchY);
 
         let color = '0, 240, 255';
         if (variant === 'skull_hazard') color = '255, 60, 60';
@@ -5044,16 +6455,13 @@ class LivingElementsEngine {
                 ctx.stroke();
             }
 
-            if (Math.random() < 0.35) {
-                const sx = pad + Math.random() * fw;
-                const sy = pad + Math.random() * fh;
-                ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * intensity})`;
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(sx, sy);
-                ctx.lineTo(sx + (Math.random() - 0.5) * 16, sy + (Math.random() - 0.5) * 16);
-                ctx.stroke();
-            }
+            // Smooth traveling grid node pulse instead of random per-frame flicker
+            const nodeX = pad + ((time * 48) % Math.max(10, fw));
+            const nodeY = pad + ((time * 32) % Math.max(10, fh));
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.75 * intensity})`;
+            ctx.beginPath();
+            ctx.arc(nodeX, nodeY, 2.5, 0, Math.PI * 2);
+            ctx.fill();
 
         } else {
             // plasma_curtain
@@ -5071,15 +6479,14 @@ class LivingElementsEngine {
             }
         }
 
+        // Smoothly traveling perimeter energy nodes
         for (let a = 0; a < 2; a++) {
-            const edgeX = pad + Math.random() * fw;
-            const edgeY = Math.random() < 0.5 ? pad : (H - pad);
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 * intensity})`;
-            ctx.lineWidth = 1.2;
+            const edgeX = pad + ((time * 60 + a * fw * 0.5) % Math.max(10, fw));
+            const edgeY = a === 0 ? pad : (H - pad);
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.75 * intensity})`;
             ctx.beginPath();
-            ctx.moveTo(edgeX, edgeY);
-            ctx.lineTo(edgeX + (Math.random() - 0.5) * 12, edgeY + (Math.random() - 0.5) * 12);
-            ctx.stroke();
+            ctx.arc(edgeX, edgeY, 2.2, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         ctx.restore();
@@ -5164,15 +6571,15 @@ class LivingElementsEngine {
         }
 
         for (let a = 0; a < 3; a++) {
-            ctx.strokeStyle = `rgba(${hotColor}, ${0.85 * intensity})`;
+            ctx.strokeStyle = `rgba(${hotColor}, ${0.82 * intensity})`;
             ctx.lineWidth = 1.3;
             ctx.beginPath();
             let curX = ox;
-            let curY = oy + (a - 1) * 8;
+            let curY = oy + (a - 1) * 7;
             ctx.moveTo(curX, curY);
-            for (let seg = 0; seg < 4; seg++) {
-                curX += 16 + Math.random() * 18;
-                curY += (Math.random() - 0.5) * 22;
+            for (let seg = 1; seg <= 4; seg++) {
+                curX += 22;
+                curY = oy + (a - 1) * 7 + Math.sin(time * 9 * speed + a * 2.1 + seg * 1.6) * (6 + seg * 2.5);
                 ctx.lineTo(curX, curY);
             }
             ctx.stroke();
@@ -6828,7 +8235,13 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 1.0;
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale !== undefined ? cfg.scale : 1.0)) || 1.0));
+        const rough = Math.max(0, Math.min(2.0, parseFloat(cfg.fractalRoughness !== undefined ? cfg.fractalRoughness : 0.75)));
         const pal = this.getForestPalette(cfg.variant || 'ancient_oak');
+
+        // Handle entity scaling explicitly per-tree so branches and foliage scale together
+        const prevAutoScale = el._autoScaleEntities;
+        el._autoScaleEntities = false;
 
         // Multi-tree population persistence
         const baseDensity = cfg.density !== undefined ? cfg.density : 16;
@@ -6865,66 +8278,109 @@ class LivingElementsEngine {
         const forestWindX = (Math.sin(time * 1.1 * speed) * 0.65 + Math.sin(time * 0.55 * speed) * 0.35) * (W * 0.024) * intensity;
         const forestWindY = (Math.cos(time * 0.95 * speed) * 0.6 + Math.sin(time * 0.7 * speed) * 0.4) * (H * 0.018) * intensity;
 
-        // 2. Render each tree in the forest
+        // 2. Render each tree in the forest with Fractal Botanical Detail
         for (let t = 0; t < el.forestTrees.length; t++) {
             const tree = el.forestTrees[t];
             const cx = tree.u * W;
             const cy = tree.v * H;
-            const rx = tree.radius * (W / 440);
-            const ry = tree.radius * tree.aspect * (H / 400);
+            const rx = tree.radius * (W / 440) * elScale;
+            const ry = tree.radius * tree.aspect * (H / 400) * elScale;
 
             // Per-tree out-of-sync multi-harmonic sway
             const localSwayX = forestWindX + Math.sin(time * 1.8 * speed + tree.phase) * (rx * 0.07) * intensity;
             const localSwayY = forestWindY + Math.cos(time * 1.5 * speed + tree.phase) * (ry * 0.05) * intensity;
             const localRot = Math.sin(time * 1.4 * speed + tree.phase) * 0.06 * intensity;
 
-            // A. Offset Ground Shadow
+            // A. Offset Fractal Ground Shadow
             ctx.fillStyle = pal.shadow;
             for (let s = 0; s < tree.lobes; s++) {
                 const ang = (s / tree.lobes) * Math.PI * 2;
                 const sx = cx + rx * 0.15 + localSwayX * 0.4 + Math.cos(ang) * rx * 0.65;
                 const sy = cy + ry * 0.22 + localSwayY * 0.4 + Math.sin(ang) * ry * 0.65;
-                ctx.beginPath();
-                ctx.ellipse(sx, sy, rx * 0.48, ry * 0.45, 0, 0, Math.PI * 2);
+                this.traceFractalLobe(ctx, sx, sy, rx * 0.48, ry * 0.45, ang * 0.5, rough * 0.85, tree.phase + s, 16);
                 ctx.fill();
             }
 
-            // B. Radiating Boughs / Branches (peek through leaves)
-            ctx.strokeStyle = pal.trunk;
-            ctx.lineWidth = Math.max(2, rx * 0.08);
-            ctx.lineCap = 'round';
+            // B. Recursive Forked Boughs / Branches (peek through leaves)
+            const boughDepth = rough > 0.65 ? 3 : 2;
             for (let b = 0; b < 5; b++) {
                 const bAng = (b / 5) * Math.PI * 2 + tree.phase + localRot * 0.5;
-                ctx.beginPath();
-                ctx.moveTo(cx + localSwayX * 0.25, cy + localSwayY * 0.25);
-                ctx.lineTo(cx + localSwayX * 0.6 + Math.cos(bAng) * rx * 0.62, cy + localSwayY * 0.6 + Math.sin(bAng) * ry * 0.62);
-                ctx.stroke();
+                this.drawFractalTwigBranch(
+                    ctx,
+                    cx + localSwayX * 0.25,
+                    cy + localSwayY * 0.25,
+                    rx * 0.48,
+                    bAng,
+                    Math.max(2, rx * 0.08),
+                    boughDepth,
+                    rough,
+                    tree.phase + b,
+                    pal.trunk
+                );
             }
 
-            // C. Multi-Tier Canopy Foliage Lobes (Deep -> Mid -> Sunlit -> Highlights)
+            // C. Multi-Tier Fractal Canopy Foliage Lobes (Deep -> Mid -> Sunlit -> Highlights)
             const tiers = [
-                { color: pal.deep, count: tree.lobes, rMult: 0.68, sway: 0.65, alpha: 0.94 },
-                { color: pal.mid, count: tree.lobes + 1, rMult: 0.52, sway: 0.90, alpha: 0.92 },
-                { color: pal.light, count: tree.lobes, rMult: 0.38, sway: 1.15, alpha: 0.88 },
-                { color: pal.highlight, count: Math.max(3, tree.lobes - 2), rMult: 0.22, sway: 1.35, alpha: 0.82 }
+                { color: pal.deep, count: tree.lobes, rMult: 0.54, sizeMult: 0.50, centerMult: 0.62, sway: 0.65, alpha: 0.94 },
+                { color: pal.mid, count: tree.lobes + 1, rMult: 0.42, sizeMult: 0.44, centerMult: 0.48, sway: 0.90, alpha: 0.92 },
+                { color: pal.light, count: tree.lobes, rMult: 0.30, sizeMult: 0.37, centerMult: 0.34, sway: 1.15, alpha: 0.89 },
+                { color: pal.highlight, count: Math.max(4, tree.lobes - 1), rMult: 0.17, sizeMult: 0.28, centerMult: 0.22, sway: 1.35, alpha: 0.84 }
             ];
 
             for (let ti = 0; ti < tiers.length; ti++) {
                 const tier = tiers[ti];
+                const tierCx = cx + localSwayX * tier.sway;
+                const tierCy = cy + localSwayY * tier.sway;
+
+                if (ti === 1 && rough > 0.2) {
+                    ctx.fillStyle = pal.shadow;
+                    ctx.globalAlpha = Math.min(0.65, 0.28 + rough * 0.18) * (cfg.opacity || 0.95);
+                    for (let c = 0; c < tier.count; c++) {
+                        const cAng = ((c + 0.5) / tier.count) * Math.PI * 2 + tree.phase;
+                        const cxOff = tierCx + Math.cos(cAng + localRot) * rx * 0.46;
+                        const cyOff = tierCy + Math.sin(cAng + localRot) * ry * 0.46;
+                        this.traceFractalLobe(ctx, cxOff, cyOff, rx * 0.22, ry * 0.20, cAng, rough * 0.9, tree.phase + c * 2.1, 14);
+                        ctx.fill();
+                    }
+                }
+
                 ctx.fillStyle = tier.color;
                 ctx.globalAlpha = tier.alpha * (cfg.opacity || 0.95);
 
+                // Central cohesive dome for this canopy tier
+                this.traceFractalLobe(
+                    ctx,
+                    tierCx,
+                    tierCy,
+                    rx * tier.centerMult,
+                    ry * tier.centerMult,
+                    localRot + ti * 0.4,
+                    rough * 0.85,
+                    tree.phase + ti * 2.3,
+                    20
+                );
+                ctx.fill();
+
                 for (let l = 0; l < tier.count; l++) {
                     const lAng = (l / tier.count) * Math.PI * 2 + ti * 0.45 + tree.phase;
-                    const flutter = Math.sin(time * 2.5 * speed + l * 2.1 + tree.phase) * (rx * 0.04) * intensity;
-                    const lx = cx + localSwayX * tier.sway + Math.cos(lAng + localRot) * rx * tier.rMult + flutter;
-                    const ly = cy + localSwayY * tier.sway + Math.sin(lAng + localRot) * ry * tier.rMult - flutter * 0.5;
-                    const lobeRx = rx * 0.45 * (0.85 + 0.15 * Math.sin(l * 1.9));
-                    const lobeRy = ry * 0.42 * (0.85 + 0.15 * Math.cos(l * 2.3));
+                    const flutter = Math.sin(time * 2.5 * speed + l * 2.1 + tree.phase) * (rx * 0.035) * intensity;
+                    const lx = tierCx + Math.cos(lAng + localRot) * rx * tier.rMult + flutter;
+                    const ly = tierCy + Math.sin(lAng + localRot) * ry * tier.rMult - flutter * 0.5;
+                    const lobeRx = rx * tier.sizeMult * (0.86 + 0.14 * Math.sin(l * 1.9));
+                    const lobeRy = ry * tier.sizeMult * (0.84 + 0.14 * Math.cos(l * 2.3));
 
-                    ctx.beginPath();
-                    ctx.ellipse(lx, ly, lobeRx, lobeRy, lAng + localRot, 0, Math.PI * 2);
+                    this.traceFractalLobe(ctx, lx, ly, lobeRx, lobeRy, lAng + localRot, rough, tree.phase + ti * 3.1 + l * 1.3, 20);
                     ctx.fill();
+
+                    if (rough > 0.25 && ti < 3) {
+                        for (let sub = -1; sub <= 1; sub += 2) {
+                            const subAng = lAng + localRot + sub * (0.38 + 0.08 * rough);
+                            const subX = lx + Math.cos(subAng) * lobeRx * 0.62;
+                            const subY = ly + Math.sin(subAng) * lobeRy * 0.62;
+                            this.traceFractalLobe(ctx, subX, subY, lobeRx * 0.52, lobeRy * 0.50, subAng, rough * 1.05, tree.phase + ti * 5.3 + l * 2.7 + sub, 16);
+                            ctx.fill();
+                        }
+                    }
                 }
             }
         }
@@ -6958,12 +8414,12 @@ class LivingElementsEngine {
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rot);
-            ctx.beginPath();
-            ctx.ellipse(0, 0, p.size * 1.4, p.size * 0.7, 0, 0, Math.PI * 2);
+            this.traceFractalLobe(ctx, 0, 0, p.size * 1.4 * elScale, p.size * 0.7 * elScale, 0, rough * 0.65, lp * 1.7, 10);
             ctx.fill();
             ctx.restore();
         }
 
+        el._autoScaleEntities = prevAutoScale;
         ctx.restore();
     }
 
@@ -9867,8 +11323,20 @@ class LivingElementsEngine {
                 }
             }
             if (this.selectedElementId && (e.key === 'Delete' || e.key === 'Backspace')) {
+                const selEl = this.elements.find(x => x.id === this.selectedElementId);
+                if (selEl && this.isElementLocked(selEl)) return; // Locked effects can't be deleted by accident
                 this.removeElement(this.selectedElementId);
                 e.preventDefault();
+            }
+            if (this.selectedElementId && (e.key || '').toLowerCase() === 'l' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const selEl = this.elements.find(x => x.id === this.selectedElementId);
+                if (selEl) this.setElementLocked(selEl.id, !this.isElementLocked(selEl));
+            }
+            if ((e.key || '').toLowerCase() === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                this.toggleDrawMode();
+            }
+            if (e.key === 'Escape' && this.isDrawingMode) {
+                this.setDrawMode(false);
             }
         });
     }

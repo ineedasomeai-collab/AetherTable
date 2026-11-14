@@ -25,6 +25,7 @@
             <button class="nav-btn" data-panel="dynamic-scenes-panel" title="Real-Time Map State Morphing, 3D Parallax Height & Infinite Scrolling Vehicle Chases">🎬 Dynamic Scenes</button>
             <button class="nav-btn btn-accent" data-panel="ai-generator-panel" title="Toggle-based AI prompt builder, in-tool 4K map search & popout search tab">✨ Map Finder & AI</button>
             <button class="nav-btn" data-panel="projector-settings-panel" title="Projector brightness, contrast and tuning">⚙ Display</button>
+            <button class="nav-btn" data-panel="readme-panel" id="btn-nav-readme" title="Open Readme Manual & Keybindings (Hotkey: F9)">📖 Readme (F9)</button>
 
             <div class="divider"></div>
 
@@ -74,6 +75,29 @@
             <!-- Atmospheric Weather Layer (Mist, Rain, Snow, Floating Dust, Sandstorm, Fireflies) -->
             <canvas id="weather-canvas" class="weather-canvas"></canvas>
 
+            <!-- Freehand Draw Layer (Renders live glowing stroke and fill preview while drawing paths & shapes) -->
+            <canvas id="freehand-draw-canvas" class="freehand-draw-canvas" style="display: none;"></canvas>
+
+        </div>
+
+        <!-- Floating Freehand Draw Mode HUD Banner -->
+        <div id="draw-mode-banner" class="draw-mode-banner" style="display: none;">
+            <div class="draw-banner-content">
+                <span class="draw-banner-icon">✏️</span>
+                <div class="draw-banner-info">
+                    <div class="draw-banner-title"><b>Draw FX Mode Active</b> — Sketch directly on the battlemap</div>
+                    <div class="draw-banner-target">Target: <span id="draw-banner-target-name">🌊 Flowing Stream / River</span></div>
+                </div>
+                <div class="draw-banner-controls">
+                    <div class="btn-group-segmented draw-submode-group">
+                        <button type="button" class="btn-chip draw-submode-btn active" data-submode="auto" title="Auto: Loop closes to shape, open stroke becomes path">⚡ Auto</button>
+                        <button type="button" class="btn-chip draw-submode-btn" data-submode="line" title="Force open line / path (rivers, walls of fire, paths)">〰️ Path</button>
+                        <button type="button" class="btn-chip draw-submode-btn" data-submode="shape" title="Force closed shape / area (lakes, groves, hazard pools)">⭕ Shape</button>
+                    </div>
+                    <span class="draw-banner-divider"></span>
+                    <button type="button" id="btn-draw-banner-close" class="btn btn-outline-primary" style="padding: 3px 8px; font-size: 11px;" title="Exit Draw Mode (Hotkey: D or Escape)">Done (D)</button>
+                </div>
+            </div>
         </div>
 
         <!-- Keystone 4-Corner Pinning Calibration Overlay -->
@@ -467,6 +491,37 @@
                 <input type="text" id="fx-search-input" class="input-text" placeholder="🔍 Search 160 unique animated features (e.g. pond, forest, river, hearth, forge, ooze)..." style="font-size: 11px; padding: 5px 8px; width: 100%;">
             </div>
 
+            <!-- ✏️ FREEHAND DRAW FX TOOLCARD -->
+            <div id="fx-draw-toolcard" class="setting-group" style="background: rgba(0, 255, 200, 0.07); border: 1.5px solid rgba(0, 255, 200, 0.35); padding: 8px 10px; border-radius: var(--radius-md); margin-bottom: 8px;">
+                <div class="setting-label" style="color: var(--primary); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; font-size: 11.5px;">✏️ Freehand Draw FX (Path &amp; Shape)</span>
+                    <button type="button" id="btn-toggle-draw-mode" class="btn btn-outline-primary" style="padding: 3px 10px; font-size: 10.5px; font-weight: 700;" title="Toggle Draw Tool (Hotkey: D)">✏️ Draw Mode: OFF</button>
+                </div>
+                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.35; margin: 3px 0 6px;">
+                    Instead of dragging corner handles, pick an effect, click <b>Draw</b>, and sketch directly on the battlemap. <b>Open lines</b> follow your stroke (rivers, fire walls, roads); <b>closed shapes</b> fill the area (lakes, groves, hazard pools)!
+                </div>
+                <div class="control-row" style="gap: 4px; margin-bottom: 6px;">
+                    <button type="button" class="btn-chip draw-submode-btn active" data-submode="auto" style="flex: 1; font-size: 10px; padding: 4px 2px;" title="Auto-detect: Closes into a shape if you draw a loop, otherwise follows the line">⚡ Auto-Detect</button>
+                    <button type="button" class="btn-chip draw-submode-btn" data-submode="line" style="flex: 1; font-size: 10px; padding: 4px 2px;" title="Follows the line / stroke as a ribbon (e.g. river, canal, wall of fire, road)">〰️ Line / Path</button>
+                    <button type="button" class="btn-chip draw-submode-btn" data-submode="shape" style="flex: 1; font-size: 10px; padding: 4px 2px;" title="Fills the custom enclosed perimeter (e.g. pond, lake, forest grove, mud bog)">⭕ Closed Shape</button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                    <span style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Stroke Width / Ribbon Thickness</span>
+                    <span id="fx-draw-width-val" class="setting-val-display" style="font-size: 10.5px; color: var(--primary);">90px</span>
+                </div>
+                <input type="range" id="fx-draw-width-slider" class="range-slider" min="20" max="360" step="5" value="90">
+                <div class="btn-grid-segment" style="grid-template-columns: repeat(4, 1fr); gap: 3px; margin-top: 4px;">
+                    <button type="button" class="btn-chip fx-draw-width-chip" data-width="40" style="font-size: 9.5px; padding: 3px 2px;">Thin (40px)</button>
+                    <button type="button" class="btn-chip fx-draw-width-chip active" data-width="90" style="font-size: 9.5px; padding: 3px 2px;">Medium (90px)</button>
+                    <button type="button" class="btn-chip fx-draw-width-chip" data-width="160" style="font-size: 9.5px; padding: 3px 2px;">Wide (160px)</button>
+                    <button type="button" class="btn-chip fx-draw-width-chip" data-width="260" style="font-size: 9.5px; padding: 3px 2px;">Massive (260px)</button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 10px; color: var(--text-muted); background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 4px;">
+                    <span>Active Target: <b id="fx-draw-target-name" style="color: #fff;">🌊 Flowing Stream / River</b></span>
+                    <span style="color: var(--primary);">Press <b>D</b> to toggle</span>
+                </div>
+            </div>
+
             <!-- ==========================================================
                  BROAD CATEGORY: 🌍 UNIVERSAL (60 UNIQUE FEATURES)
                  ========================================================== -->
@@ -840,6 +895,29 @@
                 <input type="range" id="audio-volume-slider" class="range-slider" min="0" max="1" step="0.05" value="0.5">
             </div>
 
+            <!-- MAP VIEW (PAN / ZOOM) & PLACEMENT: Pan the map, anchor effects to it, lock them in place -->
+            <div class="setting-group" style="background: rgba(0, 255, 200, 0.05); border: 1px solid rgba(0, 255, 200, 0.25); padding: 8px 10px; border-radius: var(--radius-md); margin-bottom: 8px;">
+                <div class="setting-label" style="color: var(--primary);">
+                    <span>🧭 Map View &amp; Effect Placement</span>
+                    <span id="fx-view-zoom-badge" class="setting-val-display" style="font-size: 10px;">100%</span>
+                </div>
+                <div class="control-row" style="gap: 4px; margin-top: 2px;">
+                    <button type="button" id="btn-fx-pan-mode" class="btn btn-outline-primary" style="flex: 1.5; font-size: 10.5px; padding: 5px 6px;" title="Pan Mode (P): drag on empty map to move the map around. You can also hold Space + drag, middle-click drag, or use the arrow keys.">✋ Pan Mode: Off</button>
+                    <button type="button" id="btn-fx-zoom-out" class="btn" style="flex: 0.5; font-size: 12px; padding: 4px;" title="Zoom map out ( - )">−</button>
+                    <button type="button" id="btn-fx-zoom-in" class="btn" style="flex: 0.5; font-size: 12px; padding: 4px;" title="Zoom map in ( + )">+</button>
+                    <button type="button" id="btn-fx-reset-view" class="btn" style="flex: 1; font-size: 10.5px; padding: 5px 6px;" title="Recenter and reset zoom (R)">⌖ Reset View</button>
+                </div>
+                <label class="inspector-toggle-row" style="padding-top: 6px;" title="New effects will be pinned to the map so they pan &amp; zoom with it. Each effect can still be switched individually in its attributes popup.">
+                    <input type="checkbox" id="fx-new-anchor-default" checked>
+                    <span>🗺️ <b>New effects Scale &amp; Move with Map</b></span>
+                </label>
+                <div class="control-row" style="gap: 4px;">
+                    <button type="button" id="btn-fx-lock-all" class="btn" style="flex: 1; font-size: 10px; padding: 4px;" title="Lock every effect's position &amp; size (click-through)">🔒 Lock All</button>
+                    <button type="button" id="btn-fx-unlock-all" class="btn" style="flex: 1; font-size: 10px; padding: 4px;" title="Unlock every effect so they can be moved again">🔓 Unlock All</button>
+                    <button type="button" id="btn-fx-anchor-all" class="btn" style="flex: 1.2; font-size: 10px; padding: 4px;" title="Pin every existing effect to the map so it moves &amp; zooms with it">📌 Pin All to Map</button>
+                </div>
+            </div>
+
             <div class="control-row" style="gap: 6px; margin-bottom: 4px;">
                 <button type="button" class="btn btn-undo-action" style="flex: 1; font-size: 11px;" title="Undo last overlay or weather action — up to 16 levels (Ctrl+Z)" disabled>↩ Undo <span class="undo-step-badge">0/16</span></button>
                 <button type="button" class="btn btn-redo-action" style="flex: 1; font-size: 11px;" title="Redo action (Ctrl+Y / Ctrl+Shift+Z)" disabled>↪ Redo <span class="redo-step-badge"></span></button>
@@ -1009,25 +1087,32 @@
                 </div>
             </div>
 
-            <!-- STEP 1B: OUTPUT SIZE INTENT & ASPECT RATIO -->
+            <!-- STEP 1B: OUTPUT SIZE INTENT, ASPECT RATIO & ORIENTATION -->
             <div class="setting-group" style="background: rgba(0, 255, 200, 0.05); border: 1px solid rgba(0, 255, 200, 0.22); padding: 9px; border-radius: var(--radius-md);">
                 <div class="setting-label" style="color: var(--primary);">
-                    <span>📐 Output Size Intent & Aspect Ratio</span>
-                    <span id="ai-size-intent-badge" class="setting-val-display" style="color: var(--primary);">24" × 36" (2:3)</span>
+                    <span>📐 Output Size Intent &amp; Aspect Ratio</span>
+                    <span id="ai-size-intent-badge" class="setting-val-display" style="color: var(--primary);">36" × 24" (3:2 • Landscape)</span>
                 </div>
-                <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">
-                    Select your physical battle mat size or projector display ratio to automatically optimize prompt formatting and generation dimensions:
+                <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 5px;">
+                    Toggle <b>Landscape</b> or <b>Portrait</b> orientation and select your physical battle mat size or projector ratio to auto-format prompts and AI generation dimensions:
                 </div>
+
+                <!-- Landscape / Portrait Orientation Toggle -->
+                <div class="btn-grid-segment" style="grid-template-columns: repeat(2, 1fr); gap: 5px; margin-bottom: 6px;">
+                    <button id="btn-ai-orient-landscape" class="btn btn-secondary ai-orientation-chip active" data-orientation="landscape" style="border-color: var(--primary); background: var(--primary-dim); font-weight: 600;" title="Horizontal wide layout for tabletops and landscape projectors">↔️ Landscape (Horizontal)</button>
+                    <button id="btn-ai-orient-portrait" class="btn btn-secondary ai-orientation-chip" data-orientation="portrait" style="font-weight: 600;" title="Vertical tall layout for portrait corridors, bridges, and vertical mats">↕️ Portrait (Vertical)</button>
+                </div>
+
                 <div class="btn-grid-segment" style="grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 5px;">
-                    <button class="btn btn-secondary ai-size-chip active" data-size="24x36" data-ratio="2:3" data-desc="designed for 24x36 inch physical tabletop battle mat, 2:3 aspect ratio, --ar 2:3">📐 24" × 36" (Mat)</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="16:9" data-ratio="16:9" data-desc="optimized for 16:9 widescreen projector display, --ar 16:9">🖥️ 16:9 (Widescreen)</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="4:3" data-ratio="4:3" data-desc="optimized for 4:3 classic projector display, --ar 4:3">📽️ 4:3 (Projector)</button>
+                    <button class="btn btn-secondary ai-size-chip active" data-size="24x36" data-ratio="2:3" data-label-landscape="📐 36&quot; × 24&quot; (Mat)" data-label-portrait="📐 24&quot; × 36&quot; (Mat)" data-desc="designed for 36x24 inch physical tabletop battle mat, landscape horizontal orientation, 3:2 aspect ratio, --ar 3:2" style="border-color: var(--primary); background: var(--primary-dim);">📐 36" × 24" (Mat)</button>
+                    <button class="btn btn-secondary ai-size-chip" data-size="16:9" data-ratio="16:9" data-label-landscape="🖥️ 16:9 (Widescreen)" data-label-portrait="📱 9:16 (Vertical)" data-desc="optimized for 16:9 widescreen projector display, --ar 16:9">🖥️ 16:9 (Widescreen)</button>
+                    <button class="btn btn-secondary ai-size-chip" data-size="4:3" data-ratio="4:3" data-label-landscape="📽️ 4:3 (Projector)" data-label-portrait="📽️ 3:4 (Vertical)" data-desc="optimized for 4:3 classic projector display, --ar 4:3">📽️ 4:3 (Projector)</button>
                 </div>
                 <div class="btn-grid-segment" style="grid-template-columns: repeat(4, 1fr); gap: 4px;">
-                    <button class="btn btn-secondary ai-size-chip" data-size="30x40" data-ratio="3:4" data-desc="designed for 30x40 inch large table battle mat, 3:4 aspect ratio, --ar 3:4">30" × 40"</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="18x24" data-ratio="3:4" data-desc="designed for 18x24 inch skirmish battle mat, 3:4 aspect ratio, --ar 3:4">18" × 24"</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="1:1" data-ratio="1:1" data-desc="square arena battle map, 1:1 aspect ratio, --ar 1:1">1:1 Square</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="21:9" data-ratio="21:9" data-desc="21:9 cinematic ultrawide battle map, --ar 21:9">21:9 Ultra</button>
+                    <button class="btn btn-secondary ai-size-chip" data-size="30x40" data-ratio="3:4" data-label-landscape="40&quot; × 30&quot;" data-label-portrait="30&quot; × 40&quot;" data-desc="designed for 40x30 inch large table battle mat, 4:3 aspect ratio, --ar 4:3">40" × 30"</button>
+                    <button class="btn btn-secondary ai-size-chip" data-size="18x24" data-ratio="3:4" data-label-landscape="24&quot; × 18&quot;" data-label-portrait="18&quot; × 24&quot;" data-desc="designed for 24x18 inch skirmish battle mat, 4:3 aspect ratio, --ar 4:3">24" × 18"</button>
+                    <button class="btn btn-secondary ai-size-chip" data-size="1:1" data-ratio="1:1" data-label-landscape="1:1 Square" data-label-portrait="1:1 Square" data-desc="square arena battle map, 1:1 aspect ratio, --ar 1:1">1:1 Square</button>
+                    <button class="btn btn-secondary ai-size-chip" data-size="21:9" data-ratio="21:9" data-label-landscape="21:9 Ultra" data-label-portrait="9:21 Tall" data-desc="21:9 cinematic ultrawide battle map, --ar 21:9">21:9 Ultra</button>
                 </div>
             </div>
 
@@ -1232,6 +1317,32 @@
                 </div>
             </div>
 
+            <!-- 0B. Lock Position & Scale/Move With Map -->
+            <div class="setting-group" style="background: rgba(255, 170, 0, 0.06); border: 1px solid rgba(255, 170, 0, 0.30); padding: 7px 9px; border-radius: var(--radius-md);">
+                <div class="setting-label" style="color: var(--accent-amber); margin-bottom: 2px;">
+                    <span>📌 Placement: Lock &amp; Map Anchoring</span>
+                </div>
+                <label class="inspector-toggle-row" title="Anchors this effect in place. It becomes click-through (so you can layer other effects on top) and can't be moved, resized, rotated or deleted by accident. Press L to toggle.">
+                    <input type="checkbox" id="inspector-lock-el">
+                    <span>🔒 <b>Lock Position &amp; Size</b> <small>Click-through &amp; accident-proof. Re-select it from the dropdown above to unlock (or press L).</small></span>
+                </label>
+                <label class="inspector-toggle-row" title="When on, this effect is pinned to the map: it pans and zooms together with the map. When off it stays fixed on screen.">
+                    <input type="checkbox" id="inspector-anchor-map">
+                    <span>🗺️ <b>Scale &amp; Move with Map</b> <small>Follows map pan &amp; zoom so it stays on the same spot of the battlemap.</small></span>
+                </label>
+            </div>
+
+            <!-- 0C. Redraw Path or Shape with Draw Tool -->
+            <div class="setting-group" style="background: rgba(0, 255, 200, 0.05); border: 1px solid rgba(0, 255, 200, 0.25); padding: 7px 9px; border-radius: var(--radius-md);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 11px; font-weight: 600; color: var(--primary);">✏️ Redraw with Freehand Tool</span>
+                    <button id="btn-inspector-redraw" class="btn btn-outline-primary" style="padding: 4px 10px; font-size: 10.5px; font-weight: 700;" title="Redraw this element's curve or shape directly on the map (Hotkey: D)">✏️ Redraw (D)</button>
+                </div>
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 3px;">
+                    Click <b>Redraw</b> to re-sketch this effect's line or shape directly on the map without touching corner handles.
+                </div>
+            </div>
+
             <!-- 1. Visual Style / Variant & Quick Layer / Fit Actions -->
             <div class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 9px; border-radius: var(--radius-md);">
                 <div id="inspector-variant-group" style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 6px;">
@@ -1239,7 +1350,7 @@
                     <select id="inspector-variant-select" class="input-select" style="padding: 6px 8px; font-size: 11.5px;"></select>
                 </div>
 
-                <div class="control-row" style="gap: 4px;">
+                <div class="control-row inspector-geometry-target" style="gap: 4px;">
                     <button id="btn-fit-element-map" class="btn btn-outline-primary" style="flex: 1.4; font-weight: 600; padding: 5px 6px; font-size: 10.5px;" title="Stretch this animated effect to cover 100% of the battle map canvas">
                         🗺️ Cover Map
                     </button>
@@ -1287,6 +1398,36 @@
                     <span id="inspector-opacity-val" class="setting-val-display">90%</span>
                 </div>
                 <input type="range" id="inspector-opacity" class="range-slider" min="0.10" max="1.0" step="0.05" value="0.9">
+            </div>
+
+            <!-- 2B. Fractal Roughness (Organic Detail) & Internal Element Size -->
+            <div class="setting-group" style="background: rgba(52, 211, 153, 0.07); border: 1px solid rgba(52, 211, 153, 0.32); padding: 9px; border-radius: var(--radius-md);">
+                <div class="setting-label" style="color: #34d399;">
+                    <span>🌿 Fractal Roughness &amp; Element Size</span>
+                    <button id="btn-reset-el-fractal" class="btn" style="padding: 1px 6px; font-size: 9.5px;" title="Reset fractal roughness and internal element size to defaults">↺ Reset</button>
+                </div>
+
+                <div class="setting-label" style="margin-top: 2px;">
+                    <span>Fractal Roughness (Organic Detail)</span>
+                    <span id="inspector-fractal-roughness-val" class="setting-val-display" style="color: #a7f3d0;">75%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-dim); margin-bottom: -2px;">
+                    <span>◀ Smooth (0%)</span>
+                    <span>Natural (75%)</span>
+                    <span>Ultra Gnarled (200%) ▶</span>
+                </div>
+                <input type="range" id="inspector-fractal-roughness" class="range-slider" min="0" max="2.0" step="0.05" value="0.75" style="accent-color: #34d399;">
+
+                <div class="setting-label" style="margin-top: 4px;">
+                    <span>Internal Element / Entity Size</span>
+                    <span id="inspector-element-scale-val" class="setting-val-display" style="color: #a7f3d0;">1.00x (100%)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-dim); margin-bottom: -2px;">
+                    <span>◀ Fine / Small (0.25x)</span>
+                    <span>1.0x</span>
+                    <span>Giant (3.0x) ▶</span>
+                </div>
+                <input type="range" id="inspector-element-scale" class="range-slider" min="0.25" max="3.0" step="0.05" value="1.0" style="accent-color: #34d399;">
             </div>
 
             <!-- 3. Color Grading: Hue Shift, Saturation, Brightness & Blend Mode -->
@@ -1366,7 +1507,7 @@
             </div>
 
             <!-- 5. Deformable Pond, River & Forest Shape Controls (Pond, River & Forest Tools) -->
-            <div id="inspector-group-river" class="setting-group" style="display: none; background: rgba(0, 255, 200, 0.06); border: 1px solid rgba(0, 255, 200, 0.22); padding: 9px; border-radius: var(--radius-md);">
+            <div id="inspector-group-river" class="setting-group inspector-geometry-target" style="display: none; background: rgba(0, 255, 200, 0.06); border: 1px solid rgba(0, 255, 200, 0.22); padding: 9px; border-radius: var(--radius-md);">
                 <div id="inspector-shape-hint" style="font-size: 10.5px; color: var(--text-muted); line-height: 1.4;">
                     💡 <b style="color: var(--primary);">Deformable Shape Handles Active:</b> Drag <b>cyan circles</b> on the map to reshape the perimeter/curve, <b>amber diamonds</b> to widen/narrow, or click <b>+</b> to add vertices!
                 </div>
@@ -1389,7 +1530,7 @@
             </div>
 
             <!-- 6. Size & Width/Height Stretch -->
-            <div id="inspector-group-standard-transform" class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 9px; border-radius: var(--radius-md);">
+            <div id="inspector-group-standard-transform" class="setting-group inspector-geometry-target" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 9px; border-radius: var(--radius-md);">
                 <div class="setting-label">
                     <span>📏 Size &amp; Aspect Stretch</span>
                     <span id="inspector-size-val" class="setting-val-display">180px</span>
@@ -1418,7 +1559,7 @@
             </div>
 
             <!-- 7. 3D Perspective Tilt & Rotation (For All Animated Elements) -->
-            <div class="setting-group" style="background: rgba(255, 170, 0, 0.06); border: 1px solid rgba(255, 170, 0, 0.24); padding: 9px; border-radius: var(--radius-md);">
+            <div class="setting-group inspector-geometry-target" style="background: rgba(255, 170, 0, 0.06); border: 1px solid rgba(255, 170, 0, 0.24); padding: 9px; border-radius: var(--radius-md);">
                 <div class="setting-label" style="color: var(--accent-amber);">
                     <span>📐 3D Perspective &amp; Rotation</span>
                     <button id="btn-reset-perspective" class="btn" style="padding: 2px 7px; font-size: 10px;" title="Reset 3D perspective tilt and rotation to flat">↺ Reset Tilt</button>
@@ -1464,6 +1605,244 @@
         </div>
     </div>
 
+    <!-- 9. IN-TOOL README & USER MANUAL MODAL (Toggled via F9 or Readme Nav Button) -->
+    <div id="readme-panel" class="floating-panel">
+        <div class="panel-header" style="background: linear-gradient(90deg, rgba(0, 255, 200, 0.14), rgba(59, 130, 246, 0.12)); border-bottom: 1px solid rgba(0, 255, 200, 0.35);">
+            <span class="panel-title">📖 AetherTable User Manual &amp; Keybindings <span class="badge" style="background: rgba(0, 255, 200, 0.22); color: var(--primary); font-size: 10px; margin-left: 6px;">Hotkey: F9</span></span>
+            <button class="panel-close-btn" title="Close Manual (Escape or F9)">&times;</button>
+        </div>
+        <div class="panel-body" style="gap: 12px; padding: 14px 16px;">
+
+            <!-- Header Quick Actions & Live Filter -->
+            <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <input type="text" id="readme-search-input" class="input-text" placeholder="🔍 Search manual (e.g. pan, lock, fractals, keystone, undo)..." style="flex: 1; min-width: 200px; font-size: 11.5px; padding: 6px 10px;">
+                <button id="btn-open-raw-readme" class="btn btn-outline-primary" style="font-size: 11px; padding: 6px 10px;" title="Open raw README.md markdown in browser tab">📄 Open README.md</button>
+            </div>
+
+            <!-- Quick Jump Anchor Chips -->
+            <div style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid var(--border-color);">
+                <button class="readme-jump-chip" data-target="readme-section-shortcuts">⌨️ Shortcuts</button>
+                <button class="readme-jump-chip" data-target="readme-section-lock">🔒 Lock &amp; Layering</button>
+                <button class="readme-jump-chip" data-target="readme-section-map-anchoring">🗺️ Move with Map</button>
+                <button class="readme-jump-chip" data-target="readme-section-panning">✋ Pan &amp; Zoom</button>
+                <button class="readme-jump-chip" data-target="readme-section-fx">🌿 160 Features</button>
+                <button class="readme-jump-chip" data-target="readme-section-inspector">🎛️ Attributes</button>
+                <button class="readme-jump-chip" data-target="readme-section-keystone">📐 Keystone &amp; Grid</button>
+                <button class="readme-jump-chip" data-target="readme-section-scenes">🎬 Dynamic Scenes</button>
+            </div>
+
+            <!-- SECTION 1: KEYBOARD SHORTCUTS REFERENCE TABLE -->
+            <div id="readme-section-shortcuts" class="readme-card">
+                <h4>⌨️ Complete Keyboard Shortcuts Reference</h4>
+                <div style="overflow-x: auto;">
+                    <table class="readme-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 140px;">Hotkey</th>
+                                <th style="width: 170px;">Action</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">F9</span> / <span class="readme-shortcut-badge">F2</span></td>
+                                <td><b>Open Readme Manual</b></td>
+                                <td>Toggles this in-tool manual &amp; keybindings window anytime.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">P</span></td>
+                                <td><b>Toggle Pan Mode</b></td>
+                                <td>Drag empty battle map with left-click to move view around.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Right-Drag</span></td>
+                                <td><b>Universal Pan</b></td>
+                                <td>Right-click and drag anywhere on canvas to pan in any mode.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Space + Drag</span></td>
+                                <td><b>Pan Battle Map</b></td>
+                                <td>Hold Space and left-drag to move the map.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Middle-Drag</span></td>
+                                <td><b>Pan Battle Map</b></td>
+                                <td>Press scroll wheel and drag to pan the map.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Arrow Keys</span></td>
+                                <td><b>Pan Map / Nudge</b></td>
+                                <td>Nudge map view by 60px (or micro-nudge keystone pin by 0.2%).</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Shift + Arrow</span></td>
+                                <td><b>Fast Pan / 5x Nudge</b></td>
+                                <td>Rapidly pan map by 180px (or 5x keystone corner step).</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">+</span> / <span class="readme-shortcut-badge">=</span></td>
+                                <td><b>Zoom In (+15%)</b></td>
+                                <td>Zooms in centered on the visible tabletop.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">-</span> / <span class="readme-shortcut-badge">_</span></td>
+                                <td><b>Zoom Out (-13%)</b></td>
+                                <td>Zooms out centered on the visible tabletop.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Mouse Wheel</span></td>
+                                <td><b>Cursor Zoom</b></td>
+                                <td>Zooms smoothly centered directly at mouse cursor.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">R</span></td>
+                                <td><b>Center / Reset View</b></td>
+                                <td>Resets map pan to center and zoom back to 100%.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">D</span></td>
+                                <td><b>Toggle Freehand Draw FX</b></td>
+                                <td>Draw custom lines/paths (rivers, fire walls) or closed shapes (lakes, groves) on map.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">L</span></td>
+                                <td><b>Lock / Unlock Effect</b></td>
+                                <td>Anchors location, protects against drag/delete, enables click-through.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Ctrl + Z</span></td>
+                                <td><b>Undo (16 Levels)</b></td>
+                                <td>Reverts last element, transform, or weather change.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Ctrl + Y</span> / <span class="readme-shortcut-badge">Ctrl+Shift+Z</span></td>
+                                <td><b>Redo (16 Levels)</b></td>
+                                <td>Re-applies the last undone change.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Del</span> / <span class="readme-shortcut-badge">Backspace</span></td>
+                                <td><b>Delete Effect</b></td>
+                                <td>Removes selected element (ignored if element is locked).</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">H</span></td>
+                                <td><b>Clean Play Mode</b></td>
+                                <td>Hides all UI menus &amp; bars for physical play (H to restore).</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">B</span></td>
+                                <td><b>Blackout Curtain</b></td>
+                                <td>Instant black screen to place miniatures or hide room reveals.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">C</span></td>
+                                <td><b>Keystone Calibration</b></td>
+                                <td>Toggles 4-corner homography calibration pins.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">G</span></td>
+                                <td><b>Grid Overlay</b></td>
+                                <td>Toggles physical 1-inch tactical grid On or Off.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">F</span></td>
+                                <td><b>Fullscreen</b></td>
+                                <td>Toggles browser fullscreen projection mode.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="readme-shortcut-badge">Escape</span></td>
+                                <td><b>Deselect &amp; Close</b></td>
+                                <td>Closes open menus and deselects current effect.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SECTION 2: LOCKING & LAYER EFFECTS -->
+            <div id="readme-section-lock" class="readme-card">
+                <h4>🔒 Per-Element Lock &amp; Multi-Layered FX</h4>
+                <p>
+                    When stacking multiple effects together (e.g. fire over firewood, smoke over fire, or swimming fish inside a pond):
+                </p>
+                <ul style="margin: 0; padding-left: 18px;">
+                    <li><b>Press L or check "🔒 Lock Position &amp; Size"</b> in the Attributes popup to anchor any effect.</li>
+                    <li><b>Click-Through Protection</b>: Once locked, pointer clicks pass straight through the effect so you can freely select, place, and drag other effects above or below it without disturbing your placement!</li>
+                    <li><b>Accident-Proof</b>: Locked effects cannot be accidentally dragged, rotated, resized, or deleted with the Delete key.</li>
+                    <li><b>Selecting Locked Elements</b>: Use the <b>Active Map Element Switcher</b> (<b>◀ Prev</b> / <b>Next ▶</b> / Dropdown) in the Attributes popup to re-select any locked element and modify attributes or unlock it.</li>
+                    <li><b>Bulk Controls</b>: Use <b>🔒 Lock All</b> and <b>🔓 Unlock All</b> in the Realistic FX panel to lock the entire table when players place physical miniatures.</li>
+                </ul>
+            </div>
+
+            <!-- SECTION 3: SCALE AND MOVE WITH MAP -->
+            <div id="readme-section-map-anchoring" class="readme-card">
+                <h4>🗺️ Scale &amp; Move with Map (Map Anchoring)</h4>
+                <p>
+                    Effects can live in <b>Map Space</b> (pinned to the battle map) or <b>Screen Space</b> (stationary relative to the display screen):
+                </p>
+                <ul style="margin: 0; padding-left: 18px;">
+                    <li><b>Scale &amp; Move with Map (Default: ON)</b>: Anchors the effect to the exact spot on the battle map. When you pan across a dungeon or zoom into a room, the campfire, river, or fallen tree pans and zooms in lockstep with the artwork!</li>
+                    <li><b>Screen Space (OFF)</b>: The effect stays stationary on screen (perfect for fullscreen ambient rain, blizzard flurries, or tactical HUD reticles).</li>
+                    <li><b>1:1 Cursor Tracking</b>: Dragging or resizing an effect while the map is zoomed in (e.g. 2.0x) or out (0.5x) automatically scales mouse movement so handles follow your cursor with 1:1 precision.</li>
+                    <li><b>Bulk Pinning</b>: Click <b>📌 Pin All to Map</b> in the Realistic FX panel to anchor all placed overlays at once.</li>
+                </ul>
+            </div>
+
+            <!-- SECTION 4: MAP PANNING & NAVIGATION -->
+            <div id="readme-section-panning" class="readme-card">
+                <h4>✋ Map Panning &amp; Navigation (No Center-Lock)</h4>
+                <ul style="margin: 0; padding-left: 18px;">
+                    <li><b>✋ Pan Mode (P key)</b>: Click the Pan Mode button in the bottom HUD or in the FX panel. Left-dragging anywhere on the battle map moves the map freely across your screen.</li>
+                    <li><b>Right-Click Drag</b>: Right-click and drag anywhere on the canvas to pan smoothly at any time in any mode.</li>
+                    <li><b>Arrow Keys</b>: Use keyboard arrows (or Shift+Arrow for fast speed) to nudge the map across large 4K battlemaps.</li>
+                    <li><b>Zoom Controls</b>: Use <b>+</b> and <b>-</b> buttons or mouse wheel to inspect details, and <b>⌖ Reset View (R)</b> to recenter.</li>
+                    <li><b>Smart Drop Positioning</b>: Dropping any of the 160 Realistic FX automatically places it right at the center of your current panned view.</li>
+                </ul>
+            </div>
+
+            <!-- SECTION 5: 160 FEATURES & COLLAPSIBLE PANELS -->
+            <div id="readme-section-fx" class="readme-card">
+                <h4>🌿 160 Unique Realistic FX &amp; Collapsible Categories</h4>
+                <ul style="margin: 0; padding-left: 18px;">
+                    <li><b>5 Broad Settings</b>: <b>🌍 Universal (60)</b> + <b>⚔️ Historic (25)</b> + <b>🕵️ Modern (25)</b> + <b>🚀 Future (25)</b> + <b>🐙 Other (25)</b>.</li>
+                    <li><b>Zero Repeats</b>: Every single effect has unique procedural motion, customized particles, and specialized audio soundscapes.</li>
+                    <li><b>Collapsible Categories</b>: Click any category header to collapse it and save screen space, or click <b>▾ Expand All</b> / <b>▸ Collapse All</b>.</li>
+                    <li><b>Deformable Water &amp; Forests</b>: Mold custom ponds, lakes, rivers, and tree groves with perimeter handles and width controls.</li>
+                </ul>
+            </div>
+
+            <!-- SECTION 6: INSPECTOR & FRACTAL ENGINE -->
+            <div id="readme-section-inspector" class="readme-card">
+                <h4>🎛️ Attributes Popup, Fractal Roughness &amp; 3D Perspective</h4>
+                <ul style="margin: 0; padding-left: 18px;">
+                    <li><b>6-Octave Procedural Fractal Roughness (0%–200%)</b>: Turn smooth vector circles into craggy, deeply gnarled ancient trees, skeletal briars, and realistic jagged shorelines.</li>
+                    <li><b>Internal Entity Scale (0.25x–3.0x)</b>: Adjust the scale of leaves, pine needles, tumbleweed thorns, and fish independent of overall bounding size.</li>
+                    <li><b>🌈 Rainbow Hue Shift (-180° to +180°)</b>: Instantly re-tint any fire, river, fog, or portal with 1-click tint chips (Gold, Green, Cyan, Void, Red).</li>
+                    <li><b>3D Perspective Pitch &amp; Bank</b>: Tilt effects in 3D perspective to match isometric, oblique, or billboard dungeon maps.</li>
+                </ul>
+            </div>
+
+            <!-- SECTION 7: KEYSTONE & PHYSICAL GRID -->
+            <div id="readme-section-keystone" class="readme-card">
+                <h4>📐 Keystone Perspective &amp; ⊞ 1-Inch Miniature Grid</h4>
+                <ul style="margin: 0; padding-left: 18px;">
+                    <li><b>4-Corner Keystone (C key)</b>: Move projector corners inward with 6% touch-safe insets, pointer capture, and on-screen touch D-Pad for table alignment without keyboards.</li>
+                    <li><b>Physical Miniature Calibrator</b>: Place a real miniature base or physical ruler on the table and adjust the digital box until it matches 1 inch = 25mm exactly.</li>
+                </ul>
+            </div>
+
+            <!-- SECTION 8: DYNAMIC SCENES & MORPHING -->
+            <div id="readme-section-scenes" class="readme-card">
+                <h4>🎬 Dynamic Scenes: Phased Battlemaps &amp; Vehicle Chases</h4>
+                <ul style="margin: 0; padding-left: 18px;">
+                    <li><b>Real-Time Map Morphing</b>: Smoothly crossfade between pristine and destroyed map states mid-combat (Tavern Fire, Bridge Collapse, Blood Altar).</li>
+                    <li><b>Stationary Center Vehicles</b>: Keep your train, riverboat, or skyship centered for physical miniatures while terrain continuously scrolls underneath!</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
     <!-- ======================================================================
          BOTTOM FLOATING HUD BAR
          ====================================================================== -->
@@ -1471,7 +1850,12 @@
         <span id="active-map-name" style="font-size: 11px; font-weight: 600; color: #fff; padding: 0 8px;">Forest Glade</span>
         <div class="divider"></div>
         <button class="hud-btn" onclick="window.battlemapApp.resetPanZoom()">🔄 Reset Zoom</button>
+        <button class="hud-btn" id="hud-btn-pan" onclick="window.battlemapApp.togglePanMode()" title="Pan Mode (P): drag empty map to move it">✋ Pan (P)</button>
+        <button class="hud-btn" id="hud-btn-draw" onclick="window.livingElementsEngine && window.livingElementsEngine.toggleDrawMode()" title="Freehand Draw FX (D): draw a line or shape on the map for the selected effect">✏️ Draw (D)</button>
+        <button class="hud-btn" onclick="window.battlemapApp.zoomBy(0.87)" title="Zoom out (-)">➖</button>
+        <button class="hud-btn" onclick="window.battlemapApp.zoomBy(1.15)" title="Zoom in (+)">➕</button>
         <button class="hud-btn" onclick="window.keystoneEngine.toggleCalibrating()">📐 Calibrate (C)</button>
+        <button class="hud-btn" onclick="window.battlemapApp.togglePanel('readme-panel')" title="Open Readme Manual &amp; Keybindings (F9)">📖 Readme (F9)</button>
         <button class="hud-btn" onclick="window.battlemapApp.toggleUI()">👁 Hide UI (H)</button>
     </div>
 

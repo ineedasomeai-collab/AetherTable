@@ -37,6 +37,7 @@ class BattlemapApp {
 
         this.isBlackout = false;
         this.isUIHidden = false;
+        this.panMode = false;
         this.activePanelId = null;
 
         // Preset battle maps (high-res procedural SVG maps with rich textures)
@@ -190,9 +191,48 @@ class BattlemapApp {
         if (this.dom.mapLayer) {
             this.dom.mapLayer.style.transform = `translate(${this.panZoom.x}px, ${this.panZoom.y}px) scale(${this.panZoom.scale})`;
         }
+        // Effects pinned to the map ("Scale & Move with Map") follow the same camera
+        if (window.livingElementsEngine && window.livingElementsEngine.setCamera) {
+            window.livingElementsEngine.setCamera(this.panZoom.x, this.panZoom.y, this.panZoom.scale);
+        }
         if (window.dynamicSceneEngine) {
             window.dynamicSceneEngine.onCameraPanZoom(this.panZoom.x, this.panZoom.y, this.panZoom.scale);
         }
+        const zoomBadge = document.getElementById('fx-view-zoom-badge');
+        if (zoomBadge) zoomBadge.textContent = `${Math.round(this.panZoom.scale * 100)}%`;
+    }
+
+    /** Zoom the map by a factor around a screen point (defaults to the centre of the screen). */
+    zoomBy(factor, cx = window.innerWidth / 2, cy = window.innerHeight / 2) {
+        const newScale = Math.max(0.2, Math.min(6.0, this.panZoom.scale * factor));
+        const ratio = newScale / this.panZoom.scale;
+        this.panZoom.x = cx - (cx - this.panZoom.x) * ratio;
+        this.panZoom.y = cy - (cy - this.panZoom.y) * ratio;
+        this.panZoom.scale = newScale;
+        this.applyPanZoom();
+    }
+
+    /** Nudge the map by a number of screen pixels (arrow keys). */
+    panBy(dx, dy) {
+        this.panZoom.x += dx;
+        this.panZoom.y += dy;
+        this.applyPanZoom();
+    }
+
+    setPanMode(on) {
+        this.panMode = !!on;
+        if (this.dom.container) this.dom.container.classList.toggle('pan-mode-active', this.panMode);
+        const fxBtn = document.getElementById('btn-fx-pan-mode');
+        if (fxBtn) {
+            fxBtn.textContent = this.panMode ? '✋ Pan Mode: ON' : '✋ Pan Mode: Off';
+            fxBtn.classList.toggle('active', this.panMode);
+        }
+        const hudBtn = document.getElementById('hud-btn-pan');
+        if (hudBtn) hudBtn.classList.toggle('active', this.panMode);
+    }
+
+    togglePanMode() {
+        this.setPanMode(!this.panMode);
     }
 
     applyFilters() {
@@ -747,6 +787,14 @@ class BattlemapApp {
             activeSelect.value = el.id;
         }
 
+        // Sync Lock / Map-Anchor toggles and dim geometry controls while locked
+        const isElLocked = !!(el.config && el.config.locked);
+        const lockCheckbox = inspector.querySelector('#inspector-lock-el');
+        const anchorCheckbox = inspector.querySelector('#inspector-anchor-map');
+        if (lockCheckbox) lockCheckbox.checked = isElLocked;
+        if (anchorCheckbox) anchorCheckbox.checked = !!(el.config && el.config.mapAnchored);
+        inspector.classList.toggle('element-is-locked', isElLocked);
+
         // Sync Flip X / Flip Y buttons
         const btnFlipX = inspector.querySelector('#btn-el-flip-x');
         const btnFlipY = inspector.querySelector('#btn-el-flip-y');
@@ -778,7 +826,7 @@ class BattlemapApp {
         const standardGroup = inspector.querySelector('#inspector-group-standard-transform');
         const riverGroup = inspector.querySelector('#inspector-group-river');
         const effectiveBase = (catDef && catDef.base) || el.type;
-        const isDeformable = (this.elementsEngine && this.elementsEngine.isRiverType(el.type)) ||
+        const isDeformable = (window.livingElementsEngine && window.livingElementsEngine.isRiverType(el.type)) ||
             effectiveBase === 'river' || effectiveBase === 'pond' || effectiveBase === 'forest';
 
         if (isDeformable) {
@@ -902,6 +950,22 @@ class BattlemapApp {
         const qtyVal = inspector.querySelector('#inspector-quantity-val');
         if (qtySlider) qtySlider.value = qty;
         if (qtyVal) qtyVal.textContent = `${Math.round(qty * 100)}%`;
+
+        // 4B. Sync Fractal Roughness & Internal Element Size
+        const fracRough = (el.config && el.config.fractalRoughness !== undefined) ? parseFloat(el.config.fractalRoughness) : 0.75;
+        const elScale = (el.config && el.config.elementScale !== undefined)
+            ? parseFloat(el.config.elementScale)
+            : ((el.config && el.config.scale !== undefined) ? parseFloat(el.config.scale) : 1.0);
+
+        const fracSlider = inspector.querySelector('#inspector-fractal-roughness');
+        const fracVal = inspector.querySelector('#inspector-fractal-roughness-val');
+        if (fracSlider) fracSlider.value = fracRough;
+        if (fracVal) fracVal.textContent = `${Math.round(fracRough * 100)}%`;
+
+        const elScaleSlider = inspector.querySelector('#inspector-element-scale');
+        const elScaleVal = inspector.querySelector('#inspector-element-scale-val');
+        if (elScaleSlider) elScaleSlider.value = elScale;
+        if (elScaleVal) elScaleVal.textContent = `${elScale.toFixed(2)}x (${Math.round(elScale * 100)}%)`;
 
         const twGroup = inspector.querySelector('#inspector-tumbleweed-group');
         const twSlider = inspector.querySelector('#inspector-tumbleweed-count');
@@ -1227,6 +1291,46 @@ class BattlemapApp {
 
         // Global Keyboard Shortcuts
         this.bindKeyboardShortcuts();
+
+        // Readme & User Manual Panel Controls (Hotkey: F9)
+        this.bindReadmeControls();
+    }
+
+    bindReadmeControls() {
+        const readmePanel = document.getElementById('readme-panel');
+        if (!readmePanel) return;
+
+        // Quick Jump Chips
+        readmePanel.querySelectorAll('.readme-jump-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const targetId = chip.getAttribute('data-target');
+                const targetEl = readmePanel.querySelector(`#${targetId}`);
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Search Filter inside Readme
+        const searchInput = readmePanel.querySelector('#readme-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                const cards = readmePanel.querySelectorAll('.readme-card');
+                cards.forEach(card => {
+                    const text = card.textContent.toLowerCase();
+                    card.style.display = (!query || text.includes(query)) ? 'flex' : 'none';
+                });
+            });
+        }
+
+        // Open raw README.md
+        const openRawBtn = readmePanel.querySelector('#btn-open-raw-readme');
+        if (openRawBtn) {
+            openRawBtn.addEventListener('click', () => {
+                window.open('README.md', '_blank');
+            });
+        }
     }
 
     handleFileUpload(file, customLabel) {
@@ -1379,14 +1483,18 @@ class BattlemapApp {
     }
 
     bindLivingElementsControls() {
-        // Drop new living element buttons
+        // Drop new living element buttons or set as active Freehand Draw tool
         document.querySelectorAll('.btn-add-element').forEach(btn => {
             btn.addEventListener('click', () => {
                 const type = btn.getAttribute('data-element-type');
-                // Place near center of current view
-                const cx = window.innerWidth / 2;
-                const cy = window.innerHeight / 2;
-                window.livingElementsEngine.addElement(type, cx - 70, cy - 70);
+                const eng = window.livingElementsEngine;
+                if (eng && eng.isDrawingMode) {
+                    eng.setDrawTargetType(type);
+                    return;
+                }
+                // Drops at the centre of the CURRENT view (respects map pan / zoom & the
+                // "new effects Scale & Move with Map" preference inside the engine)
+                if (eng) eng.addElement(type);
             });
         });
 
@@ -1419,6 +1527,30 @@ class BattlemapApp {
             });
         }
 
+        // Map View: Pan Mode, Zoom, Reset, plus bulk Lock / Pin controls
+        const fxPanBtn = document.getElementById('btn-fx-pan-mode');
+        if (fxPanBtn) fxPanBtn.addEventListener('click', () => this.togglePanMode());
+        const fxZoomOut = document.getElementById('btn-fx-zoom-out');
+        if (fxZoomOut) fxZoomOut.addEventListener('click', () => this.zoomBy(0.87));
+        const fxZoomIn = document.getElementById('btn-fx-zoom-in');
+        if (fxZoomIn) fxZoomIn.addEventListener('click', () => this.zoomBy(1.15));
+        const fxResetView = document.getElementById('btn-fx-reset-view');
+        if (fxResetView) fxResetView.addEventListener('click', () => this.resetPanZoom());
+
+        const fxNewAnchor = document.getElementById('fx-new-anchor-default');
+        if (fxNewAnchor) {
+            fxNewAnchor.addEventListener('change', () => {
+                window.livingElementsEngine.anchorNewToMap = fxNewAnchor.checked;
+            });
+            window.livingElementsEngine.anchorNewToMap = fxNewAnchor.checked;
+        }
+        const fxLockAll = document.getElementById('btn-fx-lock-all');
+        if (fxLockAll) fxLockAll.addEventListener('click', () => window.livingElementsEngine.lockAllElements(true));
+        const fxUnlockAll = document.getElementById('btn-fx-unlock-all');
+        if (fxUnlockAll) fxUnlockAll.addEventListener('click', () => window.livingElementsEngine.lockAllElements(false));
+        const fxAnchorAll = document.getElementById('btn-fx-anchor-all');
+        if (fxAnchorAll) fxAnchorAll.addEventListener('click', () => window.livingElementsEngine.setAnchorAllToMap(true));
+
         // Clear All Elements
         const clearBtn = document.getElementById('btn-clear-elements');
         if (clearBtn) {
@@ -1428,6 +1560,49 @@ class BattlemapApp {
                 }
             });
         }
+
+        // Freehand Draw FX Tool Controls
+        const drawToggleBtn = document.getElementById('btn-toggle-draw-mode');
+        if (drawToggleBtn) {
+            drawToggleBtn.addEventListener('click', () => {
+                if (window.livingElementsEngine) window.livingElementsEngine.toggleDrawMode();
+            });
+        }
+
+        const bannerCloseBtn = document.getElementById('btn-draw-banner-close');
+        if (bannerCloseBtn) {
+            bannerCloseBtn.addEventListener('click', () => {
+                if (window.livingElementsEngine) window.livingElementsEngine.setDrawMode(false);
+            });
+        }
+
+        const hudDrawBtn = document.getElementById('hud-btn-draw');
+        if (hudDrawBtn) {
+            hudDrawBtn.addEventListener('click', () => {
+                if (window.livingElementsEngine) window.livingElementsEngine.toggleDrawMode();
+            });
+        }
+
+        document.querySelectorAll('.draw-submode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sm = btn.getAttribute('data-submode');
+                if (window.livingElementsEngine) window.livingElementsEngine.setDrawSubMode(sm);
+            });
+        });
+
+        const drawWidthSlider = document.getElementById('fx-draw-width-slider');
+        if (drawWidthSlider) {
+            drawWidthSlider.addEventListener('input', (e) => {
+                if (window.livingElementsEngine) window.livingElementsEngine.setDrawStrokeWidth(e.target.value);
+            });
+        }
+
+        document.querySelectorAll('.fx-draw-width-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const w = parseInt(chip.getAttribute('data-width'), 10);
+                if (window.livingElementsEngine) window.livingElementsEngine.setDrawStrokeWidth(w);
+            });
+        });
 
         // 16-Level Undo / Redo Buttons & Live Badge Counters
         const undoBtns = document.querySelectorAll('.btn-undo-action');
@@ -2020,6 +2195,22 @@ class BattlemapApp {
             });
         }
 
+        // 0B. Lock Position & Size / Scale & Move with Map
+        const lockCheck = inspector.querySelector('#inspector-lock-el');
+        if (lockCheck) {
+            lockCheck.addEventListener('change', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.setElementLocked(id, lockCheck.checked);
+            });
+        }
+        const anchorCheck = inspector.querySelector('#inspector-anchor-map');
+        if (anchorCheck) {
+            anchorCheck.addEventListener('change', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.setElementAnchored(id, anchorCheck.checked);
+            });
+        }
+
         // 1. Visual Style / Variant selector
         const variantSelect = inspector.querySelector('#inspector-variant-select');
         if (variantSelect) {
@@ -2190,6 +2381,41 @@ class BattlemapApp {
                 if (twCountVal) twCountVal.textContent = `${val}`;
                 const id = window.livingElementsEngine.selectedElementId;
                 if (id) window.livingElementsEngine.updateElementConfig(id, { count: val });
+            });
+        }
+
+        // 2C. Fractal Roughness (Organic Detail) & Internal Element Size Sliders
+        const fracSlider = inspector.querySelector('#inspector-fractal-roughness');
+        const fracVal = inspector.querySelector('#inspector-fractal-roughness-val');
+        if (fracSlider) {
+            fracSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (fracVal) fracVal.textContent = `${Math.round(val * 100)}%`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { fractalRoughness: val });
+            });
+        }
+
+        const elScaleSlider = inspector.querySelector('#inspector-element-scale');
+        const elScaleVal = inspector.querySelector('#inspector-element-scale-val');
+        if (elScaleSlider) {
+            elScaleSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (elScaleVal) elScaleVal.textContent = `${val.toFixed(2)}x (${Math.round(val * 100)}%)`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { elementScale: val, scale: val });
+            });
+        }
+
+        const btnResetFractal = inspector.querySelector('#btn-reset-el-fractal');
+        if (btnResetFractal) {
+            btnResetFractal.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) {
+                    window.livingElementsEngine.updateElementConfig(id, { fractalRoughness: 0.75, elementScale: 1.0, scale: 1.0 });
+                    const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                    if (el) this.updateElementInspector(el);
+                }
             });
         }
 
@@ -2451,6 +2677,17 @@ class BattlemapApp {
             });
         }
 
+        // Redraw with Freehand Draw Tool
+        const redrawBtn = inspector.querySelector('#btn-inspector-redraw');
+        if (redrawBtn) {
+            redrawBtn.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) {
+                    window.livingElementsEngine.setDrawMode(true, null, id);
+                }
+            });
+        }
+
         // 6. Duplicate, Reset All & Delete buttons
         const dupBtn = inspector.querySelector('#btn-inspector-duplicate');
         if (dupBtn) {
@@ -2576,27 +2813,62 @@ class BattlemapApp {
             });
         }
 
-        // Output Size Intent & Aspect Ratio chips
+        // Output Size Intent, Aspect Ratio & Landscape/Portrait Orientation Toggle
         const sizeBadge = document.getElementById('ai-size-intent-badge');
         const sizeChips = document.querySelectorAll('.ai-size-chip');
-        sizeChips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                sizeChips.forEach(c => {
-                    c.classList.remove('active');
-                    c.style.borderColor = '';
-                    c.style.background = '';
-                });
-                chip.classList.add('active');
-                chip.style.borderColor = 'var(--primary)';
-                chip.style.background = 'var(--primary-dim)';
-                const sz = chip.getAttribute('data-size');
-                const ratio = chip.getAttribute('data-ratio');
-                const desc = chip.getAttribute('data-desc');
-                if (sizeBadge) sizeBadge.textContent = chip.textContent.replace('📐 ', '').replace('🖥️ ', '').replace('📽️ ', '');
-                window.aiMapGenerator.setSizeIntent(sz, ratio, desc);
+        const orientChips = document.querySelectorAll('.ai-orientation-chip');
+
+        const syncSizeAndOrientationUI = () => {
+            const curOrient = window.aiMapGenerator.orientation || 'landscape';
+            const curSize = window.aiMapGenerator.sizeIntent || '24x36';
+            const spec = window.aiMapGenerator.refreshOrientedSizeSpec();
+
+            orientChips.forEach(oc => {
+                const isMatch = oc.getAttribute('data-orientation') === curOrient;
+                oc.classList.toggle('active', isMatch);
+                oc.style.borderColor = isMatch ? 'var(--primary)' : '';
+                oc.style.background = isMatch ? 'var(--primary-dim)' : '';
+            });
+
+            sizeChips.forEach(sc => {
+                const labelAttr = curOrient === 'portrait' ? 'data-label-portrait' : 'data-label-landscape';
+                const newLabel = sc.getAttribute(labelAttr);
+                if (newLabel) sc.textContent = newLabel;
+
+                const isMatch = sc.getAttribute('data-size') === curSize;
+                sc.classList.toggle('active', isMatch);
+                sc.style.borderColor = isMatch ? 'var(--primary)' : '';
+                sc.style.background = isMatch ? 'var(--primary-dim)' : '';
+            });
+
+            if (sizeBadge && spec && spec.badge) {
+                sizeBadge.textContent = spec.badge;
+            }
+        };
+
+        orientChips.forEach(oc => {
+            oc.addEventListener('click', () => {
+                const nextOrient = oc.getAttribute('data-orientation') || 'landscape';
+                window.aiMapGenerator.setOrientation(nextOrient);
+                syncSizeAndOrientationUI();
                 syncPromptBox();
             });
         });
+
+        sizeChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                const sz = chip.getAttribute('data-size');
+                const ratio = chip.getAttribute('data-ratio');
+                const desc = chip.getAttribute('data-desc');
+                window.aiMapGenerator.setSizeIntent(sz, ratio, desc);
+                syncSizeAndOrientationUI();
+                syncPromptBox();
+            });
+        });
+
+        // Initialize Size & Orientation UI from saved or default state
+        syncSizeAndOrientationUI();
+        syncPromptBox();
 
         // Copy assembled prompt button
         if (btnCopyPrompt && promptInput) {
@@ -2892,6 +3164,7 @@ class BattlemapApp {
         if (!viewport) return;
 
         let isSpacePressed = false;
+        const restingCursor = () => (this.panMode ? '' : 'default');
 
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && !document.activeElement.matches('input, textarea')) {
@@ -2903,17 +3176,19 @@ class BattlemapApp {
         window.addEventListener('keyup', (e) => {
             if (e.code === 'Space') {
                 isSpacePressed = false;
-                viewport.style.cursor = 'default';
+                viewport.style.cursor = restingCursor();
             }
         });
 
         viewport.addEventListener('mousedown', (e) => {
-            // Pan with Space + Left click or Middle click
-            if (isSpacePressed || e.button === 1) {
+            // Pan with Space + Left click, Middle click, or plain Left click while Pan Mode is on
+            const panModeDrag = this.panMode && e.button === 0 && !e.target.closest('.keystone-handle');
+            if (isSpacePressed || e.button === 1 || panModeDrag) {
                 this.panZoom.isPanning = true;
                 this.panZoom.startX = e.clientX - this.panZoom.x;
                 this.panZoom.startY = e.clientY - this.panZoom.y;
                 viewport.style.cursor = 'grabbing';
+                viewport.classList.add('panning');
                 e.preventDefault();
             }
         });
@@ -2929,7 +3204,8 @@ class BattlemapApp {
         window.addEventListener('mouseup', () => {
             if (this.panZoom.isPanning) {
                 this.panZoom.isPanning = false;
-                viewport.style.cursor = isSpacePressed ? 'grab' : 'default';
+                viewport.classList.remove('panning');
+                viewport.style.cursor = isSpacePressed ? 'grab' : restingCursor();
             }
         });
 
@@ -2954,9 +3230,32 @@ class BattlemapApp {
 
     bindKeyboardShortcuts() {
         window.addEventListener('keydown', (e) => {
+            // Safe Function Key: F9 (and secondary F2) toggles the in-tool Readme Manual & Keybindings at any time
+            if (e.key === 'F9' || e.code === 'F9' || e.key === 'F2' || e.code === 'F2') {
+                e.preventDefault();
+                this.togglePanel('readme-panel');
+                return;
+            }
+
             if (document.activeElement && document.activeElement.matches('input, textarea')) return;
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+            // Arrow keys pan the map (Shift = faster); +/- zoom around the screen centre
+            const tag = document.activeElement && document.activeElement.tagName;
+            if (tag !== 'SELECT') {
+                const step = e.shiftKey ? 180 : 60;
+                if (e.key === 'ArrowLeft')  { this.panBy(step, 0);  e.preventDefault(); return; }
+                if (e.key === 'ArrowRight') { this.panBy(-step, 0); e.preventDefault(); return; }
+                if (e.key === 'ArrowUp')    { this.panBy(0, step);  e.preventDefault(); return; }
+                if (e.key === 'ArrowDown')  { this.panBy(0, -step); e.preventDefault(); return; }
+                if (e.key === '+' || e.key === '=') { this.zoomBy(1.15); return; }
+                if (e.key === '-' || e.key === '_') { this.zoomBy(0.87); return; }
+            }
 
             switch (e.key.toLowerCase()) {
+                case 'p':
+                    this.togglePanMode();
+                    break;
                 case 'h':
                     this.toggleUI();
                     break;
@@ -2978,7 +3277,16 @@ class BattlemapApp {
                 case 'r':
                     this.resetPanZoom();
                     break;
+                case 'd':
+                    if (window.livingElementsEngine) {
+                        window.livingElementsEngine.toggleDrawMode();
+                    }
+                    break;
                 case 'escape':
+                    if (window.livingElementsEngine && window.livingElementsEngine.isDrawingMode) {
+                        window.livingElementsEngine.setDrawMode(false);
+                        break;
+                    }
                     this.closeAllPanels();
                     window.livingElementsEngine.selectElement(null);
                     break;

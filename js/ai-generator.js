@@ -14,9 +14,10 @@ class AIMapGenerator {
         this.isSearching = false;
         this.isGenerating = false;
         this.listeners = [];
-        this.aspectRatio = localStorage.getItem('ttrpg_ai_aspect_ratio') || '2:3';
+        this.aspectRatio = localStorage.getItem('ttrpg_ai_aspect_ratio') || '3:2';
         this.sizeIntent = localStorage.getItem('ttrpg_ai_size_intent') || '24x36';
-        this.sizeDesc = 'designed for 24x36 inch physical tabletop battle mat, 2:3 aspect ratio, --ar 2:3';
+        this.orientation = localStorage.getItem('ttrpg_ai_orientation') || 'landscape';
+        this.sizeDesc = 'designed for 36x24 inch physical tabletop battle mat, landscape horizontal orientation, 3:2 aspect ratio, --ar 3:2';
         this.popoutWin = null;
 
         // Master Cartographer Prompt Toggles
@@ -144,13 +145,153 @@ class AIMapGenerator {
         localStorage.setItem('ttrpg_ai_aspect_ratio', ratio);
     }
 
-    setSizeIntent(size, ratio, desc) {
-        this.sizeIntent = size;
-        this.aspectRatio = ratio;
-        this.sizeDesc = desc;
-        localStorage.setItem('ttrpg_ai_size_intent', size);
-        localStorage.setItem('ttrpg_ai_aspect_ratio', ratio);
+    setOrientation(orientation) {
+        this.orientation = (orientation === 'portrait') ? 'portrait' : 'landscape';
+        localStorage.setItem('ttrpg_ai_orientation', this.orientation);
+        this.refreshOrientedSizeSpec();
         this.saveState();
+    }
+
+    setSizeIntent(size, ratio, desc) {
+        this.sizeIntent = size || '24x36';
+        localStorage.setItem('ttrpg_ai_size_intent', this.sizeIntent);
+        this.refreshOrientedSizeSpec(ratio, desc);
+        this.saveState();
+    }
+
+    /**
+     * Computes the exact oriented aspect ratio, mat dimensions, badge label, prompt phrase,
+     * and generation pixel resolution (width x height) for the active sizeIntent + orientation.
+     */
+    getOrientedSizeSpec(sizeKey = this.sizeIntent, orient = this.orientation) {
+        const isPortrait = (orient === 'portrait');
+        const orientWord = isPortrait ? 'portrait vertical orientation' : 'landscape horizontal orientation';
+        const orientBadge = isPortrait ? 'Portrait' : 'Landscape';
+
+        switch (sizeKey) {
+            case '24x36':
+                return isPortrait ? {
+                    sizeTag: '24x36',
+                    ratio: '2:3',
+                    badge: '24" × 36" (2:3 • Portrait)',
+                    desc: `designed for 24x36 inch physical tabletop battle mat, ${orientWord}, 2:3 aspect ratio, --ar 2:3`,
+                    width: 768,
+                    height: 1152
+                } : {
+                    sizeTag: '36x24',
+                    ratio: '3:2',
+                    badge: '36" × 24" (3:2 • Landscape)',
+                    desc: `designed for 36x24 inch physical tabletop battle mat, ${orientWord}, 3:2 aspect ratio, --ar 3:2`,
+                    width: 1152,
+                    height: 768
+                };
+            case '16:9':
+                return isPortrait ? {
+                    sizeTag: '9:16',
+                    ratio: '9:16',
+                    badge: '9:16 (Vertical • Portrait)',
+                    desc: `optimized for 9:16 vertical display, ${orientWord}, --ar 9:16`,
+                    width: 720,
+                    height: 1280
+                } : {
+                    sizeTag: '16:9',
+                    ratio: '16:9',
+                    badge: '16:9 (Widescreen • Landscape)',
+                    desc: `optimized for 16:9 widescreen projector display, ${orientWord}, --ar 16:9`,
+                    width: 1280,
+                    height: 720
+                };
+            case '4:3':
+                return isPortrait ? {
+                    sizeTag: '3:4',
+                    ratio: '3:4',
+                    badge: '3:4 (Projector • Portrait)',
+                    desc: `optimized for 3:4 vertical projector display, ${orientWord}, --ar 3:4`,
+                    width: 768,
+                    height: 1024
+                } : {
+                    sizeTag: '4:3',
+                    ratio: '4:3',
+                    badge: '4:3 (Projector • Landscape)',
+                    desc: `optimized for 4:3 classic projector display, ${orientWord}, --ar 4:3`,
+                    width: 1024,
+                    height: 768
+                };
+            case '30x40':
+                return isPortrait ? {
+                    sizeTag: '30x40',
+                    ratio: '3:4',
+                    badge: '30" × 40" (3:4 • Portrait)',
+                    desc: `designed for 30x40 inch large table battle mat, ${orientWord}, 3:4 aspect ratio, --ar 3:4`,
+                    width: 768,
+                    height: 1024
+                } : {
+                    sizeTag: '40x30',
+                    ratio: '4:3',
+                    badge: '40" × 30" (4:3 • Landscape)',
+                    desc: `designed for 40x30 inch large table battle mat, ${orientWord}, 4:3 aspect ratio, --ar 4:3`,
+                    width: 1024,
+                    height: 768
+                };
+            case '18x24':
+                return isPortrait ? {
+                    sizeTag: '18x24',
+                    ratio: '3:4',
+                    badge: '18" × 24" (3:4 • Portrait)',
+                    desc: `designed for 18x24 inch skirmish battle mat, ${orientWord}, 3:4 aspect ratio, --ar 3:4`,
+                    width: 768,
+                    height: 1024
+                } : {
+                    sizeTag: '24x18',
+                    ratio: '4:3',
+                    badge: '24" × 18" (4:3 • Landscape)',
+                    desc: `designed for 24x18 inch skirmish battle mat, ${orientWord}, 4:3 aspect ratio, --ar 4:3`,
+                    width: 1024,
+                    height: 768
+                };
+            case '1:1':
+                return {
+                    sizeTag: '1:1',
+                    ratio: '1:1',
+                    badge: '1:1 Square',
+                    desc: 'square arena battle map, 1:1 aspect ratio, --ar 1:1',
+                    width: 1024,
+                    height: 1024
+                };
+            case '21:9':
+                return isPortrait ? {
+                    sizeTag: '9:21',
+                    ratio: '9:21',
+                    badge: '9:21 Tall (Portrait)',
+                    desc: `9:21 vertical corridor battle map, ${orientWord}, --ar 9:21`,
+                    width: 576,
+                    height: 1344
+                } : {
+                    sizeTag: '21:9',
+                    ratio: '21:9',
+                    badge: '21:9 Ultra (Landscape)',
+                    desc: `21:9 cinematic ultrawide battle map, ${orientWord}, --ar 21:9`,
+                    width: 1344,
+                    height: 576
+                };
+            default:
+                return {
+                    sizeTag: sizeKey,
+                    ratio: isPortrait ? '2:3' : '3:2',
+                    badge: `${sizeKey} (${orientBadge})`,
+                    desc: `${sizeKey} tabletop battle map, ${orientWord}`,
+                    width: isPortrait ? 768 : 1152,
+                    height: isPortrait ? 1152 : 768
+                };
+        }
+    }
+
+    refreshOrientedSizeSpec(fallbackRatio, fallbackDesc) {
+        const spec = this.getOrientedSizeSpec(this.sizeIntent, this.orientation);
+        this.aspectRatio = spec.ratio || fallbackRatio || '3:2';
+        this.sizeDesc = spec.desc || fallbackDesc || '';
+        localStorage.setItem('ttrpg_ai_aspect_ratio', this.aspectRatio);
+        return spec;
     }
 
     /**
@@ -222,10 +363,11 @@ class AIMapGenerator {
         const loc = (locationText || '').trim() || 'ruined temple';
         const hasUngridded = this.promptToggles.some(t => t.id === 'ungridded' && t.active);
         const has4k = this.promptToggles.some(t => t.id === 'ortho4k' && t.active);
+        const spec = this.getOrientedSizeSpec();
         const extras = ['top down RPG battlemap'];
         if (hasUngridded) extras.push('ungridded');
         if (has4k) extras.push('4k');
-        if (this.sizeIntent && this.sizeIntent !== '1:1') extras.push(this.sizeIntent);
+        if (spec.sizeTag && spec.sizeTag !== '1:1') extras.push(spec.sizeTag);
         return `${loc} ${extras.join(' ')}`.trim();
     }
 
@@ -237,6 +379,9 @@ class AIMapGenerator {
         const fullPrompt = (assembledPrompt || this.buildAssembledPrompt(locationText)).trim();
         const cleanQuery = this.buildSearchQuery(locationText);
         const rawLoc = (locationText || '').trim() || 'fantasy dungeon';
+        const iarParam = this.sizeIntent === '1:1'
+            ? 'iar:s'
+            : (this.orientation === 'portrait' ? 'iar:t' : 'iar:w');
 
         // Always copy the full assembled prompt to clipboard so user can press Ctrl+V immediately
         try {
@@ -247,14 +392,14 @@ class AIMapGenerator {
         if (target === 'gemini') {
             url = 'https://gemini.google.com/app';
         } else if (target === 'google_images') {
-            // Google Images filtered to Large (4K/HD) images
-            url = `https://www.google.com/search?tbm=isch&tbs=isz:l&q=${encodeURIComponent(cleanQuery)}`;
+            // Google Images filtered to Large (4K/HD) images + active Landscape/Portrait/Square aspect ratio
+            url = `https://www.google.com/search?tbm=isch&tbs=isz:l,${iarParam}&q=${encodeURIComponent(cleanQuery)}`;
         } else if (target === 'reddit') {
             url = `https://www.reddit.com/r/battlemaps/search/?q=${encodeURIComponent(rawLoc)}&restrict_sr=1&sort=top`;
         } else if (target === 'pinterest') {
             url = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(rawLoc + ' dnd battlemap top down')}`;
         } else {
-            url = `https://www.google.com/search?tbm=isch&tbs=isz:l&q=${encodeURIComponent(cleanQuery)}`;
+            url = `https://www.google.com/search?tbm=isch&tbs=isz:l,${iarParam}&q=${encodeURIComponent(cleanQuery)}`;
         }
 
         const width = Math.min(1200, Math.round(window.screen.availWidth * 0.72));
@@ -366,24 +511,9 @@ class AIMapGenerator {
         this.isGenerating = true;
         const seed = Math.floor(Math.random() * 1000000);
 
-        let width = 1280;
-        let height = 720;
-        if (this.aspectRatio === '2:3' || this.sizeIntent === '24x36') {
-            width = 1152;
-            height = 768;
-        } else if (this.aspectRatio === '4:3') {
-            width = 1024;
-            height = 768;
-        } else if (this.aspectRatio === '3:4' || this.sizeIntent === '30x40' || this.sizeIntent === '18x24') {
-            width = 1024;
-            height = 768;
-        } else if (this.aspectRatio === '1:1') {
-            width = 1024;
-            height = 1024;
-        } else if (this.aspectRatio === '21:9') {
-            width = 1344;
-            height = 576;
-        }
+        const spec = this.getOrientedSizeSpec(this.sizeIntent, this.orientation);
+        const width = spec.width || 1280;
+        const height = spec.height || 720;
 
         try {
             const encodedPrompt = encodeURIComponent(promptToUse);
@@ -412,7 +542,7 @@ class AIMapGenerator {
                 prompt: labelName,
                 fullPrompt: promptToUse,
                 seed: seed,
-                provider: 'Flux AI',
+                provider: `Flux AI (${width}×${height})`,
                 url: url,
                 timestamp: new Date().toISOString()
             };
@@ -450,6 +580,8 @@ class AIMapGenerator {
 
     loadSavedState() {
         try {
+            this.refreshOrientedSizeSpec();
+
             const savedToggles = localStorage.getItem('ttrpg_prompt_toggles');
             if (savedToggles) {
                 const map = JSON.parse(savedToggles);
