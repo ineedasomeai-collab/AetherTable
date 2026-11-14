@@ -1,0 +1,3616 @@
+﻿/**
+ * Main Application Coordinator
+ * Connects Keystone, Grid, Living Elements, AI Generator, Fog of War, and UI
+ */
+
+class BattlemapApp {
+    constructor() {
+        this.currentMap = {
+            src: '',
+            isVideo: false,
+            name: 'Default Grid'
+        };
+
+        this.panZoom = {
+            x: 0,
+            y: 0,
+            scale: 1.0,
+            isPanning: false,
+            startX: 0,
+            startY: 0
+        };
+
+        // Global Projector Optics & Hardware Calibration (applied to #map-layer)
+        this.filters = {
+            brightness: 100,
+            contrast: 100,
+            saturation: 100,
+            invert: false
+        };
+
+        // Per-Map Image Adjustments (applied directly to #map-image / #map-video, independent of projector optics)
+        this.imageAdjustments = {
+            brightness: 100,
+            contrast: 100,
+            sharpness: 0
+        };
+
+        this.isBlackout = false;
+        this.isUIHidden = false;
+        this.activePanelId = null;
+
+        // Preset battle maps (high-res procedural SVG maps with rich textures)
+        this.presets = [
+            {
+                id: 'forest',
+                name: 'Forest Glade & Stream',
+                type: 'svg',
+                src: this.generateForestMapSVG()
+            },
+            {
+                id: 'desert',
+                name: 'Desert Dunes & Canyon',
+                type: 'svg',
+                src: this.generateDesertMapSVG()
+            },
+            {
+                id: 'dungeon',
+                name: 'Ancient Crypt Vault',
+                type: 'svg',
+                src: this.generateDungeonMapSVG()
+            },
+            {
+                id: 'tavern',
+                name: 'Tavern Taproom',
+                type: 'svg',
+                src: this.generateTavernMapSVG()
+            },
+            {
+                id: 'cavern',
+                name: 'Volcanic Lava Cavern',
+                type: 'svg',
+                src: this.generateLavaMapSVG()
+            }
+        ];
+    }
+
+    init() {
+        this.cacheElements();
+        this.initEngines();
+        this.bindEvents();
+        this.initDraggablePanels();
+        this.loadSettings();
+
+        // Load initial default map (Forest Glade)
+        this.loadPreset('forest');
+    }
+
+    cacheElements() {
+        this.dom = {
+            container: document.getElementById('keystone-container'),
+            viewport: document.getElementById('keystone-viewport'),
+            overlay: document.getElementById('keystone-overlay'),
+            mapLayer: document.getElementById('map-layer'),
+            mapImage: document.getElementById('map-image'),
+            mapVideo: document.getElementById('map-video'),
+            backdrop: document.getElementById('map-default-backdrop'),
+            gridCanvas: document.getElementById('grid-canvas'),
+            weatherCanvas: document.getElementById('weather-canvas'),
+            elementsLayer: document.getElementById('living-elements-layer'),
+            blackoutCurtain: document.getElementById('blackout-curtain'),
+            header: document.querySelector('.app-header'),
+            hudBar: document.querySelector('.hud-bar'),
+            unhideHint: document.getElementById('unhide-hint'),
+            panels: document.querySelectorAll('.floating-panel')
+        };
+    }
+
+    initEngines() {
+        window.keystoneEngine.init(this.dom.container, this.dom.viewport, this.dom.overlay);
+        window.gridEngine.init(this.dom.gridCanvas);
+        window.livingElementsEngine.init(this.dom.elementsLayer, this.dom.weatherCanvas);
+        if (window.dynamicSceneEngine) {
+            window.dynamicSceneEngine.init();
+        }
+
+        // Expose helpers for DynamicSceneEngine
+        window.setMap = (src, isVideo, name) => this.setMap(src, isVideo, name);
+        window.applyPanZoom = () => this.applyPanZoom();
+
+        // Living elements selected callback
+        window.onElementSelected = (el) => {
+            this.updateElementInspector(el);
+        };
+    }
+
+    // ------------------------------------------------------------------------
+    // MAP LOADING & PAN / ZOOM
+    // ------------------------------------------------------------------------
+
+    setMap(src, isVideo = false, name = 'Custom Map') {
+        this.currentMap = { src, isVideo, name };
+
+        if (isVideo) {
+            this.dom.mapImage.style.display = 'none';
+            this.dom.mapVideo.style.display = 'block';
+            this.dom.mapVideo.src = src;
+            this.dom.mapVideo.play().catch(() => {});
+        } else {
+            this.dom.mapVideo.style.display = 'none';
+            this.dom.mapVideo.pause();
+            this.dom.mapImage.style.display = 'block';
+            this.dom.mapImage.src = src;
+        }
+
+        if (this.dom.backdrop) {
+            this.dom.backdrop.style.display = 'none';
+        }
+
+        // Update map title display if any
+        const titleEl = document.getElementById('active-map-name');
+        if (titleEl) titleEl.textContent = name;
+
+        // Reset Pan & Zoom
+        this.resetPanZoom();
+        this.saveSettings();
+    }
+
+    loadPreset(presetId) {
+        const p = this.presets.find(item => item.id === presetId);
+        if (p) {
+            this.setMap(p.src, false, p.name);
+
+            // Sync map environment soundscape automatically
+            if (window.livingElementsEngine) {
+                const envLookup = {
+                    forest: 'forest',
+                    desert: 'wind',
+                    dungeon: 'cave',
+                    tavern: 'tavern',
+                    cavern: 'volcano'
+                };
+                window.livingElementsEngine.setEnvironmentSoundscape(envLookup[presetId] || 'forest');
+            }
+        }
+    }
+
+    resetPanZoom() {
+        this.panZoom = {
+            x: 0,
+            y: 0,
+            scale: 1.0,
+            isPanning: false,
+            startX: 0,
+            startY: 0
+        };
+        this.applyPanZoom();
+    }
+
+    applyPanZoom() {
+        if (this.dom.mapLayer) {
+            this.dom.mapLayer.style.transform = `translate(${this.panZoom.x}px, ${this.panZoom.y}px) scale(${this.panZoom.scale})`;
+        }
+        if (window.dynamicSceneEngine) {
+            window.dynamicSceneEngine.onCameraPanZoom(this.panZoom.x, this.panZoom.y, this.panZoom.scale);
+        }
+    }
+
+    applyFilters() {
+        const { brightness, contrast, saturation, invert } = this.filters;
+        const filterStr = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) ${invert ? 'invert(1)' : ''}`;
+        if (this.dom.mapLayer) {
+            this.dom.mapLayer.style.filter = filterStr;
+        }
+
+        // Sync Projector Optics UI readouts & sliders
+        const bSlider = document.getElementById('proj-brightness');
+        const bVal = document.getElementById('proj-brightness-val');
+        const cSlider = document.getElementById('proj-contrast');
+        const cVal = document.getElementById('proj-contrast-val');
+        const sSlider = document.getElementById('proj-saturation');
+        const sVal = document.getElementById('proj-saturation-val');
+        const invToggle = document.getElementById('proj-invert');
+
+        if (bSlider) bSlider.value = brightness;
+        if (bVal) bVal.textContent = `${brightness}%`;
+        if (cSlider) cSlider.value = contrast;
+        if (cVal) cVal.textContent = `${contrast}%`;
+        if (sSlider) sSlider.value = saturation;
+        if (sVal) sVal.textContent = `${saturation}%`;
+        if (invToggle) invToggle.checked = !!invert;
+
+        this.saveSettings();
+    }
+
+    /**
+     * Applies independent Map Image Adjustments (Brightness, Contrast, and SVG Convolution Sharpness)
+     * directly to the map asset (#map-image / #map-video), separate from Projector Optics
+     */
+    applyImageAdjustments() {
+        const { brightness, contrast, sharpness } = this.imageAdjustments;
+
+        // Update 3x3 Unsharp / Laplacian Convolution Kernel when sharpness > 0
+        const kernelEl = document.getElementById('map-sharpen-kernel');
+        if (kernelEl && sharpness > 0) {
+            const s = (sharpness / 100) * 0.45;
+            const d = (-0.5 * s).toFixed(4);
+            const c = (-1.0 * s).toFixed(4);
+            const m = (1.0 + 6.0 * s).toFixed(4);
+            kernelEl.setAttribute('kernelMatrix', `${d} ${c} ${d} ${c} ${m} ${c} ${d} ${c} ${d}`);
+        }
+
+        const sharpenUrl = sharpness > 0 ? ' url(#map-sharpen-filter)' : '';
+        const assetFilter = `brightness(${brightness}%) contrast(${contrast}%)${sharpenUrl}`;
+
+        if (this.dom.mapImage) {
+            this.dom.mapImage.style.filter = assetFilter;
+        }
+        const morphImg = document.getElementById('map-morph-image');
+        if (morphImg) {
+            morphImg.style.filter = assetFilter;
+        }
+        if (this.dom.mapVideo) {
+            this.dom.mapVideo.style.filter = assetFilter;
+        }
+
+        // Sync all Image Adjustment sliders & readouts in both Maps panel and Display panel
+        document.querySelectorAll('.img-brightness-slider').forEach(el => { el.value = brightness; });
+        document.querySelectorAll('.img-brightness-val').forEach(el => { el.textContent = `${brightness}%`; });
+
+        document.querySelectorAll('.img-contrast-slider').forEach(el => { el.value = contrast; });
+        document.querySelectorAll('.img-contrast-val').forEach(el => { el.textContent = `${contrast}%`; });
+
+        document.querySelectorAll('.img-sharpness-slider').forEach(el => { el.value = sharpness; });
+        document.querySelectorAll('.img-sharpness-val').forEach(el => { el.textContent = `${sharpness}%`; });
+
+        this.saveSettings();
+    }
+
+    toggleBlackout(forceVal) {
+        this.isBlackout = forceVal !== undefined ? forceVal : !this.isBlackout;
+        this.dom.blackoutCurtain.classList.toggle('active', this.isBlackout);
+
+        const btn = document.getElementById('btn-blackout');
+        if (btn) btn.classList.toggle('active', this.isBlackout);
+    }
+
+    toggleUI(forceVal) {
+        this.isUIHidden = forceVal !== undefined ? forceVal : !this.isUIHidden;
+        this.dom.header.classList.toggle('ui-hidden', this.isUIHidden);
+        this.dom.hudBar.classList.toggle('ui-hidden', this.isUIHidden);
+
+        // Close all floating panels when hiding UI
+        if (this.isUIHidden) {
+            this.closeAllPanels(true);
+            this.dom.unhideHint.classList.add('visible');
+            setTimeout(() => {
+                this.dom.unhideHint.classList.remove('visible');
+            }, 3000);
+        }
+    }
+
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            document.exitFullscreen().catch(() => {});
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // PANEL MANAGEMENT
+    // ------------------------------------------------------------------------
+
+    togglePanel(panelId) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+
+        const isActive = panel.classList.contains('active');
+        this.closeAllPanels(false);
+
+        if (!isActive) {
+            panel.classList.add('active');
+            this.activePanelId = panelId;
+
+            // Highlight corresponding nav btn
+            const btn = document.querySelector(`[data-panel="${panelId}"]`);
+            if (btn) btn.classList.add('active');
+        } else {
+            this.activePanelId = null;
+        }
+    }
+
+    closeAllPanels(includeInspector = false) {
+        this.dom.panels.forEach(p => {
+            if (!includeInspector && p.id === 'element-inspector-panel') return;
+            p.classList.remove('active');
+        });
+        document.querySelectorAll('.nav-btn[data-panel]').forEach(b => b.classList.remove('active'));
+        this.activePanelId = null;
+    }
+
+    initDraggablePanels() {
+        this.highestPanelZIndex = 200;
+
+        // Bring clicked panel to top z-index
+        document.querySelectorAll('.floating-panel').forEach(panel => {
+            panel.addEventListener('pointerdown', () => {
+                this.highestPanelZIndex++;
+                panel.style.zIndex = this.highestPanelZIndex;
+            }, { passive: true });
+        });
+
+        // Make each panel draggable by its .panel-header
+        document.querySelectorAll('.floating-panel .panel-header').forEach(header => {
+            const panel = header.closest('.floating-panel');
+            if (!panel) return;
+
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+            let startLeft = 0;
+            let startTop = 0;
+
+            header.addEventListener('pointerdown', (e) => {
+                // Ignore interactive controls inside header (close button, toggles, etc.)
+                if (e.target.closest('.panel-close-btn') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
+                    return;
+                }
+
+                isDragging = true;
+                header.setPointerCapture(e.pointerId);
+
+                this.highestPanelZIndex++;
+                panel.style.zIndex = this.highestPanelZIndex;
+
+                const rect = panel.getBoundingClientRect();
+                panel.style.transform = 'none';
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+                panel.style.left = `${rect.left}px`;
+                panel.style.top = `${rect.top}px`;
+
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = rect.left;
+                startTop = rect.top;
+
+                header.classList.add('is-dragging');
+            });
+
+            header.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                let newLeft = startLeft + dx;
+                let newTop = startTop + dy;
+
+                const adDeadSpace = 64; // 64px reserved bottom dead space for web ad banner
+                const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth - 8);
+                const maxTop = Math.max(8, window.innerHeight - panel.offsetHeight - adDeadSpace);
+                newLeft = Math.max(8, Math.min(maxLeft, newLeft));
+                newTop = Math.max(8, Math.min(maxTop, newTop));
+
+                panel.style.left = `${newLeft}px`;
+                panel.style.top = `${newTop}px`;
+            });
+
+            const stopDrag = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                header.classList.remove('is-dragging');
+                try {
+                    header.releasePointerCapture(e.pointerId);
+                } catch (err) {}
+            };
+
+            header.addEventListener('pointerup', stopDrag);
+            header.addEventListener('pointercancel', stopDrag);
+        });
+    }
+
+    // ------------------------------------------------------------------------
+    // ELEMENT INSPECTOR PANEL
+    // ------------------------------------------------------------------------
+
+    getVariantOptionsForType(type) {
+        const catDef = (typeof window !== 'undefined' && window.FEATURE_CATALOG && window.FEATURE_CATALOG[type]);
+        const baseType = catDef ? catDef.base : type;
+        switch (baseType) {
+            case 'inferno':
+                return [
+                    { value: 'wildfire', label: '🔥 Blazing Wildfire (Orange/Gold)' },
+                    { value: 'hellfire', label: '🌋 Hellfire & Brimstone (Crimson)' },
+                    { value: 'alchemical', label: '🧪 Alchemical Wildfire (Emerald Green)' },
+                    { value: 'arcane_fire', label: '✨ Arcane Flame (Cobalt & Violet)' }
+                ];
+            case 'smoke':
+                return [
+                    { value: 'black_smoke', label: '💨 Thick Black Soot & Fire Smoke' },
+                    { value: 'ash_fog', label: '🌫️ Dense Gray Battlefield Smoke / Fog' },
+                    { value: 'poison_gas', label: '☠️ Toxic Poison / Chlorine Gas (Green)' },
+                    { value: 'acid_fumes', label: '🧪 Caustic Acid Vapors (Teal-Green)' },
+                    { value: 'spore_cloud', label: '🍄 Swirling Fungal Spore Miasma (Amber)' },
+                    { value: 'shadow_miasma', label: '🌑 Abyssal Shadow / Necrotic Mist (Purple)' }
+                ];
+            case 'mud':
+                return [
+                    { value: 'mud_bog', label: '🫧 Bubbling Swamp Mud & Sucking Mire' },
+                    { value: 'tar_pit', label: '🖤 Boiling Black Tar / Sticky Oil Pit' },
+                    { value: 'quicksand', label: '🏜️ Churning Desert Quicksand Sinkhole' },
+                    { value: 'acid_sludge', label: '🧪 Bubbling Caustic Acid Sludge / Ooze' },
+                    { value: 'sticky_webs', label: '🕸️ Sticky Glistening Spiderweb Mire' }
+                ];
+            case 'sparks':
+                return [
+                    { value: 'storm_lightning', label: '⚡ Electric Storm Lightning (Cyan-White)' },
+                    { value: 'arcane_surge', label: '🔮 Wild Magic Arcane Rift (Violet)' },
+                    { value: 'necrotic_rift', label: '🩸 Blood & Shadow Surge (Crimson)' },
+                    { value: 'golden_holy', label: '✨ Radiant Celestial Ground Ward (Gold)' }
+                ];
+            case 'campfire':
+            case 'torch':
+                return [
+                    { value: 'wildfire', label: '🔥 Natural Wood Flame (Warm Orange)' },
+                    { value: 'hellfire', label: '🌋 Deep Crimson Coal & Ember Fire' },
+                    { value: 'alchemical', label: '🧪 Witchfire / Alchemical Green Flame' },
+                    { value: 'arcane_fire', label: '✨ Blue Spirit / Arcane Flame' }
+                ];
+            case 'river':
+            case 'pond':
+                return [
+                    { value: 'pond_lily', label: '💧 Crystal Forest Pond & Lily Pads' },
+                    { value: 'cavern_pool', label: '💎 Glowing Subterranean Crystal Pool' },
+                    { value: 'blood_pool', label: '🩸 Sacrificial Runic Blood Pool' },
+                    { value: 'stream', label: '🌊 Clear Mountain Stream' },
+                    { value: 'ocean', label: '🌊 Deep Azure Rapids Current' },
+                    { value: 'swamp', label: '🌿 Murky Bayou & Duckweed Water' },
+                    { value: 'moat_stakes', label: '🏰 Castle Moat & Palisade Stakes' },
+                    { value: 'concrete_canal', label: '🏙️ Concrete Storm-Drain Canal' },
+                    { value: 'lava', label: '🌋 Molten Volcanic Magma Flow' },
+                    { value: 'blood_river', label: '🩸 Sanguine River of Blood' },
+                    { value: 'acid', label: '🧪 Bio-Mutagen Coolant / Acid' }
+                ];
+            case 'waterfall':
+                return [
+                    { value: 'mountain_falls', label: '🌊 Roaring Mountain Waterfall' },
+                    { value: 'cavern_falls', label: '💎 Subterranean Cavern Cascade' },
+                    { value: 'swamp_spillway', label: '🌿 Mossy Bayou Spillway' },
+                    { value: 'lava_falls', label: '🌋 Molten Magma / Lava Falls' }
+                ];
+            case 'lava_seam':
+                return [
+                    { value: 'magma_seam', label: '🌋 Pulsing Volcanic Magma Fissure' },
+                    { value: 'hell_crack', label: '🩸 Hellfire Brimstone Fault' },
+                    { value: 'leyline_seam', label: '🔮 Glowing Arcane Leyline Fracture' },
+                    { value: 'acid_fault', label: '🧪 Bubbling Acid / Necrotic Fissure' }
+                ];
+            case 'canopy':
+                return [
+                    { value: 'oak_canopy', label: '🌳 Sunlit Summer Oak Canopy' },
+                    { value: 'autumn_maple', label: '🍁 Golden Crimson Autumn Maple' },
+                    { value: 'pine_crown', label: '🌲 Deep Evergreen Pine Crown' },
+                    { value: 'jungle_palm', label: '🌴 Lush Tropical Jungle Canopy' },
+                    { value: 'dead_willow', label: '🥀 Haunted Deadwood Boughs' }
+                ];
+            case 'sunbeams':
+                return [
+                    { value: 'golden_sun', label: '☀️ Warm Golden Sunbeams & Dust Motes' },
+                    { value: 'moonbeams', label: '🌙 Silvery-Blue Midnight Moonbeams' },
+                    { value: 'cathedral_rays', label: ' stained-glass Amber Cathedral Rays' },
+                    { value: 'cavern_skylight', label: '💎 Emerald-Cyan Cavern Skylight Shafts' }
+                ];
+            case 'hologram':
+                return [
+                    { value: 'tactical_planet', label: '🪐 Rotating Planetary Sphere' },
+                    { value: 'reticle', label: '🎯 Targeting Reticle & Weapon Lock' },
+                    { value: 'beacon', label: '📡 Distress Beacon / Holo-Relay' },
+                    { value: 'skull_hazard', label: '☠️ Cyber Hazard / Containment Warning' },
+                    { value: 'starship_schematic', label: '🚀 Starship Blueprint Schematic' }
+                ];
+            case 'forcefield':
+                return [
+                    { value: 'hex_barrier', label: '🛡️ Hexagonal Energy Shield Matrix (Cyan)' },
+                    { value: 'laser_grid', label: '🔴 High-Voltage Laser Grid (Crimson)' },
+                    { value: 'plasma_curtain', label: '🟣 Ionized Plasma Curtain (Violet)' },
+                    { value: 'void_containment', label: '⚡ Void Singularity Containment (Gold)' }
+                ];
+            case 'plasma_leak':
+                return [
+                    { value: 'fusion_vent', label: '🔷 Fusion Coolant Breach & Mach Diamonds' },
+                    { value: 'warp_overload', label: '🟣 Warp Core Radiation Overload' },
+                    { value: 'superheated_jet', label: '⚡ Superheated Plasma Jet (Gold)' }
+                ];
+            case 'teleporter':
+                return [
+                    { value: 'transmat_pad', label: '💠 Quantum Transmat Pad & Light Pillar' },
+                    { value: 'warp_gate', label: '🌀 Swirling Hyperspace Vortex Gate' },
+                    { value: 'precursor_ring', label: '✨ Alien Precursor Resonator (Emerald)' },
+                    { value: 'disintegration_field', label: '🩸 Matter Deconstruction Field (Crimson)' }
+                ];
+            case 'cyber_terminal':
+                return [
+                    { value: 'tactical_hud', label: '🖥️ Tactical HUD & Radar Sweep' },
+                    { value: 'cyber_workstation', label: '⌨️ Cyber Console & Data Stream' },
+                    { value: 'neon_sign', label: '🏮 Cyberpunk Neon Sign (RESTRICTED)' },
+                    { value: 'reactor_terminal', label: '⚠️ Reactor Core Warning Console' }
+                ];
+            case 'toxic_spill':
+                return [
+                    { value: 'radioactive_sludge', label: '☢️ Radioactive Waste (Neon Toxic Green)' },
+                    { value: 'alien_mutagen', label: '🧪 Alien Mutagen Xenoblood (Violet)' },
+                    { value: 'caustic_acid', label: '⚗️ Sizzling High-Density Acid Pool' },
+                    { value: 'cryo_coolant', label: '❄️ Sub-Zero Liquid Nitrogen Spill (Cyan Fog)' }
+                ];
+            case 'ocean_waves':
+                return [
+                    { value: 'tropical_reef', label: '🏝️ Tropical Turquoise Reef Surf' },
+                    { value: 'deep_atlantic', label: '🌊 Deep Atlantic Storm Swell' },
+                    { value: 'stormy_tempest', label: '⛈️ Stormy Tempest & Spindrift' },
+                    { value: 'bioluminescent_night', label: '✨ Bioluminescent Neon Night Tide' },
+                    { value: 'abyssal_eldritch', label: '🐙 Abyssal Eldritch Purple Surge' }
+                ];
+            case 'forest':
+                return [
+                    { value: 'ancient_oak', label: '🌳 Ancient Oak & Summer Leaves' },
+                    { value: 'autumn_maple', label: '🍁 Golden Autumn Maple Canopy' },
+                    { value: 'boreal_pine', label: '🌲 Boreal Pine Evergreen Taiga' },
+                    { value: 'tropical_jungle', label: '🌴 Lush Tropical Jungle Palms' },
+                    { value: 'cherry_blossom', label: '🌸 Blooming Cherry Blossom Grove' },
+                    { value: 'haunted_deadwood', label: '🥀 Haunted Deadwood Thicket' },
+                    { value: 'alien_fungal', label: '🍄 Bioluminescent Fungal Canopy' }
+                ];
+            case 'spotlight':
+                return [
+                    { value: 'prison_searchlight', label: '🔦 Prison Watchtower Searchlight' },
+                    { value: 'tactical_flashlight', label: '🚨 Tactical SWAT LED Flashlight' },
+                    { value: 'cyber_spotlight', label: '🛸 Cyber Security Drone Beam' },
+                    { value: 'stage_spotlight', label: '🎭 Warm Amber Followspot' },
+                    { value: 'red_alert_siren', label: '🔴 Red Alert Rotating Beacon' }
+                ];
+            case 'bats':
+                return [
+                    { value: 'dungeon_bats', label: '🦇 Swarming Dungeon Cave Bats' },
+                    { value: 'cemetery_crows', label: '🦅 Murder of Cemetery Crows / Ravens' },
+                    { value: 'desert_vultures', label: '🦅 Circling Desert Vultures' },
+                    { value: 'harbor_gulls', label: '🕊️ Gliding Coastal Seagulls' },
+                    { value: 'surveillance_drones', label: '🛰️ Micro Surveillance Drone Swarm' }
+                ];
+            case 'rats':
+                return [
+                    { value: 'sewer_rats', label: '🐀 Skittering Sewer Dungeon Rats' },
+                    { value: 'swarming_spiders', label: '🕷️ Swarming 8-Legged Spiders' },
+                    { value: 'robo_scuttlers', label: '🤖 Cybernetic Brass Robo-Beetles' },
+                    { value: 'shadow_crawlers', label: '🌑 Shadow Miasma Crawlers' },
+                    { value: 'cave_scorpions', label: '🦂 Dungeon Cave Scorpions' }
+                ];
+            case 'fish':
+                return [
+                    { value: 'koi_pond', label: '🎏 Ornate Swimming Koi Pond' },
+                    { value: 'ocean_sharks', label: '🦈 Predatory Ocean Sharks & Reef Fish' },
+                    { value: 'river_trout', label: '🐟 Speckled Brook River Trout' },
+                    { value: 'abyssal_biolum', label: '✨ Abyssal Bioluminescent Anglers' },
+                    { value: 'drone_minnows', label: '🛸 Cybernetic Aquatic Scout Minnows' }
+                ];
+            case 'patrol_actor':
+                return [
+                    { value: 'will_o_wisp', label: '✨ Wandering Will-o\'-the-Wisp' },
+                    { value: 'gothic_ghost', label: '👻 Floating Spectral Phantom' },
+                    { value: 'patrol_drone', label: '🛸 Sentry Security Patrol Drone' },
+                    { value: 'fey_sprite', label: '🧚 Glowing Fey Forest Sprite' },
+                    { value: 'eldritch_eye', label: '👁️ Floating Eldritch Arcane Eye' }
+                ];
+            case 'rain':
+                return [
+                    { value: 'storm_downpour', label: '🌧️ Heavy Downpour & Ground Splashes' },
+                    { value: 'drizzle', label: '🌦️ Gentle Atmospheric Drizzle' },
+                    { value: 'neon_rain', label: '🏮 Cyberpunk Neon Rain' },
+                    { value: 'acid_rain', label: '🧪 Caustic Toxic Acid Rain' }
+                ];
+            case 'snow':
+                return [
+                    { value: 'blizzard_drift', label: '❄️ Mountain Snow Blizzard' },
+                    { value: 'flurry', label: '🌨️ Gentle Winter Flurry' },
+                    { value: 'ash_storm', label: '🌋 Volcanic Ash & Cinder Drift' }
+                ];
+            case 'fog':
+                return [
+                    { value: 'ground_mist', label: '🌫️ Low Rolling Ground Mist' },
+                    { value: 'swamp_fog', label: '🌿 Murky Bayou Swamp Fog' },
+                    { value: 'toxic_smog', label: '☣️ Virulent Green Toxic Smog' },
+                    { value: 'cemetery_shroud', label: '⚰️ Gothic Cemetery Shroud' }
+                ];
+            case 'dust':
+                return [
+                    { value: 'sandstorm_eddy', label: '🏜️ Raging Desert Sandstorm' },
+                    { value: 'dust_motes', label: '✨ Floating Ambient Dust Motes' },
+                    { value: 'ash_fall', label: '🌋 Post-Apocalyptic Ash Fall' }
+                ];
+            case 'hyperspace':
+                return [
+                    { value: 'astral_aurora', label: '🌌 Swirling Astral Aurora' },
+                    { value: 'warp_stars', label: '🚀 Hyperspace Warp Stars' },
+                    { value: 'void_rift', label: '🌀 Dimensional Void Rift' }
+                ];
+            case 'tentacles':
+                return [
+                    { value: 'abyssal_purple', label: '🐙 Abyssal Purple Void Tentacles' },
+                    { value: 'slimy_green', label: '🧪 Slimy Acid Tentacles' },
+                    { value: 'crimson_blood', label: '🩸 Crimson Flesh Tendrils' }
+                ];
+            case 'fountain':
+                return [
+                    { value: 'crystal_clear', label: '⛲ Crystal Clear Basin Fountain' },
+                    { value: 'blood_fount', label: '🩸 Sanguine Blood Fountain' },
+                    { value: 'alchemical_glow', label: '✨ Luminescent Alchemical Font' }
+                ];
+            case 'fan':
+                return [
+                    { value: 'metal_duct', label: '💨 Industrial Duct Fan' },
+                    { value: 'warning_hazard', label: '⚠️ Caution Striped Extraction Vent' }
+                ];
+            case 'crystal':
+                return [
+                    { value: 'amethyst_gem', label: '💎 Floating Amethyst Crystal' },
+                    { value: 'emerald_fel', label: '💚 Glowing Fel Emerald' },
+                    { value: 'plasma_shard', label: '🔷 Hyper-Space Warp Shard' }
+                ];
+            case 'headlights':
+                return [
+                    { value: 'halogen_pair', label: '💡 Twin Halogen Vehicle Beams' },
+                    { value: 'xenon_blue', label: '🚙 Xenon High-Beams' },
+                    { value: 'amber_fog', label: '🟨 Amber Heavy-Duty Foglights' }
+                ];
+            case 'lightstrip':
+                return [
+                    { value: 'cyan_chevrons', label: '🟢 Cyan Running Chevrons' },
+                    { value: 'amber_hazard', label: '🟡 Caution Emergency Running Strip' },
+                    { value: 'red_alert', label: '🔴 Red Alert Evacuation Guide' }
+                ];
+            case 'pit_trap':
+                return [
+                    { value: 'iron_spikes', label: '🕳️ Concealed Spike Pit Trap' },
+                    { value: 'abyssal_chasm', label: '🌑 Bottomless Abyssal Chasm' }
+                ];
+            case 'conveyor':
+                return [
+                    { value: 'hazard_track', label: '⚙️ Industrial Hazard Conveyor Track' },
+                    { value: 'cargo_belt', label: '📦 Starship Cargo Slat Belt' }
+                ];
+            default:
+                return [];
+        }
+    }
+
+    updateElementInspector(el) {
+        const inspector = document.getElementById('element-inspector-panel');
+        if (!inspector) return;
+
+        if (!el) {
+            inspector.classList.remove('active');
+            return;
+        }
+
+        // Open and elevate the dedicated Selected Element Attributes Popup Window
+        inspector.classList.add('active');
+        this.highestPanelZIndex = (this.highestPanelZIndex || 250) + 1;
+        inspector.style.zIndex = this.highestPanelZIndex;
+
+        const labelMap = {
+            inferno: 'SPREADING FIRE',
+            lava_seam: 'PULSING LAVA SEAM',
+            smoke: 'SMOKE / GAS',
+            mud: 'MUD / STICKY MIRE',
+            sparks: 'LIGHTNING HAZARD',
+            river: 'FLOWING WATER',
+            waterfall: 'CASCADING WATERFALL',
+            canopy: 'SWAYING CANOPY',
+            sunbeams: 'MOVING SUNBEAMS',
+            campfire: 'LOG CAMPFIRE',
+            torch: 'FLICKERING TORCH',
+            tumbleweed: 'TUMBLEWEED',
+            hologram: 'HOLOGRAPHIC EMITTER',
+            forcefield: 'FORCEFIELD BARRIER',
+            plasma_leak: 'PLASMA LEAK / JET',
+            teleporter: 'QUANTUM TELEPORTER',
+            cyber_terminal: 'CYBER TERMINAL / HUD',
+            toxic_spill: 'TOXIC CHEMICAL SPILL',
+            ocean_waves: 'OCEANIC WAVES & SURF',
+            forest: 'WAVING FOREST FILL',
+            spotlight: 'SWEEPING SEARCHLIGHT',
+            bats: 'FLOCKING CREATURES',
+            rats: 'SKITTERING VERMIN',
+            fish: 'SWIMMING FISH POND',
+            patrol_actor: 'PATROLLING ENTITY',
+            rain: 'LOCALIZED RAIN ZONE',
+            snow: 'LOCALIZED SNOW ZONE',
+            fog: 'LOCALIZED FOG BANK',
+            dust: 'LOCALIZED DUST / SAND',
+            hyperspace: 'LOCALIZED ASTRAL AURORA'
+        };
+        const catDef = (typeof window !== 'undefined' && window.FEATURE_CATALOG && window.FEATURE_CATALOG[el.type]);
+        const title = inspector.querySelector('.inspector-element-type');
+        if (title) title.textContent = (catDef && catDef.name) || labelMap[el.type] || el.type.toUpperCase();
+
+        // 0. Populate Active Map Elements Switcher Dropdown
+        const activeSelect = inspector.querySelector('#inspector-active-el-select');
+        const countBadge = inspector.querySelector('#inspector-active-count-badge');
+        const allEls = (window.livingElementsEngine && window.livingElementsEngine.elements) || [];
+        if (countBadge) countBadge.textContent = `${allEls.length} on map`;
+        if (activeSelect) {
+            activeSelect.innerHTML = allEls.map((item, idx) => {
+                const cDef = window.FEATURE_CATALOG && window.FEATURE_CATALOG[item.type];
+                const itemName = (cDef && cDef.name) || labelMap[item.type] || item.type.toUpperCase();
+                return `<option value="${item.id}">#${idx + 1}: ${itemName}</option>`;
+            }).join('');
+            activeSelect.value = el.id;
+        }
+
+        // Sync Flip X / Flip Y buttons
+        const btnFlipX = inspector.querySelector('#btn-el-flip-x');
+        const btnFlipY = inspector.querySelector('#btn-el-flip-y');
+        if (btnFlipX) btnFlipX.classList.toggle('active', !!(el.config && el.config.flipX));
+        if (btnFlipY) btnFlipY.classList.toggle('active', !!(el.config && el.config.flipY));
+
+        // 1. Populate Variant Dropdown
+        const variantGroup = inspector.querySelector('#inspector-variant-group');
+        const variantSelect = inspector.querySelector('#inspector-variant-select');
+        const variants = this.getVariantOptionsForType(el.type).slice();
+        if (variantGroup && variantSelect) {
+            const curVariant = (el.config && (el.config.variant || el.config.waterStyle)) || (variants[0] && variants[0].value) || 'default';
+            if (curVariant && !variants.some(v => v.value === curVariant)) {
+                variants.unshift({
+                    value: curVariant,
+                    label: `✨ ${(catDef && catDef.name) || curVariant} (Default)`
+                });
+            }
+            if (variants.length > 0) {
+                variantGroup.style.display = 'flex';
+                variantSelect.innerHTML = variants.map(v => `<option value="${v.value}">${v.label}</option>`).join('');
+                variantSelect.value = curVariant;
+            } else {
+                variantGroup.style.display = 'none';
+            }
+        }
+
+        // 2. Show/Hide Deformable Pond/River/Forest vs Standard Size/Stretch
+        const standardGroup = inspector.querySelector('#inspector-group-standard-transform');
+        const riverGroup = inspector.querySelector('#inspector-group-river');
+        const effectiveBase = (catDef && catDef.base) || el.type;
+        const isDeformable = (this.elementsEngine && this.elementsEngine.isRiverType(el.type)) ||
+            effectiveBase === 'river' || effectiveBase === 'pond' || effectiveBase === 'forest';
+
+        if (isDeformable) {
+            if (standardGroup) standardGroup.style.display = 'none';
+            if (riverGroup) riverGroup.style.display = 'flex';
+
+            const shapeHint = inspector.querySelector('#inspector-shape-hint');
+            const shapeLabel = inspector.querySelector('#inspector-shape-mode-label');
+            const shapeSelect = inspector.querySelector('#inspector-river-shape');
+
+            if (effectiveBase === 'forest') {
+                if (shapeHint) {
+                    shapeHint.innerHTML = `🌳 <b style="color: var(--primary);">Forest Shape Handles Active:</b> Drag <b>cyan circles</b> on the map to shape the forest around roads or clearings, click <b>+</b> to add corners, or use <b>Entity Quantity</b> above to add/remove trees!`;
+                }
+                if (shapeLabel) shapeLabel.textContent = 'Forest Shape Mode';
+                if (shapeSelect) {
+                    shapeSelect.innerHTML = `
+                        <option value="polygon">🌳 Custom Forest Grove Fill (Perimeter Handles)</option>
+                        <option value="spline">🌲 Curved Treeline / Hedgerow (Path &amp; Width Handles)</option>
+                    `;
+                }
+            } else {
+                if (shapeHint) {
+                    shapeHint.innerHTML = `💧 <b style="color: var(--primary);">Water Shape Handles Active:</b> Drag <b>cyan circles</b> on the map to shape the pond/river, <b>amber diamonds</b> to widen banks, or click <b>+</b> to add handles!`;
+                }
+                if (shapeLabel) shapeLabel.textContent = 'Water / Pond Shape Mode';
+                if (shapeSelect) {
+                    shapeSelect.innerHTML = `
+                        <option value="polygon">💧 Custom Pond / Pool / Lake (Perimeter Handles)</option>
+                        <option value="spline">🌊 Curved River / Stream Path (Bend &amp; Width Handles)</option>
+                    `;
+                }
+            }
+
+            if (shapeSelect && el.config) {
+                shapeSelect.value = el.config.shapeMode || (effectiveBase === 'river' ? 'spline' : 'polygon');
+            }
+        } else {
+            if (standardGroup) standardGroup.style.display = 'flex';
+            if (riverGroup) riverGroup.style.display = 'none';
+
+            const avgSize = Math.round(Math.sqrt(el.width * el.height));
+            const aspect = parseFloat((el.width / Math.max(1, el.height)).toFixed(2));
+
+            const sizeSlider = inspector.querySelector('#inspector-size');
+            const sizeVal = inspector.querySelector('#inspector-size-val');
+            if (sizeSlider) sizeSlider.value = Math.max(30, Math.min(4000, avgSize));
+            if (sizeVal) sizeVal.textContent = `${el.width}×${el.height}px`;
+
+            const aspectSlider = inspector.querySelector('#inspector-aspect');
+            const aspectVal = inspector.querySelector('#inspector-aspect-val');
+            if (aspectSlider) aspectSlider.value = Math.max(0.1, Math.min(10.0, aspect));
+            if (aspectVal) aspectVal.textContent = `${aspect.toFixed(2)}x`;
+
+            const widthInput = inspector.querySelector('#inspector-width-input');
+            const heightInput = inspector.querySelector('#inspector-height-input');
+            if (widthInput) widthInput.value = el.width;
+            if (heightInput) heightInput.value = el.height;
+        }
+
+        // 3. Sync 3D Perspective Tilt X/Y & Rotation Angle (All Elements)
+        const tiltX = (el.config && el.config.tiltX) || 0;
+        const tiltY = (el.config && el.config.tiltY) || 0;
+        const rot = Math.round(((el.rotation || 0) % 360 + 360) % 360);
+
+        const tiltXSlider = inspector.querySelector('#inspector-tilt-x');
+        const tiltXVal = inspector.querySelector('#inspector-tilt-x-val');
+        if (tiltXSlider) tiltXSlider.value = tiltX;
+        if (tiltXVal) tiltXVal.textContent = `${tiltX}°`;
+
+        const tiltYSlider = inspector.querySelector('#inspector-tilt-y');
+        const tiltYVal = inspector.querySelector('#inspector-tilt-y-val');
+        if (tiltYSlider) tiltYSlider.value = tiltY;
+        if (tiltYVal) tiltYVal.textContent = `${tiltY}°`;
+
+        const rotSlider = inspector.querySelector('#inspector-rotation');
+        const rotVal = inspector.querySelector('#inspector-rotation-val');
+        if (rotSlider) rotSlider.value = rot;
+        if (rotVal) rotVal.textContent = `${rot}°`;
+
+        // Sync Perspective Preset buttons active state
+        const presetBtns = inspector.querySelectorAll('.perspective-preset-btn');
+        presetBtns.forEach(btn => {
+            const px = parseInt(btn.dataset.tiltX, 10);
+            const py = parseInt(btn.dataset.tiltY, 10);
+            if (Math.abs(tiltX - px) <= 3 && Math.abs(tiltY - py) <= 3) {
+                btn.classList.add('active');
+                btn.style.borderColor = 'var(--accent-amber)';
+                btn.style.background = 'rgba(255, 170, 0, 0.22)';
+                btn.style.color = 'var(--accent-amber)';
+            } else {
+                btn.classList.remove('active');
+                btn.style.borderColor = '';
+                btn.style.background = '';
+                btn.style.color = '';
+            }
+        });
+
+        // 4. Sync Speed, Intensity, Opacity & Quantity (All Elements)
+        const spd = (el.config && (el.config.speed !== undefined ? el.config.speed : el.config.flowSpeed)) || 1.0;
+        const inten = (el.config && el.config.intensity !== undefined) ? el.config.intensity : 1.0;
+        const opac = (el.config && el.config.opacity !== undefined) ? el.config.opacity : 0.9;
+
+        const speedSlider = inspector.querySelector('#inspector-speed');
+        const speedVal = inspector.querySelector('#inspector-speed-val');
+        if (speedSlider) speedSlider.value = spd;
+        if (speedVal) speedVal.textContent = `${spd.toFixed(1)}x`;
+
+        const intenSlider = inspector.querySelector('#inspector-intensity');
+        const intenVal = inspector.querySelector('#inspector-intensity-val');
+        if (intenSlider) intenSlider.value = inten;
+        if (intenVal) intenVal.textContent = `${Math.round(inten * 100)}%`;
+
+        const opacSlider = inspector.querySelector('#inspector-opacity');
+        const opacVal = inspector.querySelector('#inspector-opacity-val');
+        if (opacSlider) opacSlider.value = opac;
+        if (opacVal) opacVal.textContent = `${Math.round(opac * 100)}%`;
+
+        const qty = (el.config && el.config.quantity !== undefined) ? el.config.quantity : 1.0;
+        const qtySlider = inspector.querySelector('#inspector-quantity');
+        const qtyVal = inspector.querySelector('#inspector-quantity-val');
+        if (qtySlider) qtySlider.value = qty;
+        if (qtyVal) qtyVal.textContent = `${Math.round(qty * 100)}%`;
+
+        const twGroup = inspector.querySelector('#inspector-tumbleweed-group');
+        const twSlider = inspector.querySelector('#inspector-tumbleweed-count');
+        const twVal = inspector.querySelector('#inspector-tumbleweed-count-val');
+        if (twGroup) {
+            const baseType = (catDef && catDef.base) || el.type;
+            if (baseType === 'tumbleweed') {
+                twGroup.style.display = 'block';
+                const count = (el.config && el.config.count !== undefined) ? el.config.count : 12;
+                if (twSlider) twSlider.value = count;
+                if (twVal) twVal.textContent = `${count}`;
+            } else {
+                twGroup.style.display = 'none';
+            }
+        }
+
+        // 5. Sync Color Grading: Hue Shift, Saturation, Brightness & Blend Mode
+        const hue = (el.config && el.config.hue) ? parseInt(el.config.hue, 10) : 0;
+        const sat = (el.config && el.config.saturation !== undefined) ? parseInt(el.config.saturation, 10) : 100;
+        const bri = (el.config && el.config.brightness !== undefined) ? parseInt(el.config.brightness, 10) : 100;
+        const blend = (el.config && el.config.blendMode) || 'normal';
+
+        const hueSlider = inspector.querySelector('#inspector-hue');
+        const hueVal = inspector.querySelector('#inspector-hue-val');
+        if (hueSlider) hueSlider.value = hue;
+        if (hueVal) hueVal.textContent = `${hue > 0 ? '+' : ''}${hue}°`;
+
+        inspector.querySelectorAll('.inspector-hue-chip').forEach(chip => {
+            const chipHue = parseInt(chip.getAttribute('data-hue') || '0', 10);
+            chip.classList.toggle('active', Math.abs(chipHue - hue) <= 4);
+        });
+
+        const satSlider = inspector.querySelector('#inspector-saturation');
+        const satVal = inspector.querySelector('#inspector-saturation-val');
+        if (satSlider) satSlider.value = sat;
+        if (satVal) satVal.textContent = `${sat}%`;
+
+        const briSlider = inspector.querySelector('#inspector-brightness');
+        const briVal = inspector.querySelector('#inspector-brightness-val');
+        if (briSlider) briSlider.value = bri;
+        if (briVal) briVal.textContent = `${bri}%`;
+
+        const blendSelect = inspector.querySelector('#inspector-blend-mode');
+        if (blendSelect) blendSelect.value = blend;
+
+        // 6. Sync Edge Blur / Sharpen & Soft Edge Feathering
+        const edgeBS = (el.config && el.config.edgeBlurSharpen) ? parseInt(el.config.edgeBlurSharpen, 10) : 0;
+        const feather = (el.config && el.config.edgeFeather) ? parseInt(el.config.edgeFeather, 10) : 0;
+
+        const edgeBSSlider = inspector.querySelector('#inspector-edge-blur-sharpen');
+        const edgeBSVal = inspector.querySelector('#inspector-edge-blur-sharpen-val');
+        if (edgeBSSlider) edgeBSSlider.value = edgeBS;
+        if (edgeBSVal) {
+            if (edgeBS < 0) edgeBSVal.textContent = `${edgeBS} (Blur ${(Math.abs(edgeBS) * 0.15).toFixed(1)}px)`;
+            else if (edgeBS > 0) edgeBSVal.textContent = `+${edgeBS} (Sharpen)`;
+            else edgeBSVal.textContent = `0 (Normal)`;
+        }
+
+        const featherSlider = inspector.querySelector('#inspector-edge-feather');
+        const featherVal = inspector.querySelector('#inspector-edge-feather-val');
+        if (featherSlider) featherSlider.value = feather;
+        if (featherVal) featherVal.textContent = `${feather}%`;
+    }
+
+    // ------------------------------------------------------------------------
+    // EVENT BINDINGS
+    // ------------------------------------------------------------------------
+
+    bindEvents() {
+        // Navigation button panel toggling
+        document.querySelectorAll('.nav-btn[data-panel]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const panelId = btn.getAttribute('data-panel');
+                this.togglePanel(panelId);
+            });
+        });
+
+        // Panel close buttons (close only the specific panel; if closing inspector, deselect element)
+        document.querySelectorAll('.panel-close-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const panel = btn.closest('.floating-panel');
+                if (panel && panel.id === 'element-inspector-panel') {
+                    panel.classList.remove('active');
+                    if (window.livingElementsEngine) {
+                        window.livingElementsEngine.selectElement(null);
+                    }
+                } else if (panel) {
+                    panel.classList.remove('active');
+                    const navBtn = document.querySelector(`.nav-btn[data-panel="${panel.id}"]`);
+                    if (navBtn) navBtn.classList.remove('active');
+                    if (this.activePanelId === panel.id) this.activePanelId = null;
+                } else {
+                    this.closeAllPanels(false);
+                }
+            });
+        });
+
+        // Blackout button
+        const btnBlackout = document.getElementById('btn-blackout');
+        if (btnBlackout) {
+            btnBlackout.addEventListener('click', () => this.toggleBlackout());
+        }
+
+        // Fullscreen button
+        const btnFullscreen = document.getElementById('btn-fullscreen');
+        if (btnFullscreen) {
+            btnFullscreen.addEventListener('click', () => this.toggleFullscreen());
+        }
+
+        // Hide UI button
+        const btnHideUI = document.getElementById('btn-hide-ui');
+        if (btnHideUI) {
+            btnHideUI.addEventListener('click', () => this.toggleUI(true));
+        }
+
+        // Preset battle maps clicks
+        document.querySelectorAll('.preset-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const presetId = card.getAttribute('data-preset');
+                this.loadPreset(presetId);
+            });
+        });
+
+        // Drag & Drop File OR Cross-Window Browser Image Drop on viewport
+        const dropzone = document.getElementById('map-dropzone');
+        const fileInput = document.getElementById('map-file-input');
+
+        if (dropzone && fileInput) {
+            dropzone.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    this.handleFileUpload(e.target.files[0]);
+                }
+            });
+
+            window.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+            window.addEventListener('dragleave', (e) => {
+                if (e.clientX === 0 && e.clientY === 0) {
+                    dropzone.classList.remove('dragover');
+                }
+            });
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+
+                // 1. Local file or dragged image blob
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    this.handleFileUpload(e.dataTransfer.files[0]);
+                    return;
+                }
+
+                // 2. Dragged directly from a popout browser tab (HTML img or URI)
+                const htmlData = e.dataTransfer.getData('text/html');
+                if (htmlData) {
+                    const match = htmlData.match(/<img[^>]+src=["']([^"']+)["']/i);
+                    if (match && match[1]) {
+                        const imgUrl = match[1].replace(/&amp;/g, '&');
+                        this.setMap(imgUrl, false, 'Dropped Browser Map');
+                        window.aiMapGenerator.addToHistory({
+                            id: `drop_${Date.now()}`,
+                            prompt: 'Dropped Map',
+                            provider: 'Web',
+                            url: imgUrl
+                        });
+                        return;
+                    }
+                }
+
+                const uriData = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+                if (uriData && /^https?:\/\//i.test(uriData.trim())) {
+                    const cleanUrl = uriData.trim().split('\n')[0].trim();
+                    const isVid = cleanUrl.endsWith('.mp4') || cleanUrl.endsWith('.webm');
+                    this.setMap(cleanUrl, isVid, 'Dropped Web Map');
+                    if (!isVid) {
+                        window.aiMapGenerator.addToHistory({
+                            id: `drop_${Date.now()}`,
+                            prompt: 'Dropped Web Map',
+                            provider: 'Web',
+                            url: cleanUrl
+                        });
+                    }
+                }
+            });
+        }
+
+        // Global Clipboard Paste (Ctrl+V) for pasting copied maps from Google Gemini / Google Images popout
+        window.addEventListener('paste', (e) => {
+            if (!e.clipboardData || !e.clipboardData.items) return;
+            for (const item of e.clipboardData.items) {
+                if (item.type && item.type.startsWith('image/')) {
+                    const blob = item.getAsFile();
+                    if (blob) {
+                        e.preventDefault();
+                        this.handleFileUpload(blob, 'Pasted Clipboard Map');
+                        return;
+                    }
+                }
+            }
+        });
+
+        // URL Map Loader
+        const urlInput = document.getElementById('map-url-input');
+        const btnLoadUrl = document.getElementById('btn-load-map-url');
+        if (btnLoadUrl && urlInput) {
+            btnLoadUrl.addEventListener('click', () => {
+                const url = urlInput.value.trim();
+                if (url) {
+                    const isVid = url.endsWith('.mp4') || url.endsWith('.webm');
+                    this.setMap(url, isVid, 'URL Map');
+                    urlInput.value = '';
+                }
+            });
+        }
+
+        // Keystone Panel controls
+        const btnCalibrate = document.getElementById('btn-toggle-calibrate');
+        if (btnCalibrate) {
+            btnCalibrate.addEventListener('click', () => {
+                window.keystoneEngine.toggleCalibrating();
+                btnCalibrate.classList.toggle('active', window.keystoneEngine.isCalibrating);
+            });
+        }
+
+        const btnResetKeystone = document.getElementById('btn-reset-keystone');
+        if (btnResetKeystone) {
+            btnResetKeystone.addEventListener('click', () => {
+                if (confirm('Reset keystone corner pins to touch-safe inset rectangle?')) {
+                    window.keystoneEngine.reset(6.0);
+                    const slider = document.getElementById('keystone-inset-slider');
+                    if (slider) slider.value = 6.0;
+                    const val = document.getElementById('keystone-inset-val');
+                    if (val) val.textContent = '6.0%';
+                    document.querySelectorAll('.keystone-inset-chip').forEach(c => {
+                        c.classList.toggle('active', c.getAttribute('data-inset') === '6');
+                    });
+                }
+            });
+        }
+
+        const patternSelect = document.getElementById('keystone-test-pattern');
+        if (patternSelect) {
+            patternSelect.addEventListener('change', (e) => {
+                window.keystoneEngine.setTestPattern(e.target.value);
+            });
+        }
+
+        // Corner Inset Slider & Preset Chips
+        const insetSlider = document.getElementById('keystone-inset-slider');
+        const insetVal = document.getElementById('keystone-inset-val');
+        if (insetSlider) {
+            insetSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (insetVal) insetVal.textContent = `${val.toFixed(1)}%`;
+                window.keystoneEngine.setInset(val);
+                document.querySelectorAll('.keystone-inset-chip').forEach(c => {
+                    c.classList.toggle('active', Math.abs(parseFloat(c.getAttribute('data-inset')) - val) < 0.2);
+                });
+            });
+        }
+
+        document.querySelectorAll('.keystone-inset-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.keystone-inset-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                const val = parseFloat(chip.getAttribute('data-inset'));
+                if (insetSlider) insetSlider.value = val;
+                if (insetVal) insetVal.textContent = `${val.toFixed(1)}%`;
+                window.keystoneEngine.setInset(val);
+            });
+        });
+
+        // Touch Screen Corner Selector Chips
+        document.querySelectorAll('.keystone-corner-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const corner = btn.getAttribute('data-corner');
+                window.keystoneEngine.setActiveCorner(corner);
+            });
+        });
+
+        // Touch Screen Step Selector Chips
+        let currentKeystoneNudgeStep = 0.2;
+        document.querySelectorAll('.keystone-step-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.keystone-step-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                currentKeystoneNudgeStep = parseFloat(chip.getAttribute('data-step'));
+            });
+        });
+
+        // Touch Screen D-Pad Nudge Buttons
+        document.querySelectorAll('.btn-nudge-keystone').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const nx = parseFloat(btn.getAttribute('data-nudge-x')) * currentKeystoneNudgeStep;
+                const ny = parseFloat(btn.getAttribute('data-nudge-y')) * currentKeystoneNudgeStep;
+                const active = window.keystoneEngine.activeCorner || 'tl';
+                window.keystoneEngine.nudge(active, nx, ny);
+            });
+        });
+
+        // Grid Controls
+        this.bindGridControls();
+
+        // Living Elements Controls
+        this.bindLivingElementsControls();
+
+        // Dynamic Scenes (Map State Morphing, 3D Parallax & Infinite Vehicle Chase) Controls
+        this.bindDynamicScenesControls();
+
+        // Intuitive Before/After Phased Map Shift Controls in Map Panel
+        this.bindQuickMapShiftControls();
+
+        // AI Generator Controls
+        this.bindAIGeneratorControls();
+
+        // Projector Filter Controls
+        this.bindProjectorControls();
+
+        // Pan & Zoom Listeners on viewport
+        this.bindPanZoomListeners();
+
+        // Global Keyboard Shortcuts
+        this.bindKeyboardShortcuts();
+    }
+
+    handleFileUpload(file, customLabel) {
+        const isVideo = (file.type && file.type.startsWith('video/')) || (file.name && (file.name.endsWith('.mp4') || file.name.endsWith('.webm')));
+        const label = customLabel || file.name || 'Imported Map';
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            this.setMap(dataUrl, isVideo, label);
+            if (!isVideo && window.aiMapGenerator) {
+                window.aiMapGenerator.addToHistory({
+                    id: `import_${Date.now()}`,
+                    prompt: label,
+                    provider: 'Imported',
+                    url: dataUrl
+                });
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async saveMapToDisk(srcUrl, mapName = 'battlemap') {
+        const targetUrl = srcUrl || (this.currentMap && this.currentMap.src);
+        if (!targetUrl) {
+            alert('No map is currently loaded to save.');
+            return;
+        }
+
+        const safeName = (mapName || this.currentMap.name || 'battlemap')
+            .toLowerCase()
+            .replace(/[^a-z0-9-_]+/g, '-')
+            .replace(/^-+|-+$/g, '') || 'battlemap';
+
+        try {
+            if (targetUrl.startsWith('data:')) {
+                const a = document.createElement('a');
+                a.href = targetUrl;
+                a.download = `${safeName}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                return;
+            }
+
+            // Try fetching blob for clean direct file download
+            const resp = await fetch(targetUrl, { mode: 'cors' });
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const ext = blob.type.includes('png') ? 'png' : (blob.type.includes('webp') ? 'webp' : 'jpg');
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `${safeName}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        } catch (err) {
+            // Fallback if external host blocks CORS blob fetch: open image in new tab to right-click Save
+            window.open(targetUrl, '_blank', 'noopener');
+        }
+    }
+
+    bindGridControls() {
+        // Grid Type chips
+        document.querySelectorAll('.grid-type-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.grid-type-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                const type = chip.getAttribute('data-type');
+                window.gridEngine.setConfig({ type: type });
+            });
+        });
+
+        // Grid Size Slider (1 inch calibrator)
+        const sizeSlider = document.getElementById('grid-size-slider');
+        const sizeDisplay = document.getElementById('grid-size-display');
+        if (sizeSlider) {
+            sizeSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                if (sizeDisplay) sizeDisplay.textContent = `${val}px`;
+                window.gridEngine.setConfig({ size: val });
+            });
+        }
+
+        // Grid Opacity Slider
+        const opacitySlider = document.getElementById('grid-opacity-slider');
+        const opacityDisplay = document.getElementById('grid-opacity-display');
+        if (opacitySlider) {
+            opacitySlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (opacityDisplay) opacityDisplay.textContent = `${Math.round(val * 100)}%`;
+                window.gridEngine.setConfig({ opacity: val });
+            });
+        }
+
+        // Grid Thickness Slider
+        const widthSlider = document.getElementById('grid-width-slider');
+        if (widthSlider) {
+            widthSlider.addEventListener('input', (e) => {
+                window.gridEngine.setConfig({ lineWidth: parseFloat(e.target.value) });
+            });
+        }
+
+        // Color Swatches
+        document.querySelectorAll('.grid-color-swatch').forEach(swatch => {
+            swatch.addEventListener('click', () => {
+                document.querySelectorAll('.grid-color-swatch').forEach(s => s.classList.remove('active'));
+                swatch.classList.add('active');
+                const color = swatch.getAttribute('data-color');
+                window.gridEngine.setConfig({ color: color, glowColor: color });
+            });
+        });
+
+        // Grid Line Style
+        const styleSelect = document.getElementById('grid-style-select');
+        if (styleSelect) {
+            styleSelect.addEventListener('change', (e) => {
+                window.gridEngine.setConfig({ style: e.target.value });
+            });
+        }
+
+        // Grid Coordinates Toggle
+        const coordToggle = document.getElementById('grid-coords-toggle');
+        if (coordToggle) {
+            coordToggle.addEventListener('change', (e) => {
+                window.gridEngine.setConfig({ showCoordinates: e.target.checked });
+            });
+        }
+
+        // Physical Mini Calibrator Overlay Toggle
+        const calibToggle = document.getElementById('grid-calibrator-toggle');
+        if (calibToggle) {
+            calibToggle.addEventListener('change', (e) => {
+                window.gridEngine.setConfig({ showCalibrator: e.target.checked });
+            });
+        }
+
+        // Grid Offset Nudge Buttons
+        document.querySelectorAll('.grid-nudge-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const dx = parseInt(btn.getAttribute('data-dx') || 0, 10);
+                const dy = parseInt(btn.getAttribute('data-dy') || 0, 10);
+                const cur = window.gridEngine.getState();
+                window.gridEngine.setConfig({
+                    offsetX: cur.offsetX + dx,
+                    offsetY: cur.offsetY + dy
+                });
+            });
+        });
+    }
+
+    bindLivingElementsControls() {
+        // Drop new living element buttons
+        document.querySelectorAll('.btn-add-element').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.getAttribute('data-element-type');
+                // Place near center of current view
+                const cx = window.innerWidth / 2;
+                const cy = window.innerHeight / 2;
+                window.livingElementsEngine.addElement(type, cx - 70, cy - 70);
+            });
+        });
+
+        // Open Element Attributes Popup Button
+        const openInspBtn = document.getElementById('btn-open-element-inspector');
+        if (openInspBtn) {
+            openInspBtn.addEventListener('click', () => {
+                const eng = window.livingElementsEngine;
+                if (!eng) return;
+                let targetId = eng.selectedElementId;
+                if (!targetId && eng.elements && eng.elements.length > 0) {
+                    targetId = eng.elements[eng.elements.length - 1].id;
+                }
+                if (targetId) {
+                    eng.selectElement(targetId);
+                } else {
+                    alert('Drop any animated feature onto the map first, or click an existing feature on the map to adjust its attributes!');
+                }
+            });
+        }
+
+        // Lock Elements Toggle
+        const lockBtn = document.getElementById('btn-lock-elements');
+        if (lockBtn) {
+            lockBtn.addEventListener('click', () => {
+                const cur = window.livingElementsEngine.isLocked;
+                window.livingElementsEngine.setLocked(!cur);
+                lockBtn.classList.toggle('active', !cur);
+                lockBtn.innerHTML = !cur ? '🔒 Locked (Touch-Safe)' : '🔓 Unlock Overlays';
+            });
+        }
+
+        // Clear All Elements
+        const clearBtn = document.getElementById('btn-clear-elements');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (confirm('Clear all dropped animated overlays from the map?')) {
+                    window.livingElementsEngine.clearAll();
+                }
+            });
+        }
+
+        // 16-Level Undo / Redo Buttons & Live Badge Counters
+        const undoBtns = document.querySelectorAll('.btn-undo-action');
+        const redoBtns = document.querySelectorAll('.btn-redo-action');
+        const updateUndoRedoUI = (status) => {
+            const st = status || (window.livingElementsEngine && window.livingElementsEngine.getHistoryStatus
+                ? window.livingElementsEngine.getHistoryStatus()
+                : { undoCount: 0, redoCount: 0, maxUndo: 16, canUndo: false, canRedo: false });
+            undoBtns.forEach(btn => {
+                btn.disabled = !st.canUndo;
+                const badge = btn.querySelector('.undo-step-badge');
+                if (badge) badge.textContent = `${st.undoCount}/${st.maxUndo}`;
+            });
+            redoBtns.forEach(btn => {
+                btn.disabled = !st.canRedo;
+                const badge = btn.querySelector('.redo-step-badge');
+                if (badge) badge.textContent = st.redoCount > 0 ? `${st.redoCount}` : '';
+            });
+        };
+
+        undoBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.livingElementsEngine && window.livingElementsEngine.undo) {
+                    window.livingElementsEngine.undo();
+                }
+            });
+        });
+
+        redoBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.livingElementsEngine && window.livingElementsEngine.redo) {
+                    window.livingElementsEngine.redo();
+                }
+            });
+        });
+
+        if (window.livingElementsEngine && window.livingElementsEngine.onHistoryChange) {
+            window.livingElementsEngine.onHistoryChange((status) => {
+                updateUndoRedoUI(status);
+                // Sync weather chips & sliders if weather was undone/redone
+                const w = window.livingElementsEngine.weather;
+                if (w) {
+                    document.querySelectorAll('.weather-chip').forEach(c => {
+                        c.classList.toggle('active', c.getAttribute('data-weather') === w.type);
+                    });
+                    const wIntSlider = document.getElementById('weather-intensity-slider');
+                    const wIntVal = document.getElementById('weather-intensity-val');
+                    if (wIntSlider && w.intensity !== undefined) {
+                        wIntSlider.value = w.intensity;
+                        if (wIntVal) wIntVal.textContent = `${Math.round(w.intensity * 100)}%`;
+                    }
+                    const wQtySlider = document.getElementById('weather-quantity-slider');
+                    const wQtyVal = document.getElementById('weather-quantity-val');
+                    if (wQtySlider && w.quantity !== undefined) {
+                        wQtySlider.value = w.quantity;
+                        if (wQtyVal) wQtyVal.textContent = `${Math.round(w.quantity * 100)}%`;
+                    }
+                }
+            });
+            updateUndoRedoUI();
+        }
+
+        // Atmospheric Weather Chips
+        document.querySelectorAll('.weather-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.weather-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                const weatherType = chip.getAttribute('data-weather');
+                window.livingElementsEngine.setWeather(weatherType);
+            });
+        });
+
+        // Weather Intensity & Quantity Sliders
+        const weatherSlider = document.getElementById('weather-intensity-slider');
+        const weatherIntensityVal = document.getElementById('weather-intensity-val');
+        if (weatherSlider) {
+            weatherSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (weatherIntensityVal) weatherIntensityVal.textContent = `${Math.round(val * 100)}%`;
+                const cur = window.livingElementsEngine.weather;
+                window.livingElementsEngine.setWeather(cur.type, val, cur.windAngle, cur.quantity);
+            });
+        }
+
+        const weatherQtySlider = document.getElementById('weather-quantity-slider');
+        const weatherQtyVal = document.getElementById('weather-quantity-val');
+        if (weatherQtySlider) {
+            weatherQtySlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (weatherQtyVal) weatherQtyVal.textContent = `${Math.round(val * 100)}%`;
+                window.livingElementsEngine.setWeatherQuantity(val);
+            });
+        }
+
+        // Ambient Audio Toggle & Volume
+        const audioBtn = document.getElementById('btn-toggle-audio');
+        if (audioBtn) {
+            audioBtn.addEventListener('click', () => {
+                const active = window.livingElementsEngine.toggleAudio();
+                audioBtn.classList.toggle('active', active);
+                audioBtn.innerHTML = active ? '🔊 Ambient Audio: ON' : '🔈 Ambient Audio: OFF';
+            });
+        }
+
+        const volSlider = document.getElementById('audio-volume-slider');
+        if (volSlider) {
+            volSlider.addEventListener('input', (e) => {
+                window.livingElementsEngine.setMasterVolume(parseFloat(e.target.value));
+            });
+        }
+
+        const soundscapeSelect = document.getElementById('soundscape-mode-select');
+        if (soundscapeSelect) {
+            soundscapeSelect.value = window.livingElementsEngine.soundscapeMode || 'auto';
+            soundscapeSelect.addEventListener('change', (e) => {
+                window.livingElementsEngine.setSoundscapeMode(e.target.value);
+            });
+        }
+
+        // 160 Living FX Controls: 5 Broad Setting Tabs (Universal + 4 Genres), Category Filters, Fast Search
+        const genreTabs = document.querySelectorAll('.fx-genre-tab');
+        const catFilters = document.querySelectorAll('.fx-cat-filter');
+        const searchInput = document.getElementById('fx-search-input');
+        const genreContainers = document.querySelectorAll('.fx-genre-container');
+        const groupCards = document.querySelectorAll('.fx-group-card');
+
+        const catLabelNames = {
+            all: 'All Categories',
+            weather: '☁️ Weather',
+            hazards: '⚠️ Hazards',
+            lights: '💡 Lights',
+            actors: '🐾 Passive',
+            environment: '🌿 Environment'
+        };
+
+        const applyFXFilters = () => {
+            const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+            const activeGenreTab = document.querySelector('.fx-genre-tab.active');
+            const activeCatFilter = document.querySelector('.fx-cat-filter.active');
+            const selectedGenre = activeGenreTab ? activeGenreTab.getAttribute('data-genre') : 'universal';
+            const selectedCat = activeCatFilter ? activeCatFilter.getAttribute('data-cat') : 'all';
+
+            // Update category filter chip counts dynamically (60/12 for Universal, 25/5 for Genre tabs)
+            const totalForGenre = activeGenreTab ? (activeGenreTab.getAttribute('data-total') || '60') : '60';
+            const perCatForGenre = activeGenreTab ? (activeGenreTab.getAttribute('data-per-cat') || '12') : '12';
+            catFilters.forEach(chip => {
+                const c = chip.getAttribute('data-cat') || 'all';
+                const baseLabel = catLabelNames[c] || c;
+                const count = c === 'all' ? totalForGenre : perCatForGenre;
+                chip.textContent = `${baseLabel} (${count})`;
+            });
+
+            if (query.length > 0) {
+                // In search mode, search across all 160 buttons in all 5 broad categories and auto-expand matching cards
+                genreContainers.forEach(container => { container.style.display = 'block'; });
+                groupCards.forEach(card => {
+                    let hasMatchingBtn = false;
+                    const btns = card.querySelectorAll('.btn-add-element');
+                    btns.forEach(btn => {
+                        const txt = (btn.textContent || '').toLowerCase();
+                        const title = (btn.getAttribute('title') || '').toLowerCase();
+                        const type = (btn.getAttribute('data-element-type') || '').toLowerCase();
+                        if (txt.includes(query) || title.includes(query) || type.includes(query)) {
+                            btn.style.display = 'inline-flex';
+                            hasMatchingBtn = true;
+                        } else {
+                            btn.style.display = 'none';
+                        }
+                    });
+                    card.style.display = hasMatchingBtn ? 'flex' : 'none';
+                    card.classList.toggle('force-expanded', hasMatchingBtn);
+                });
+            } else {
+                // Switch active broad setting container
+                const targetId = 'fx-genre-' + selectedGenre;
+                genreContainers.forEach(container => {
+                    const id = container.id || '';
+                    if (id === targetId) {
+                        container.style.display = 'block';
+                        container.classList.add('active');
+                    } else {
+                        container.style.display = 'none';
+                        container.classList.remove('active');
+                    }
+                });
+
+                // Filter category cards inside the active container
+                groupCards.forEach(card => {
+                    const cardCat = card.getAttribute('data-category');
+                    if (selectedCat === 'all' || cardCat === selectedCat) {
+                        card.style.display = 'flex';
+                        // If a specific single category chip is chosen, auto-expand that category card
+                        card.classList.toggle('force-expanded', selectedCat !== 'all' && cardCat === selectedCat);
+                    } else {
+                        card.style.display = 'none';
+                        card.classList.remove('force-expanded');
+                    }
+                    card.querySelectorAll('.btn-add-element').forEach(btn => {
+                        btn.style.display = 'inline-flex';
+                    });
+                });
+            }
+        };
+
+        // Collapsible Category Card Headers (click any category title to expand/collapse)
+        groupCards.forEach(card => {
+            const headerLabel = card.querySelector(':scope > .setting-label');
+            if (headerLabel) {
+                headerLabel.title = 'Click to expand or collapse this category';
+                headerLabel.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (card.classList.contains('force-expanded')) {
+                        card.classList.remove('force-expanded');
+                        card.classList.add('collapsed');
+                    } else {
+                        card.classList.toggle('collapsed');
+                    }
+                });
+            }
+        });
+
+        // Collapsible Whole-Map Atmospheric Weather section
+        document.querySelectorAll('.fx-collapsible-extra').forEach(extraCard => {
+            const headerLabel = extraCard.querySelector(':scope > .setting-label');
+            if (headerLabel) {
+                headerLabel.title = 'Click to expand or collapse whole-map weather controls';
+                headerLabel.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    extraCard.classList.toggle('collapsed');
+                });
+            }
+        });
+
+        // Expand All / Collapse All buttons
+        const expandAllBtn = document.getElementById('btn-fx-expand-all');
+        if (expandAllBtn) {
+            expandAllBtn.addEventListener('click', () => {
+                groupCards.forEach(card => {
+                    card.classList.remove('collapsed');
+                });
+            });
+        }
+        const collapseAllBtn = document.getElementById('btn-fx-collapse-all');
+        if (collapseAllBtn) {
+            collapseAllBtn.addEventListener('click', () => {
+                groupCards.forEach(card => {
+                    card.classList.remove('force-expanded');
+                    card.classList.add('collapsed');
+                });
+            });
+        }
+
+        genreTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                genreTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                if (searchInput) searchInput.value = '';
+                applyFXFilters();
+            });
+        });
+
+        catFilters.forEach(filter => {
+            filter.addEventListener('click', () => {
+                catFilters.forEach(f => f.classList.remove('active'));
+                filter.classList.add('active');
+                if (searchInput) searchInput.value = '';
+                applyFXFilters();
+            });
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                applyFXFilters();
+            });
+        }
+
+        // Initialize FX panel view
+        applyFXFilters();
+
+        // Element Inspector Bindings
+        this.bindInspectorControls();
+    }
+
+    // Intuitive Before/After Phased Battlemap Shift (Mid-Combat Morphing)
+    bindQuickMapShiftControls() {
+        if (!window.dynamicSceneEngine) return;
+        const dse = window.dynamicSceneEngine;
+
+        const quickChips = document.querySelectorAll('.quick-morph-chip');
+        const slider = document.getElementById('quick-morph-slider');
+        const sliderVal = document.getElementById('quick-morph-slider-val');
+        const badge = document.getElementById('quick-morph-badge');
+        const btnInstantFlip = document.getElementById('btn-quick-instant-flip');
+        const btnCinematicShift = document.getElementById('btn-quick-cinematic-morph');
+        const btnSetPhaseA = document.getElementById('btn-quick-set-phase-a');
+        const btnUploadB = document.getElementById('btn-quick-upload-phase-b');
+        const fileInputB = document.getElementById('quick-phase-b-file-input');
+
+        const updateDisplay = (progress) => {
+            const p = Math.round(progress);
+            if (slider) slider.value = p;
+            if (sliderVal) sliderVal.textContent = `${p}%`;
+            if (badge) {
+                if (p === 0) badge.textContent = '0% Phase A';
+                else if (p === 100) badge.textContent = '100% Phase B';
+                else badge.textContent = `${p}% Morphing`;
+            }
+            // Sync with Dynamic Scenes panel slider if open
+            const dsSlider = document.getElementById('morph-progress-slider');
+            const dsVal = document.getElementById('morph-progress-val');
+            if (dsSlider) dsSlider.value = p;
+            if (dsVal) dsVal.textContent = `${p}%`;
+        };
+
+        // Quick Scenario Presets
+        quickChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                quickChips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                const scenario = chip.getAttribute('data-scenario');
+                dse.loadMorphScenario(scenario, true);
+                updateDisplay(0);
+            });
+        });
+
+        // Smooth Slider
+        if (slider) {
+            slider.addEventListener('input', (e) => {
+                dse.morphState.isAnimating = false;
+                if (!dse.morphState.stateBDataUrl && dse.morphState.activeScenario !== 'custom') {
+                    dse.loadMorphScenario(dse.morphState.activeScenario || 'tavern_fire', false);
+                }
+                const val = parseFloat(e.target.value);
+                dse.setMorphProgress(val);
+                updateDisplay(val);
+            });
+        }
+
+        // Instant Flip A/B
+        if (btnInstantFlip) {
+            btnInstantFlip.addEventListener('click', () => {
+                dse.morphState.isAnimating = false;
+                if (!dse.morphState.stateBDataUrl && dse.morphState.activeScenario !== 'custom') {
+                    dse.loadMorphScenario(dse.morphState.activeScenario || 'tavern_fire', false);
+                }
+                const cur = dse.morphState.progress;
+                const target = cur < 50 ? 100 : 0;
+                dse.setMorphProgress(target);
+                updateDisplay(target);
+            });
+        }
+
+        // 3s Cinematic Shift
+        if (btnCinematicShift) {
+            btnCinematicShift.addEventListener('click', () => {
+                if (!dse.morphState.stateBDataUrl && dse.morphState.activeScenario !== 'custom') {
+                    dse.loadMorphScenario(dse.morphState.activeScenario || 'tavern_fire', false);
+                }
+                const cur = dse.morphState.progress;
+                const target = cur < 50 ? 100 : 0;
+                dse.animateMorphTo(target, 28); // Smooth 3-second transition
+
+                // Sync UI during animation
+                const pollInterval = setInterval(() => {
+                    if (!dse.morphState.isAnimating) {
+                        clearInterval(pollInterval);
+                        updateDisplay(dse.morphState.progress);
+                    } else {
+                        updateDisplay(dse.morphState.progress);
+                    }
+                }, 50);
+            });
+        }
+
+        // Use Current Map as Phase A
+        if (btnSetPhaseA) {
+            btnSetPhaseA.addEventListener('click', () => {
+                if (this.currentMap && this.currentMap.src) {
+                    dse.morphState.stateADataUrl = this.currentMap.src;
+                    const mapImg = document.getElementById('map-image');
+                    if (mapImg) mapImg.src = this.currentMap.src;
+                    btnSetPhaseA.textContent = '✓ Phase A Set';
+                    setTimeout(() => { btnSetPhaseA.textContent = 'Use Current Map'; }, 1500);
+                }
+            });
+        }
+
+        // Upload Custom Phase B Map
+        if (btnUploadB && fileInputB) {
+            btnUploadB.addEventListener('click', () => fileInputB.click());
+            fileInputB.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        dse.setCustomMorphImage(ev.target.result);
+                        dse.setMorphProgress(50);
+                        updateDisplay(50);
+                        btnUploadB.textContent = '✓ Custom B Loaded';
+                        setTimeout(() => { btnUploadB.textContent = 'Upload Custom B'; }, 2000);
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+        }
+    }
+
+    bindDynamicScenesControls() {
+        if (!window.dynamicSceneEngine) return;
+        const dse = window.dynamicSceneEngine;
+
+        // 1. Real-Time Map State Morphing
+        const scenarioSelect = document.getElementById('morph-scenario-select');
+        const btnLoadScenario = document.getElementById('btn-load-morph-scenario');
+        const morphSlider = document.getElementById('morph-progress-slider');
+        const blendSelect = document.getElementById('morph-blend-style');
+        const btnAnim100 = document.getElementById('btn-morph-animate-100');
+        const btnAnim0 = document.getElementById('btn-morph-animate-0');
+        const btnUploadB = document.getElementById('btn-upload-morph-b');
+        const fileInputB = document.getElementById('morph-b-file-input');
+
+        if (btnLoadScenario && scenarioSelect) {
+            btnLoadScenario.addEventListener('click', () => {
+                dse.loadMorphScenario(scenarioSelect.value, true);
+            });
+        }
+        if (scenarioSelect) {
+            scenarioSelect.addEventListener('change', (e) => {
+                if (e.target.value !== 'custom') {
+                    dse.loadMorphScenario(e.target.value, true);
+                }
+            });
+        }
+        if (morphSlider) {
+            morphSlider.addEventListener('input', (e) => {
+                dse.morphState.isAnimating = false;
+                if (!dse.morphState.stateBDataUrl && dse.morphState.activeScenario !== 'custom') {
+                    dse.loadMorphScenario(dse.morphState.activeScenario, false);
+                }
+                dse.setMorphProgress(parseFloat(e.target.value));
+            });
+        }
+        if (blendSelect) {
+            blendSelect.addEventListener('change', (e) => {
+                dse.setMorphBlendStyle(e.target.value);
+            });
+        }
+        if (btnAnim100) {
+            btnAnim100.addEventListener('click', () => {
+                if (!dse.morphState.stateBDataUrl && dse.morphState.activeScenario !== 'custom') {
+                    dse.loadMorphScenario(dse.morphState.activeScenario, false);
+                }
+                dse.animateMorphTo(100, 22);
+            });
+        }
+        if (btnAnim0) {
+            btnAnim0.addEventListener('click', () => {
+                dse.animateMorphTo(0, 25);
+            });
+        }
+        if (btnUploadB && fileInputB) {
+            btnUploadB.addEventListener('click', () => fileInputB.click());
+            fileInputB.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        if (scenarioSelect) scenarioSelect.value = 'custom';
+                        dse.setCustomMorphImage(ev.target.result);
+                        dse.setMorphProgress(50);
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+        }
+
+        // 2. Multi-Layer 3D Parallax Vertical Height
+        const parallaxModeSelect = document.getElementById('parallax-mode-select');
+        const parallaxDepthSlider = document.getElementById('parallax-depth-slider');
+        const parallaxDepthVal = document.getElementById('parallax-depth-val');
+        const parallaxAutoSway = document.getElementById('parallax-autosway-toggle');
+
+        if (parallaxModeSelect) {
+            parallaxModeSelect.addEventListener('change', (e) => {
+                dse.setParallaxMode(e.target.value);
+            });
+        }
+        if (parallaxDepthSlider) {
+            parallaxDepthSlider.addEventListener('input', (e) => {
+                const v = parseFloat(e.target.value);
+                if (parallaxDepthVal) parallaxDepthVal.textContent = `${v.toFixed(1)}x`;
+                dse.setParallaxDepth(v);
+            });
+        }
+        if (parallaxAutoSway) {
+            parallaxAutoSway.addEventListener('change', (e) => {
+                dse.setParallaxAutoSway(e.target.checked);
+            });
+        }
+
+        // 3. Infinite Scrolling Vehicle Chase Mode
+        const btnToggleChase = document.getElementById('btn-toggle-chase');
+        const chaseVehicleSelect = document.getElementById('chase-vehicle-select');
+        const chaseTerrainSelect = document.getElementById('chase-terrain-select');
+        const chaseSpeedSlider = document.getElementById('chase-speed-slider');
+        const chaseSpeedVal = document.getElementById('chase-speed-val');
+
+        if (btnToggleChase) {
+            btnToggleChase.addEventListener('click', () => {
+                const next = !dse.chaseState.enabled;
+                dse.setChaseEnabled(next);
+                btnToggleChase.classList.toggle('active', next);
+                btnToggleChase.innerHTML = next ? '⏹ Chase Active: ON' : '▶ Start Chase: OFF';
+            });
+        }
+        if (chaseVehicleSelect) {
+            chaseVehicleSelect.addEventListener('change', (e) => {
+                const v = e.target.value;
+                dse.setChaseConfig({ vehicle: v });
+                // Auto-pair terrain if appropriate
+                if (v === 'steam_train' && chaseTerrainSelect) {
+                    chaseTerrainSelect.value = 'railroad_desert';
+                    dse.setChaseConfig({ terrain: 'railroad_desert' });
+                } else if (v === 'riverboat' && chaseTerrainSelect) {
+                    chaseTerrainSelect.value = 'river_rapids';
+                    dse.setChaseConfig({ terrain: 'river_rapids' });
+                } else if (v === 'skyship' && chaseTerrainSelect) {
+                    chaseTerrainSelect.value = 'sky_clouds';
+                    dse.setChaseConfig({ terrain: 'sky_clouds' });
+                } else if (v === 'war_wagon' && chaseTerrainSelect) {
+                    chaseTerrainSelect.value = 'forest_road';
+                    dse.setChaseConfig({ terrain: 'forest_road' });
+                }
+            });
+        }
+        if (chaseTerrainSelect) {
+            chaseTerrainSelect.addEventListener('change', (e) => {
+                dse.setChaseConfig({ terrain: e.target.value });
+            });
+        }
+        if (chaseSpeedSlider) {
+            chaseSpeedSlider.addEventListener('input', (e) => {
+                const spd = parseInt(e.target.value, 10);
+                if (chaseSpeedVal) chaseSpeedVal.textContent = `${spd} mph`;
+                dse.setChaseConfig({ speed: spd });
+            });
+        }
+        document.querySelectorAll('.chase-dir-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.chase-dir-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                dse.setChaseConfig({ direction: chip.getAttribute('data-dir') });
+            });
+        });
+    }
+
+    bindInspectorControls() {
+        const inspector = document.getElementById('element-inspector-panel');
+        if (!inspector) return;
+
+        // 0. Active Map Element Switcher (Prev / Dropdown / Next)
+        const activeSelect = inspector.querySelector('#inspector-active-el-select');
+        const btnPrevEl = inspector.querySelector('#btn-inspector-prev-el');
+        const btnNextEl = inspector.querySelector('#btn-inspector-next-el');
+
+        if (activeSelect) {
+            activeSelect.addEventListener('change', (e) => {
+                const targetId = e.target.value;
+                if (targetId && window.livingElementsEngine) {
+                    window.livingElementsEngine.selectElement(targetId);
+                }
+            });
+        }
+
+        if (btnPrevEl) {
+            btnPrevEl.addEventListener('click', () => {
+                const eng = window.livingElementsEngine;
+                if (!eng || !eng.elements || eng.elements.length === 0) return;
+                const curIdx = eng.elements.findIndex(x => x.id === eng.selectedElementId);
+                const prevIdx = (curIdx - 1 + eng.elements.length) % eng.elements.length;
+                eng.selectElement(eng.elements[prevIdx].id);
+            });
+        }
+
+        if (btnNextEl) {
+            btnNextEl.addEventListener('click', () => {
+                const eng = window.livingElementsEngine;
+                if (!eng || !eng.elements || eng.elements.length === 0) return;
+                const curIdx = eng.elements.findIndex(x => x.id === eng.selectedElementId);
+                const nextIdx = (curIdx + 1) % eng.elements.length;
+                eng.selectElement(eng.elements[nextIdx].id);
+            });
+        }
+
+        // 1. Visual Style / Variant selector
+        const variantSelect = inspector.querySelector('#inspector-variant-select');
+        if (variantSelect) {
+            variantSelect.addEventListener('change', (e) => {
+                const id = window.livingElementsEngine.selectedElementId;
+                const val = e.target.value;
+                if (id) {
+                    window.livingElementsEngine.updateElementConfig(id, {
+                        variant: val,
+                        waterStyle: val
+                    });
+                }
+            });
+        }
+
+        // 1B. Instant Cover Entire Map, Layer Order & Flip X/Y
+        const btnFitMap = inspector.querySelector('#btn-fit-element-map');
+        if (btnFitMap) {
+            btnFitMap.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) {
+                    window.livingElementsEngine.fitElementToCanvas(id);
+                    const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                    if (el) this.updateElementInspector(el);
+                }
+            });
+        }
+
+        const btnBringFront = inspector.querySelector('#btn-el-bring-front');
+        if (btnBringFront) {
+            btnBringFront.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.bringElementToFront(id);
+            });
+        }
+
+        const btnSendBack = inspector.querySelector('#btn-el-send-back');
+        if (btnSendBack) {
+            btnSendBack.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.sendElementToBack(id);
+            });
+        }
+
+        const btnFlipX = inspector.querySelector('#btn-el-flip-x');
+        if (btnFlipX) {
+            btnFlipX.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                if (el && el.config) {
+                    const next = !el.config.flipX;
+                    window.livingElementsEngine.updateElementConfig(id, { flipX: next });
+                    btnFlipX.classList.toggle('active', next);
+                }
+            });
+        }
+
+        const btnFlipY = inspector.querySelector('#btn-el-flip-y');
+        if (btnFlipY) {
+            btnFlipY.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                if (el && el.config) {
+                    const next = !el.config.flipY;
+                    window.livingElementsEngine.updateElementConfig(id, { flipY: next });
+                    btnFlipY.classList.toggle('active', next);
+                }
+            });
+        }
+
+        // 2. Overall Size slider & Unconstrained Dimensions (up to 6000px)
+        const sizeSlider = inspector.querySelector('#inspector-size');
+        const sizeVal = inspector.querySelector('#inspector-size-val');
+        const aspectSlider = inspector.querySelector('#inspector-aspect');
+        const aspectVal = inspector.querySelector('#inspector-aspect-val');
+        const widthInput = inspector.querySelector('#inspector-width-input');
+        const heightInput = inspector.querySelector('#inspector-height-input');
+
+        const applySizeAndAspect = (baseSize, aspectRatio) => {
+            const id = window.livingElementsEngine.selectedElementId;
+            const el = window.livingElementsEngine.elements.find(x => x.id === id);
+            if (!el || window.livingElementsEngine.isRiverType(el.type)) return;
+
+            el.width = Math.max(20, Math.min(6000, Math.round(baseSize * Math.sqrt(aspectRatio))));
+            el.height = Math.max(20, Math.min(6000, Math.round(baseSize / Math.sqrt(aspectRatio))));
+
+            if (el.dom) {
+                el.dom.style.width = `${el.width}px`;
+                el.dom.style.height = `${el.height}px`;
+            }
+            if (el.canvas) {
+                el.canvas.width = el.width;
+                el.canvas.height = el.height;
+            }
+            if (sizeVal) sizeVal.textContent = `${el.width}×${el.height}px`;
+            if (aspectVal) aspectVal.textContent = `${aspectRatio.toFixed(2)}x`;
+            if (widthInput) widthInput.value = el.width;
+            if (heightInput) heightInput.value = el.height;
+            window.livingElementsEngine.notify();
+        };
+
+        if (sizeSlider) {
+            sizeSlider.addEventListener('input', (e) => {
+                const base = parseInt(e.target.value, 10) || 180;
+                const aspect = aspectSlider ? parseFloat(aspectSlider.value) || 1.0 : 1.0;
+                applySizeAndAspect(base, aspect);
+            });
+        }
+
+        if (aspectSlider) {
+            aspectSlider.addEventListener('input', (e) => {
+                const aspect = parseFloat(e.target.value) || 1.0;
+                const base = sizeSlider ? parseInt(sizeSlider.value, 10) || 180 : 180;
+                applySizeAndAspect(base, aspect);
+            });
+        }
+
+        if (widthInput) {
+            widthInput.addEventListener('input', (e) => {
+                const id = window.livingElementsEngine.selectedElementId;
+                const val = parseFloat(e.target.value);
+                if (id && !isNaN(val)) {
+                    window.livingElementsEngine.setElementDimensions(id, val, undefined);
+                    const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                    if (el && sizeVal) sizeVal.textContent = `${el.width}×${el.height}px`;
+                }
+            });
+        }
+
+        if (heightInput) {
+            heightInput.addEventListener('input', (e) => {
+                const id = window.livingElementsEngine.selectedElementId;
+                const val = parseFloat(e.target.value);
+                if (id && !isNaN(val)) {
+                    window.livingElementsEngine.setElementDimensions(id, undefined, val);
+                    const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                    if (el && sizeVal) sizeVal.textContent = `${el.width}×${el.height}px`;
+                }
+            });
+        }
+
+        const btnResetAspect = inspector.querySelector('#btn-reset-aspect');
+        if (btnResetAspect) {
+            btnResetAspect.addEventListener('click', () => {
+                if (aspectSlider) aspectSlider.value = 1.0;
+                const base = sizeSlider ? parseInt(sizeSlider.value, 10) || 180 : 180;
+                applySizeAndAspect(base, 1.0);
+            });
+        }
+
+        // 2B. Entity Quantity / Density Slider & Active Tumbleweed Count
+        const qtySlider = inspector.querySelector('#inspector-quantity');
+        const qtyVal = inspector.querySelector('#inspector-quantity-val');
+        if (qtySlider) {
+            qtySlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (qtyVal) qtyVal.textContent = `${Math.round(val * 100)}%`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { quantity: val });
+            });
+        }
+
+        const twCountSlider = inspector.querySelector('#inspector-tumbleweed-count');
+        const twCountVal = inspector.querySelector('#inspector-tumbleweed-count-val');
+        if (twCountSlider) {
+            twCountSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                if (twCountVal) twCountVal.textContent = `${val}`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { count: val });
+            });
+        }
+
+        // 3. 3D Perspective Tilt X / Tilt Y & Rotation Angle (for all elements)
+        const tiltXSlider = inspector.querySelector('#inspector-tilt-x');
+        const tiltXVal = inspector.querySelector('#inspector-tilt-x-val');
+        if (tiltXSlider) {
+            tiltXSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                if (tiltXVal) tiltXVal.textContent = `${val}°`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { tiltX: val });
+            });
+        }
+
+        const tiltYSlider = inspector.querySelector('#inspector-tilt-y');
+        const tiltYVal = inspector.querySelector('#inspector-tilt-y-val');
+        if (tiltYSlider) {
+            tiltYSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                if (tiltYVal) tiltYVal.textContent = `${val}°`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { tiltY: val });
+            });
+        }
+
+        const rotSlider = inspector.querySelector('#inspector-rotation');
+        const rotVal = inspector.querySelector('#inspector-rotation-val');
+        if (rotSlider) {
+            rotSlider.addEventListener('input', (e) => {
+                const id = window.livingElementsEngine.selectedElementId;
+                const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                if (el) {
+                    el.rotation = parseInt(e.target.value, 10);
+                    if (rotVal) rotVal.textContent = `${el.rotation}°`;
+                    window.livingElementsEngine.applyElementTransform(el);
+                    window.livingElementsEngine.notify();
+                }
+            });
+        }
+
+        const btnResetPerspective = inspector.querySelector('#btn-reset-perspective');
+        if (btnResetPerspective) {
+            btnResetPerspective.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                if (el) {
+                    el.rotation = 0;
+                    window.livingElementsEngine.updateElementConfig(id, { tiltX: 0, tiltY: 0 });
+                    this.updateElementInspector(el);
+                }
+            });
+        }
+
+        // 1-Click Perspective Preset buttons
+        const presetBtns = inspector.querySelectorAll('.perspective-preset-btn');
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tx = parseInt(btn.dataset.tiltX, 10);
+                const ty = parseInt(btn.dataset.tiltY, 10);
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) {
+                    window.livingElementsEngine.updateElementConfig(id, { tiltX: tx, tiltY: ty });
+                    const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                    if (el) this.updateElementInspector(el);
+                }
+            });
+        });
+
+        // 4. Animation Speed, Intensity & Opacity (for all elements)
+        const speedSlider = inspector.querySelector('#inspector-speed');
+        const speedVal = inspector.querySelector('#inspector-speed-val');
+        if (speedSlider) {
+            speedSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (speedVal) speedVal.textContent = `${val.toFixed(1)}x`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { speed: val, flowSpeed: val });
+            });
+        }
+
+        const intenSlider = inspector.querySelector('#inspector-intensity');
+        const intenVal = inspector.querySelector('#inspector-intensity-val');
+        if (intenSlider) {
+            intenSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (intenVal) intenVal.textContent = `${Math.round(val * 100)}%`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { intensity: val });
+            });
+        }
+
+        const opacSlider = inspector.querySelector('#inspector-opacity');
+        const opacVal = inspector.querySelector('#inspector-opacity-val');
+        if (opacSlider) {
+            opacSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (opacVal) opacVal.textContent = `${Math.round(val * 100)}%`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { opacity: val });
+            });
+        }
+
+        // 4B. Color Grading: Hue Shift, Saturation, Brightness & Blend Mode
+        const hueSlider = inspector.querySelector('#inspector-hue');
+        const hueVal = inspector.querySelector('#inspector-hue-val');
+        if (hueSlider) {
+            hueSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10) || 0;
+                if (hueVal) hueVal.textContent = `${val > 0 ? '+' : ''}${val}°`;
+                inspector.querySelectorAll('.inspector-hue-chip').forEach(chip => {
+                    const ch = parseInt(chip.getAttribute('data-hue') || '0', 10);
+                    chip.classList.toggle('active', Math.abs(ch - val) <= 4);
+                });
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { hue: val });
+            });
+        }
+
+        inspector.querySelectorAll('.inspector-hue-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const val = parseInt(chip.getAttribute('data-hue') || '0', 10);
+                if (hueSlider) hueSlider.value = val;
+                if (hueVal) hueVal.textContent = `${val > 0 ? '+' : ''}${val}°`;
+                inspector.querySelectorAll('.inspector-hue-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { hue: val });
+            });
+        });
+
+        const satSlider = inspector.querySelector('#inspector-saturation');
+        const satVal = inspector.querySelector('#inspector-saturation-val');
+        if (satSlider) {
+            satSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                if (satVal) satVal.textContent = `${val}%`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { saturation: val });
+            });
+        }
+
+        const briSlider = inspector.querySelector('#inspector-brightness');
+        const briVal = inspector.querySelector('#inspector-brightness-val');
+        if (briSlider) {
+            briSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                if (briVal) briVal.textContent = `${val}%`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { brightness: val });
+            });
+        }
+
+        const blendSelect = inspector.querySelector('#inspector-blend-mode');
+        if (blendSelect) {
+            blendSelect.addEventListener('change', (e) => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { blendMode: e.target.value });
+            });
+        }
+
+        const btnResetColor = inspector.querySelector('#btn-reset-el-color');
+        if (btnResetColor) {
+            btnResetColor.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) {
+                    window.livingElementsEngine.updateElementConfig(id, {
+                        hue: 0,
+                        saturation: 100,
+                        brightness: 100,
+                        blendMode: 'normal'
+                    });
+                    const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                    if (el) this.updateElementInspector(el);
+                }
+            });
+        }
+
+        // 4C. Edge Blur / Sharpen & Soft Edge Feathering
+        const edgeBSSlider = inspector.querySelector('#inspector-edge-blur-sharpen');
+        const edgeBSVal = inspector.querySelector('#inspector-edge-blur-sharpen-val');
+        if (edgeBSSlider) {
+            edgeBSSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10) || 0;
+                if (edgeBSVal) {
+                    if (val < 0) edgeBSVal.textContent = `${val} (Blur ${(Math.abs(val) * 0.15).toFixed(1)}px)`;
+                    else if (val > 0) edgeBSVal.textContent = `+${val} (Sharpen)`;
+                    else edgeBSVal.textContent = `0 (Normal)`;
+                }
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { edgeBlurSharpen: val });
+            });
+        }
+
+        const featherSlider = inspector.querySelector('#inspector-edge-feather');
+        const featherVal = inspector.querySelector('#inspector-edge-feather-val');
+        if (featherSlider) {
+            featherSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10) || 0;
+                if (featherVal) featherVal.textContent = `${val}%`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { edgeFeather: val });
+            });
+        }
+
+        const btnResetEdges = inspector.querySelector('#btn-reset-el-edges');
+        if (btnResetEdges) {
+            btnResetEdges.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) {
+                    window.livingElementsEngine.updateElementConfig(id, {
+                        edgeBlurSharpen: 0,
+                        edgeFeather: 0
+                    });
+                    const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                    if (el) this.updateElementInspector(el);
+                }
+            });
+        }
+
+        // 5. Deformable River Shape Mode & Handle Buttons
+        const riverShapeSelect = inspector.querySelector('#inspector-river-shape');
+        if (riverShapeSelect) {
+            riverShapeSelect.addEventListener('change', (e) => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.setRiverShapeMode(id, e.target.value);
+            });
+        }
+
+        const btnAddNode = inspector.querySelector('#btn-river-add-node');
+        if (btnAddNode) {
+            btnAddNode.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.addRiverNode(id);
+            });
+        }
+
+        const btnRemoveNode = inspector.querySelector('#btn-river-remove-node');
+        if (btnRemoveNode) {
+            btnRemoveNode.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.removeRiverNode(id);
+            });
+        }
+
+        const btnNarrower = inspector.querySelector('#btn-river-narrower');
+        if (btnNarrower) {
+            btnNarrower.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.scaleRiverWidth(id, 0.85);
+            });
+        }
+
+        const btnWider = inspector.querySelector('#btn-river-wider');
+        if (btnWider) {
+            btnWider.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.scaleRiverWidth(id, 1.15);
+            });
+        }
+
+        // 6. Duplicate, Reset All & Delete buttons
+        const dupBtn = inspector.querySelector('#btn-inspector-duplicate');
+        if (dupBtn) {
+            dupBtn.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.duplicateElement(id);
+            });
+        }
+
+        const resetAllBtn = inspector.querySelector('#btn-inspector-reset-all');
+        if (resetAllBtn) {
+            resetAllBtn.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) {
+                    window.livingElementsEngine.resetElementAttributes(id);
+                    const el = window.livingElementsEngine.elements.find(x => x.id === id);
+                    if (el) this.updateElementInspector(el);
+                }
+            });
+        }
+
+        const delBtn = inspector.querySelector('#btn-inspector-delete');
+        if (delBtn) {
+            delBtn.addEventListener('click', () => {
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.removeElement(id);
+            });
+        }
+    }
+
+    bindAIGeneratorControls() {
+        const locationInput = document.getElementById('ai-location-input');
+        const togglesContainer = document.getElementById('prompt-toggles-container');
+        const promptInput = document.getElementById('ai-prompt-input');
+        const btnCopyPrompt = document.getElementById('btn-copy-assembled-prompt');
+        const btnAllCore = document.getElementById('btn-toggles-all-core');
+        const btnClearToggles = document.getElementById('btn-toggles-clear');
+        const btnSearchInTool = document.getElementById('btn-search-maps-intool');
+        const btnGenerate = document.getElementById('btn-generate-ai-map');
+        const statusBox = document.getElementById('ai-gen-status');
+        const resultsSection = document.getElementById('in-tool-results-section');
+        const resultsGrid = document.getElementById('ai-search-results-grid');
+        const resultsCount = document.getElementById('in-tool-results-count');
+        const btnPasteClipboard = document.getElementById('btn-paste-clipboard-map');
+        const btnUploadFromPanel = document.getElementById('btn-upload-from-ai-panel');
+        const btnSaveCurrent = document.getElementById('btn-save-current-map');
+        const fileInput = document.getElementById('map-file-input');
+
+        const showStatus = (msg, isError = false, autoHideMs = 5000) => {
+            if (!statusBox) return;
+            statusBox.style.display = 'block';
+            statusBox.style.color = isError ? 'var(--accent-danger)' : 'var(--primary)';
+            statusBox.style.borderColor = isError ? 'rgba(255,71,87,0.4)' : 'rgba(0,255,200,0.3)';
+            statusBox.innerHTML = msg;
+            if (autoHideMs > 0) {
+                clearTimeout(this._statusTimer);
+                this._statusTimer = setTimeout(() => {
+                    statusBox.style.display = 'none';
+                }, autoHideMs);
+            }
+        };
+
+        // Syncs active toggles + location input directly into the search/prompt textarea
+        const syncPromptBox = () => {
+            if (!promptInput) return;
+            const loc = locationInput ? locationInput.value : '';
+            promptInput.value = window.aiMapGenerator.buildAssembledPrompt(loc);
+        };
+
+        // Renders the interactive toggle chips
+        const renderToggles = () => {
+            if (!togglesContainer) return;
+            togglesContainer.innerHTML = '';
+            window.aiMapGenerator.promptToggles.forEach(t => {
+                const chip = document.createElement('div');
+                chip.className = `prompt-toggle-chip ${t.active ? 'active' : ''}`;
+                chip.title = `Toggle auto-paste: "${t.text}"`;
+                chip.innerHTML = `<span class="chip-check">${t.active ? '✓' : '+'}</span><span>${t.label}</span>`;
+                chip.addEventListener('click', () => {
+                    window.aiMapGenerator.togglePromptChip(t.id);
+                    renderToggles();
+                    syncPromptBox();
+                });
+                togglesContainer.appendChild(chip);
+            });
+        };
+
+        renderToggles();
+        syncPromptBox();
+
+        // Location input live typing updates prompt box
+        if (locationInput) {
+            locationInput.addEventListener('input', () => {
+                syncPromptBox();
+            });
+        }
+
+        // Quick scene starter chips
+        document.querySelectorAll('.ai-prompt-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const sceneText = chip.getAttribute('data-prompt');
+                if (locationInput) {
+                    locationInput.value = sceneText;
+                }
+                syncPromptBox();
+            });
+        });
+
+        // Core defaults / Clear all toggles buttons
+        if (btnAllCore) {
+            btnAllCore.addEventListener('click', () => {
+                window.aiMapGenerator.setAllToggles(true, true);
+                renderToggles();
+                syncPromptBox();
+            });
+        }
+
+        if (btnClearToggles) {
+            btnClearToggles.addEventListener('click', () => {
+                window.aiMapGenerator.setAllToggles(false, false);
+                renderToggles();
+                syncPromptBox();
+            });
+        }
+
+        // Output Size Intent & Aspect Ratio chips
+        const sizeBadge = document.getElementById('ai-size-intent-badge');
+        const sizeChips = document.querySelectorAll('.ai-size-chip');
+        sizeChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                sizeChips.forEach(c => {
+                    c.classList.remove('active');
+                    c.style.borderColor = '';
+                    c.style.background = '';
+                });
+                chip.classList.add('active');
+                chip.style.borderColor = 'var(--primary)';
+                chip.style.background = 'var(--primary-dim)';
+                const sz = chip.getAttribute('data-size');
+                const ratio = chip.getAttribute('data-ratio');
+                const desc = chip.getAttribute('data-desc');
+                if (sizeBadge) sizeBadge.textContent = chip.textContent.replace('📐 ', '').replace('🖥️ ', '').replace('📽️ ', '');
+                window.aiMapGenerator.setSizeIntent(sz, ratio, desc);
+                syncPromptBox();
+            });
+        });
+
+        // Copy assembled prompt button
+        if (btnCopyPrompt && promptInput) {
+            btnCopyPrompt.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(promptInput.value);
+                    const oldText = btnCopyPrompt.innerHTML;
+                    btnCopyPrompt.innerHTML = '✅ Copied!';
+                    setTimeout(() => { btnCopyPrompt.innerHTML = oldText; }, 2000);
+                } catch (e) {
+                    promptInput.select();
+                    document.execCommand('copy');
+                }
+            });
+        }
+
+        // In-Tool 4K Map Search (Reddit r/battlemaps JSON gallery right inside the panel)
+        const renderSearchResults = (items) => {
+            if (!resultsSection || !resultsGrid) return;
+            resultsGrid.innerHTML = '';
+            if (!items || items.length === 0) {
+                resultsSection.style.display = 'block';
+                if (resultsCount) resultsCount.textContent = '0 found';
+                resultsGrid.innerHTML = `<div style="grid-column: 1 / -1; padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center;">No direct in-tool matches for that phrase. Try a shorter keyword (e.g. "elven temple", "desert canyon", "tavern") or click one of the Pop Out buttons above!</div>`;
+                return;
+            }
+
+            resultsSection.style.display = 'flex';
+            if (resultsCount) resultsCount.textContent = `${items.length} HD Maps`;
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'search-result-card';
+                const resBadge = (item.width && item.height) ? `${item.width}×${item.height}` : 'HD';
+                card.innerHTML = `
+                    <div style="position: relative;">
+                        <img class="search-card-thumb" src="${item.thumb}" alt="${item.title}" loading="lazy">
+                        <span style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); color: var(--primary); font-size: 9px; font-family: var(--font-mono); padding: 1px 4px; border-radius: 3px;">${resBadge}</span>
+                    </div>
+                    <div class="search-card-info" title="${item.title}">${item.title}</div>
+                    <div class="search-card-actions">
+                        <button class="btn-mini btn-load-result">🗺️ Load Map</button>
+                        <button class="btn-mini btn-save-result" style="flex: 0.6;" title="Save high-res map to disk">💾 Save</button>
+                    </div>
+                `;
+
+                const loadAction = () => {
+                    this.setMap(item.url, false, item.title);
+                    window.aiMapGenerator.addToHistory({
+                        id: item.id,
+                        prompt: item.title,
+                        provider: '4K Search',
+                        url: item.url
+                    });
+                    showStatus(`✅ Loaded <b>${item.title}</b> onto tabletop!`, false, 3500);
+                };
+
+                card.querySelector('.search-card-thumb').addEventListener('click', loadAction);
+                card.querySelector('.btn-load-result').addEventListener('click', loadAction);
+                card.querySelector('.btn-save-result').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.saveMapToDisk(item.url, item.title);
+                });
+
+                resultsGrid.appendChild(card);
+            });
+        };
+
+        if (btnSearchInTool) {
+            btnSearchInTool.addEventListener('click', async () => {
+                const loc = locationInput ? locationInput.value.trim() : '';
+                // Extract concise keywords if the user left the long default phrase
+                const searchPhrase = loc
+                    .replace(/^a\s+|^an\s+|^the\s+/i, '')
+                    .replace(/\b(with|and|of|in|on)\b.*$/i, '')
+                    .trim() || loc || 'battlemap';
+
+                btnSearchInTool.disabled = true;
+                const origHTML = btnSearchInTool.innerHTML;
+                btnSearchInTool.innerHTML = `<div class="spinner"></div> Searching 4K Maps...`;
+                showStatus(`🔎 Searching ultra-HD community battlemaps for <b>"${searchPhrase}"</b>...`, false, 0);
+
+                try {
+                    const results = await window.aiMapGenerator.searchMapsInTool(searchPhrase);
+                    renderSearchResults(results);
+                    showStatus(`✅ Found <b>${results.length}</b> high-resolution battlemaps! Click any map below to project it on your table or save it.`, false, 5000);
+                } catch (err) {
+                    showStatus(`⚠️ In-tool search couldn't reach Reddit (${err.message}). Use the <b>Pop Out</b> buttons above to search in a browser tab!`, true, 6000);
+                } finally {
+                    btnSearchInTool.disabled = false;
+                    btnSearchInTool.innerHTML = origHTML;
+                }
+            });
+        }
+
+        // In-Tool Keyless AI Map Generator (Flux)
+        if (btnGenerate && promptInput) {
+            btnGenerate.addEventListener('click', async () => {
+                const assembled = promptInput.value.trim();
+                const locLabel = (locationInput && locationInput.value.trim()) ? locationInput.value.trim() : 'Custom AI Map';
+                if (!assembled) {
+                    showStatus('Please toggle on some prompt modifiers or enter a location first.', true);
+                    return;
+                }
+
+                btnGenerate.disabled = true;
+                const origHTML = btnGenerate.innerHTML;
+                btnGenerate.innerHTML = `<div class="spinner"></div> Rendering AI Map...`;
+                showStatus(`⚡ Rendering custom top-down AI battlemap (no API key needed)...`, false, 0);
+
+                try {
+                    const item = await window.aiMapGenerator.generateKeylessMap(assembled, locLabel);
+                    this.setMap(item.url, false, `AI: ${locLabel}`);
+                    showStatus(`✅ AI Battlemap generated and loaded onto the table! Click <b>💾 Save Current Map</b> below to keep it.`, false, 5000);
+                } catch (err) {
+                    showStatus(`⚠️ ${err.message}`, true, 6000);
+                } finally {
+                    btnGenerate.disabled = false;
+                    btnGenerate.innerHTML = origHTML;
+                    this.renderAIHistory();
+                }
+            });
+        }
+
+        // Popout Search & Google Gemini Studio Launchers
+        document.querySelectorAll('.btn-popout-search').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const target = btn.getAttribute('data-popout');
+                const loc = locationInput ? locationInput.value.trim() : '';
+                const assembled = promptInput ? promptInput.value.trim() : '';
+
+                await window.aiMapGenerator.openPopoutSearch(target, loc, assembled);
+
+                if (target === 'gemini') {
+                    showStatus(`🌟 <b>Popout Opened & Prompt Copied!</b> Press <b>Ctrl+V</b> in Google Gemini to generate your map, then right-click the image &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> right here in AetherTable!`, false, 10000);
+                } else {
+                    showStatus(`🔍 <b>Search Popout Opened!</b> Right-click any high-res map &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> here (or drag & drop it across windows) to load it!`, false, 9000);
+                }
+            });
+        });
+
+        // Quick Paste Image from Clipboard button
+        if (btnPasteClipboard) {
+            btnPasteClipboard.addEventListener('click', async () => {
+                try {
+                    if (!navigator.clipboard || !navigator.clipboard.read) {
+                        showStatus(`💡 Press <b>Ctrl+V</b> (or Cmd+V) on your keyboard anywhere in this window to paste your copied map image!`, false, 6000);
+                        return;
+                    }
+                    const items = await navigator.clipboard.read();
+                    for (const item of items) {
+                        const imgType = item.types.find(t => t.startsWith('image/'));
+                        if (imgType) {
+                            const blob = await item.getType(imgType);
+                            this.handleFileUpload(blob, 'Pasted Clipboard Map');
+                            showStatus(`✅ Pasted image from clipboard directly onto the battlemap!`, false, 4000);
+                            return;
+                        }
+                    }
+                    showStatus(`⚠️ No image found on clipboard. Right-click an image in your popout tab and choose <b>"Copy Image"</b> first, or press <b>Ctrl+V</b>.`, true, 5000);
+                } catch (err) {
+                    showStatus(`💡 Press <b>Ctrl+V</b> on your keyboard anywhere in this window to paste your copied map image!`, false, 6000);
+                }
+            });
+        }
+
+        // Quick Upload File button inside AI panel
+        if (btnUploadFromPanel && fileInput) {
+            btnUploadFromPanel.addEventListener('click', () => {
+                fileInput.click();
+            });
+        }
+
+        // Save Current Map to Disk button
+        if (btnSaveCurrent) {
+            btnSaveCurrent.addEventListener('click', () => {
+                this.saveMapToDisk(this.currentMap.src, this.currentMap.name);
+            });
+        }
+
+        // Render AI / Session History
+        this.renderAIHistory();
+        window.aiMapGenerator.onChange(() => this.renderAIHistory());
+    }
+
+    renderAIHistory() {
+        const historyContainer = document.getElementById('ai-history-reel');
+        if (!historyContainer) return;
+
+        const history = window.aiMapGenerator.history;
+        historyContainer.innerHTML = '';
+
+        if (history.length === 0) {
+            historyContainer.innerHTML = '<span style="font-size: 11px; color: var(--text-dim);">Maps you search, generate, or paste will appear here for 1-click switching.</span>';
+            return;
+        }
+
+        history.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'ai-history-item';
+            card.title = `${item.prompt} (${item.provider || 'Map'})`;
+            card.innerHTML = `
+                <img src="${item.url}" alt="${item.prompt}">
+                <span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.75); font-size: 8px; color: var(--primary); padding: 1px 4px; border-radius: 2px; text-transform: uppercase;">${item.provider || 'Map'}</span>
+            `;
+            card.addEventListener('click', () => {
+                this.setMap(item.url, false, item.prompt);
+            });
+            historyContainer.appendChild(card);
+        });
+    }
+
+    bindProjectorControls() {
+        // 1. Global Projector Optics Controls (applied to #map-layer)
+        const brightSlider = document.getElementById('proj-brightness');
+        const contrastSlider = document.getElementById('proj-contrast');
+        const satSlider = document.getElementById('proj-saturation');
+        const invertToggle = document.getElementById('proj-invert');
+        const btnResetProj = document.getElementById('btn-reset-proj-optics');
+
+        if (brightSlider) {
+            brightSlider.addEventListener('input', (e) => {
+                this.filters.brightness = parseInt(e.target.value, 10);
+                this.applyFilters();
+            });
+        }
+        if (contrastSlider) {
+            contrastSlider.addEventListener('input', (e) => {
+                this.filters.contrast = parseInt(e.target.value, 10);
+                this.applyFilters();
+            });
+        }
+        if (satSlider) {
+            satSlider.addEventListener('input', (e) => {
+                this.filters.saturation = parseInt(e.target.value, 10);
+                this.applyFilters();
+            });
+        }
+        if (invertToggle) {
+            invertToggle.addEventListener('change', (e) => {
+                this.filters.invert = e.target.checked;
+                this.applyFilters();
+            });
+        }
+        if (btnResetProj) {
+            btnResetProj.addEventListener('click', () => {
+                this.filters = {
+                    brightness: 100,
+                    contrast: 100,
+                    saturation: 100,
+                    invert: false
+                };
+                this.applyFilters();
+            });
+        }
+
+        // 2. Independent Map Image Adjustment Controls (applied to #map-image / #map-video)
+        document.querySelectorAll('.img-brightness-slider').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                this.imageAdjustments.brightness = parseInt(e.target.value, 10);
+                this.applyImageAdjustments();
+            });
+        });
+
+        document.querySelectorAll('.img-contrast-slider').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                this.imageAdjustments.contrast = parseInt(e.target.value, 10);
+                this.applyImageAdjustments();
+            });
+        });
+
+        document.querySelectorAll('.img-sharpness-slider').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                this.imageAdjustments.sharpness = parseInt(e.target.value, 10);
+                this.applyImageAdjustments();
+            });
+        });
+
+        document.querySelectorAll('.btn-reset-img-adjust').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.imageAdjustments = {
+                    brightness: 100,
+                    contrast: 100,
+                    sharpness: 0
+                };
+                this.applyImageAdjustments();
+            });
+        });
+    }
+
+    bindPanZoomListeners() {
+        const viewport = this.dom.container;
+        if (!viewport) return;
+
+        let isSpacePressed = false;
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !document.activeElement.matches('input, textarea')) {
+                isSpacePressed = true;
+                viewport.style.cursor = 'grab';
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                isSpacePressed = false;
+                viewport.style.cursor = 'default';
+            }
+        });
+
+        viewport.addEventListener('mousedown', (e) => {
+            // Pan with Space + Left click or Middle click
+            if (isSpacePressed || e.button === 1) {
+                this.panZoom.isPanning = true;
+                this.panZoom.startX = e.clientX - this.panZoom.x;
+                this.panZoom.startY = e.clientY - this.panZoom.y;
+                viewport.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (this.panZoom.isPanning) {
+                this.panZoom.x = e.clientX - this.panZoom.startX;
+                this.panZoom.y = e.clientY - this.panZoom.startY;
+                this.applyPanZoom();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (this.panZoom.isPanning) {
+                this.panZoom.isPanning = false;
+                viewport.style.cursor = isSpacePressed ? 'grab' : 'default';
+            }
+        });
+
+        // Mouse wheel zoom
+        viewport.addEventListener('wheel', (e) => {
+            if (e.target.closest('.floating-panel') || e.target.closest('.app-header')) return;
+            e.preventDefault();
+
+            const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+            const newScale = Math.max(0.2, Math.min(6.0, this.panZoom.scale * zoomFactor));
+
+            // Zoom centered on cursor
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+            this.panZoom.x = mouseX - (mouseX - this.panZoom.x) * (newScale / this.panZoom.scale);
+            this.panZoom.y = mouseY - (mouseY - this.panZoom.y) * (newScale / this.panZoom.scale);
+            this.panZoom.scale = newScale;
+
+            this.applyPanZoom();
+        }, { passive: false });
+    }
+
+    bindKeyboardShortcuts() {
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement && document.activeElement.matches('input, textarea')) return;
+
+            switch (e.key.toLowerCase()) {
+                case 'h':
+                    this.toggleUI();
+                    break;
+                case 'b':
+                    this.toggleBlackout();
+                    break;
+                case 'c':
+                    window.keystoneEngine.toggleCalibrating();
+                    break;
+                case 'g':
+                    const curGrid = window.gridEngine.getState();
+                    window.gridEngine.setConfig({ enabled: !curGrid.enabled });
+                    break;
+                case 'f':
+                    if (e.key === 'f' && !e.ctrlKey) {
+                        this.toggleFullscreen();
+                    }
+                    break;
+                case 'r':
+                    this.resetPanZoom();
+                    break;
+                case 'escape':
+                    this.closeAllPanels();
+                    window.livingElementsEngine.selectElement(null);
+                    break;
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------------
+    // HIGH-RES REALISTIC BATTLEMAP GENERATORS (2560x1440 Photorealistic Textures)
+    // ------------------------------------------------------------------------
+
+    generateForestMapSVG() {
+        const c = document.createElement('canvas');
+        c.width = 2560;
+        c.height = 1440;
+        const ctx = c.getContext('2d');
+        const W = c.width, H = c.height;
+
+        // 1. Forest Floor Base with textured dirt & moss
+        const baseGrad = ctx.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, W * 0.7);
+        baseGrad.addColorStop(0, '#2d4726');
+        baseGrad.addColorStop(0.5, '#22381c');
+        baseGrad.addColorStop(1, '#182914');
+        ctx.fillStyle = baseGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Ground texture noise & leaf litter
+        for (let i = 0; i < 4000; i++) {
+            ctx.fillStyle = Math.random() < 0.5 ? 'rgba(50, 80, 40, 0.25)' : 'rgba(30, 20, 10, 0.2)';
+            ctx.beginPath();
+            ctx.arc(Math.random() * W, Math.random() * H, 1 + Math.random() * 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 2. Winding Dirt Trail through the clearing
+        ctx.strokeStyle = '#4a3b2c';
+        ctx.lineWidth = 140;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-50, H * 0.45);
+        ctx.bezierCurveTo(W * 0.3, H * 0.4, W * 0.4, H * 0.65, W * 0.7, H * 0.55);
+        ctx.bezierCurveTo(W * 0.85, H * 0.48, W * 0.95, H * 0.6, W + 50, H * 0.52);
+        ctx.stroke();
+
+        // Trail inner worn track
+        ctx.strokeStyle = '#5c4936';
+        ctx.lineWidth = 90;
+        ctx.stroke();
+
+        // 3. Winding Crystal Stream / River
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 18;
+        ctx.strokeStyle = '#1b4a68';
+        ctx.lineWidth = 180;
+        ctx.beginPath();
+        ctx.moveTo(W * 0.25, -50);
+        ctx.bezierCurveTo(W * 0.28, H * 0.35, W * 0.12, H * 0.6, W * 0.35, H + 50);
+        ctx.stroke();
+        ctx.restore();
+
+        // River deep center
+        ctx.strokeStyle = '#143852';
+        ctx.lineWidth = 120;
+        ctx.beginPath();
+        ctx.moveTo(W * 0.25, -50);
+        ctx.bezierCurveTo(W * 0.28, H * 0.35, W * 0.12, H * 0.6, W * 0.35, H + 50);
+        ctx.stroke();
+
+        // Water surface caustics & shimmer
+        ctx.strokeStyle = 'rgba(160, 220, 255, 0.35)';
+        ctx.lineWidth = 3;
+        for (let y = 50; y < H; y += 45) {
+            const rx = W * 0.22 + Math.sin(y * 0.005) * 80 + (Math.random() - 0.5) * 50;
+            ctx.beginPath();
+            ctx.arc(rx, y, 15 + Math.random() * 25, 0, Math.PI);
+            ctx.stroke();
+        }
+
+        // River stone ford / crossing
+        ctx.fillStyle = '#616668';
+        for (let i = 0; i < 7; i++) {
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.ellipse(W * 0.21 + (i % 2) * 20 + i * 14, H * 0.48 + i * 22, 18, 14, Math.random(), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // 4. Ancient Stone Circle Ruins in the Clearing
+        const cx = W * 0.62, cy = H * 0.48;
+        const stones = 8;
+        const ringR = 220;
+
+        for (let s = 0; s < stones; s++) {
+            const angle = (Math.PI * 2 / stones) * s;
+            const sx = cx + Math.cos(angle) * ringR;
+            const sy = cy + Math.sin(angle) * ringR;
+
+            // Cast drop shadow
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.beginPath();
+            ctx.ellipse(sx + 14, sy + 18, 38, 26, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Granite Megalith
+            ctx.fillStyle = '#6e7578';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy, 32, 24, angle + 0.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Moss on top
+            ctx.fillStyle = '#3f5933';
+            ctx.beginPath();
+            ctx.arc(sx - 5, sy - 4, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Altar stone at center
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(cx - 36 + 10, cy - 24 + 14, 72, 48);
+        ctx.fillStyle = '#4f5559';
+        ctx.fillRect(cx - 36, cy - 24, 72, 48);
+        ctx.strokeStyle = '#32373b';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(cx - 36, cy - 24, 72, 48);
+        ctx.restore();
+
+        // 5. Surrounding Dense Forest Canopy Boulders
+        const trees = [
+            { x: 140, y: 160, r: 240 }, { x: 380, y: 120, r: 210 },
+            { x: W - 180, y: 160, r: 260 }, { x: W - 360, y: 140, r: 220 },
+            { x: 160, y: H - 180, r: 250 }, { x: 380, y: H - 120, r: 210 },
+            { x: W - 180, y: H - 180, r: 270 }, { x: W - 420, y: H - 140, r: 230 }
+        ];
+
+        trees.forEach(t => {
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            ctx.shadowBlur = 25;
+            ctx.fillStyle = '#1b3b19';
+            ctx.beginPath();
+            ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#244d21';
+            ctx.beginPath();
+            ctx.arc(t.x + 15, t.y - 15, t.r * 0.75, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        });
+
+        return c.toDataURL('image/jpeg', 0.92);
+    }
+
+    generateDungeonMapSVG() {
+        const c = document.createElement('canvas');
+        c.width = 2560;
+        c.height = 1440;
+        const ctx = c.getContext('2d');
+        const W = c.width, H = c.height;
+
+        // Void background
+        ctx.fillStyle = '#0a0c10';
+        ctx.fillRect(0, 0, W, H);
+
+        const roomX = 280, roomY = 160, roomW = 2000, roomH = 1120;
+
+        // Room Drop Shadow
+        ctx.save();
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 40;
+        ctx.fillStyle = '#171b22';
+        ctx.fillRect(roomX, roomY, roomW, roomH);
+        ctx.restore();
+
+        // Flagstone Masonry Floor
+        const tileSize = 80;
+        for (let x = roomX; x < roomX + roomW; x += tileSize) {
+            for (let y = roomY; y < roomY + roomH; y += tileSize) {
+                // Stone tile color variation
+                const v = Math.floor(Math.random() * 25);
+                ctx.fillStyle = `rgb(${32 + v}, ${37 + v}, ${44 + v})`;
+                ctx.fillRect(x + 2, y + 2, tileSize - 4, tileSize - 4);
+
+                // Mortar shadow & bevel
+                ctx.strokeStyle = '#12151b';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, tileSize, tileSize);
+
+                // Occasional cracked stone details
+                if (Math.random() < 0.15) {
+                    ctx.strokeStyle = '#171b21';
+                    ctx.beginPath();
+                    ctx.moveTo(x + 10, y + 15);
+                    ctx.lineTo(x + 40, y + 35);
+                    ctx.lineTo(x + 65, y + 55);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Heavy Stone Pillars with drop shadows
+        const cols = [
+            { x: roomX + 380, y: roomY + 280 }, { x: roomX + 1000, y: roomY + 280 }, { x: roomX + 1620, y: roomY + 280 },
+            { x: roomX + 380, y: roomY + 840 }, { x: roomX + 1000, y: roomY + 840 }, { x: roomX + 1620, y: roomY + 840 }
+        ];
+
+        cols.forEach(p => {
+            // Pillar cast shadow
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.beginPath();
+            ctx.ellipse(p.x + 20, p.y + 24, 60, 48, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pillar base
+            ctx.fillStyle = '#212630';
+            ctx.fillRect(p.x - 42, p.y - 42, 84, 84);
+            ctx.strokeStyle = '#13161c';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(p.x - 42, p.y - 42, 84, 84);
+
+            // Pillar shaft top
+            ctx.fillStyle = '#2f3644';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 34, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        });
+
+        // Central Arcane Dais & Rune Circle
+        const cx = roomX + roomW / 2;
+        const cy = roomY + roomH / 2;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.beginPath();
+        ctx.arc(cx + 8, cy + 12, 170, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#1e2430';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 160, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#3a4457';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        // Glowing arcane runes
+        ctx.strokeStyle = '#00ffc8';
+        ctx.shadowColor = '#00ffc8';
+        ctx.shadowBlur = 14;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 125, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.setLineDash([14, 12]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 95, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // Crypt Granite Sarcophagi in North Wall Alcoves
+        const tombs = [
+            { x: roomX + 300, y: roomY + 70 },
+            { x: roomX + 1700, y: roomY + 70 }
+        ];
+
+        tombs.forEach(t => {
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(t.x + 8, t.y + 10, 140, 75);
+            ctx.fillStyle = '#444d5c';
+            ctx.fillRect(t.x, t.y, 140, 75);
+            ctx.strokeStyle = '#222730';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(t.x, t.y, 140, 75);
+            // Lid relief carving
+            ctx.strokeRect(t.x + 12, t.y + 10, 116, 55);
+            ctx.restore();
+        });
+
+        // Heavy Walls Border
+        ctx.strokeStyle = '#0d1015';
+        ctx.lineWidth = 24;
+        ctx.strokeRect(roomX, roomY, roomW, roomH);
+
+        return c.toDataURL('image/jpeg', 0.92);
+    }
+
+    generateDesertMapSVG() {
+        const c = document.createElement('canvas');
+        c.width = 2560;
+        c.height = 1440;
+        const ctx = c.getContext('2d');
+        const W = c.width, H = c.height;
+
+        // Sand Base Gradient
+        const sandGrad = ctx.createLinearGradient(0, 0, W, H);
+        sandGrad.addColorStop(0, '#caa268');
+        sandGrad.addColorStop(0.5, '#b58c52');
+        sandGrad.addColorStop(1, '#9e753e');
+        ctx.fillStyle = sandGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Wind-swept Sand Dune Ridges
+        ctx.lineWidth = 16;
+        for (let i = 0; i < 7; i++) {
+            const yBase = i * 220 + 80;
+            ctx.strokeStyle = 'rgba(140, 100, 50, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(-50, yBase);
+            ctx.bezierCurveTo(W * 0.3, yBase - 60, W * 0.7, yBase + 70, W + 50, yBase - 30);
+            ctx.stroke();
+
+            // Dune crest highlight
+            ctx.strokeStyle = 'rgba(235, 205, 155, 0.35)';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(-50, yBase - 4);
+            ctx.bezierCurveTo(W * 0.3, yBase - 64, W * 0.7, yBase + 66, W + 50, yBase - 34);
+            ctx.stroke();
+        }
+
+        // Deep Sandstone Cliff Canyon (Right Wall)
+        ctx.save();
+        ctx.shadowColor = 'rgba(40, 20, 5, 0.75)';
+        ctx.shadowBlur = 35;
+        ctx.fillStyle = '#613e1f';
+        ctx.beginPath();
+        ctx.moveTo(W * 0.72, -50);
+        ctx.bezierCurveTo(W * 0.68, H * 0.3, W * 0.78, H * 0.7, W * 0.74, H + 50);
+        ctx.lineTo(W + 50, H + 50);
+        ctx.lineTo(W + 50, -50);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Cliff Plateau rock strata
+        ctx.fillStyle = '#7a512c';
+        ctx.beginPath();
+        ctx.moveTo(W * 0.76, -50);
+        ctx.bezierCurveTo(W * 0.72, H * 0.3, W * 0.82, H * 0.7, W * 0.78, H + 50);
+        ctx.lineTo(W + 50, H + 50);
+        ctx.lineTo(W + 50, -50);
+        ctx.closePath();
+        ctx.fill();
+
+        // Desert Oasis Natural Spring Pool
+        const ox = W * 0.36, oy = H * 0.52;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(ox + 12, oy + 14, 250, 160, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Lush vegetation shore ring
+        ctx.fillStyle = '#3a6631';
+        ctx.beginPath();
+        ctx.ellipse(ox, oy, 245, 155, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Turquoise crystal water
+        const waterGrad = ctx.createRadialGradient(ox, oy, 20, ox, oy, 210);
+        waterGrad.addColorStop(0, '#0b7280');
+        waterGrad.addColorStop(0.6, '#0f8a9c');
+        waterGrad.addColorStop(1, '#1b5b63');
+        ctx.fillStyle = waterGrad;
+        ctx.beginPath();
+        ctx.ellipse(ox, oy, 215, 130, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Palm Trees around Oasis with long shadows
+        const palms = [
+            { x: ox - 160, y: oy - 60, r: 65 },
+            { x: ox + 180, y: oy + 40, r: 75 },
+            { x: ox - 60, y: oy + 120, r: 60 }
+        ];
+
+        palms.forEach(p => {
+            ctx.save();
+            // Long diagonal late afternoon shadow
+            ctx.fillStyle = 'rgba(30, 20, 10, 0.45)';
+            ctx.beginPath();
+            ctx.ellipse(p.x + 60, p.y + 40, p.r * 1.1, p.r * 0.45, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Palm fronds
+            ctx.fillStyle = '#1c5421';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#26692c';
+            ctx.beginPath();
+            ctx.arc(p.x - 8, p.y - 8, p.r * 0.7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        });
+
+        return c.toDataURL('image/jpeg', 0.92);
+    }
+
+    generateTavernMapSVG() {
+        const c = document.createElement('canvas');
+        c.width = 2560;
+        c.height = 1440;
+        const ctx = c.getContext('2d');
+        const W = c.width, H = c.height;
+
+        ctx.fillStyle = '#140c06';
+        ctx.fillRect(0, 0, W, H);
+
+        const tX = 240, tY = 120, tW = 2080, tH = 1200;
+
+        // Tavern Oak Floorboards
+        const plankH = 44;
+        let pIdx = 0;
+        for (let y = tY; y < tY + tH; y += plankH) {
+            const tone = 40 + (pIdx % 5) * 6;
+            ctx.fillStyle = `rgb(${tone + 18}, ${tone + 4}, ${tone - 14})`;
+            ctx.fillRect(tX, y, tW, plankH - 2);
+
+            // Seam & nail pegs
+            ctx.strokeStyle = '#1f1308';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(tX, y, tW, plankH);
+
+            // Wood grain lines
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.beginPath();
+            ctx.moveTo(tX, y + plankH / 2);
+            ctx.lineTo(tX + tW, y + plankH / 2);
+            ctx.stroke();
+            pIdx++;
+        }
+
+        // Curved L-Shaped Bar Counter
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.65)';
+        ctx.shadowBlur = 24;
+        ctx.fillStyle = '#3d2210';
+        ctx.beginPath();
+        ctx.moveTo(tX + 160, tY + 160);
+        ctx.lineTo(tX + 1200, tY + 160);
+        ctx.lineTo(tX + 1200, tY + 340);
+        ctx.lineTo(tX + 1060, tY + 340);
+        ctx.lineTo(tX + 1060, tY + 280);
+        ctx.lineTo(tX + 160, tY + 280);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#221207';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.restore();
+
+        // Round Barstools with leather cushions
+        for (let s = 0; s < 7; s++) {
+            const bx = tX + 240 + s * 130;
+            const by = tY + 325;
+            ctx.fillStyle = '#7a3f1d';
+            ctx.beginPath();
+            ctx.arc(bx, by, 22, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#381b0a';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        // Dining Tables with benches
+        const tables = [
+            { x: tX + 320, y: tY + 620, w: 220, h: 120 },
+            { x: tX + 780, y: tY + 620, w: 220, h: 120 },
+            { x: tX + 1240, y: tY + 620, w: 220, h: 120 },
+            { x: tX + 500, y: tY + 940, w: 240, h: 120 },
+            { x: tX + 1050, y: tY + 940, w: 240, h: 120 }
+        ];
+
+        tables.forEach(tb => {
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = '#422714';
+            ctx.fillRect(tb.x, tb.y, tb.w, tb.h);
+            ctx.strokeStyle = '#211207';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(tb.x, tb.y, tb.w, tb.h);
+
+            // Benches north and south
+            ctx.fillStyle = '#331c0c';
+            ctx.fillRect(tb.x, tb.y - 36, tb.w, 24);
+            ctx.fillRect(tb.x, tb.y + tb.h + 12, tb.w, 24);
+            ctx.restore();
+        });
+
+        // Massive Stone Fireplace Hearth (East Wall)
+        const fx = tX + tW - 120, fy = tY + 480;
+        ctx.save();
+        ctx.fillStyle = '#42454a';
+        ctx.fillRect(fx - 40, fy - 50, 140, 240);
+        ctx.strokeStyle = '#25272b';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(fx - 40, fy - 50, 140, 240);
+
+        // Fireplace interior & glowing hearth
+        ctx.fillStyle = '#1a0d05';
+        ctx.fillRect(fx - 30, fy, 80, 140);
+        ctx.fillStyle = 'rgba(255, 100, 0, 0.8)';
+        ctx.shadowColor = '#ff6600';
+        ctx.shadowBlur = 30;
+        ctx.beginPath();
+        ctx.ellipse(fx + 5, fy + 70, 35, 55, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Tavern Outer Heavy Walls
+        ctx.strokeStyle = '#1b1108';
+        ctx.lineWidth = 26;
+        ctx.strokeRect(tX, tY, tW, tH);
+
+        return c.toDataURL('image/jpeg', 0.92);
+    }
+
+    generateLavaMapSVG() {
+        const c = document.createElement('canvas');
+        c.width = 2560;
+        c.height = 1440;
+        const ctx = c.getContext('2d');
+        const W = c.width, H = c.height;
+
+        // Dark Basalt Crust
+        ctx.fillStyle = '#1a1418';
+        ctx.fillRect(0, 0, W, H);
+
+        // Chasm Void
+        ctx.fillStyle = '#080507';
+        ctx.fillRect(W * 0.28, 0, W * 0.44, H);
+
+        // Molten Lava Core Stream
+        const lavaGrad = ctx.createLinearGradient(W * 0.3, 0, W * 0.7, 0);
+        lavaGrad.addColorStop(0, '#c72d00');
+        lavaGrad.addColorStop(0.3, '#ff5500');
+        lavaGrad.addColorStop(0.5, '#ffbb22');
+        lavaGrad.addColorStop(0.7, '#ff5500');
+        lavaGrad.addColorStop(1, '#c72d00');
+
+        ctx.save();
+        ctx.shadowColor = '#ff4400';
+        ctx.shadowBlur = 45;
+        ctx.fillStyle = lavaGrad;
+        ctx.beginPath();
+        ctx.moveTo(W * 0.32, -50);
+        ctx.bezierCurveTo(W * 0.45, H * 0.3, W * 0.36, H * 0.7, W * 0.48, H + 50);
+        ctx.lineTo(W * 0.65, H + 50);
+        ctx.bezierCurveTo(W * 0.52, H * 0.7, W * 0.62, H * 0.3, W * 0.55, -50);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Floating Basalt Stepping Crust Islands
+        ctx.fillStyle = '#261e24';
+        ctx.strokeStyle = '#140f12';
+        ctx.lineWidth = 4;
+        for (let i = 0; i < 9; i++) {
+            const ix = W * 0.42 + (Math.sin(i * 1.8) * 110);
+            const iy = i * 160 + 80;
+            ctx.save();
+            ctx.shadowColor = 'rgba(255, 60, 0, 0.4)';
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            ctx.ellipse(ix, iy, 42 + (i % 3) * 12, 28 + (i % 2) * 8, Math.random(), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Natural Stone Arch Bridge over Lava
+        ctx.save();
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 30;
+        ctx.fillStyle = '#362b33';
+        ctx.fillRect(W * 0.26, H * 0.46, W * 0.48, 120);
+        ctx.strokeStyle = '#1e171c';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(W * 0.26, H * 0.46, W * 0.48, 120);
+        ctx.restore();
+
+        return c.toDataURL('image/jpeg', 0.92);
+    }
+
+    saveSettings() {
+        try {
+            localStorage.setItem('ttrpg_app_settings', JSON.stringify({
+                filters: this.filters,
+                imageAdjustments: this.imageAdjustments
+            }));
+        } catch (e) {}
+    }
+
+    loadSettings() {
+        try {
+            const saved = localStorage.getItem('ttrpg_app_settings');
+            if (saved) {
+                const data = JSON.parse(saved);
+                if (data.filters) {
+                    this.filters = Object.assign(this.filters, data.filters);
+                }
+                if (data.imageAdjustments) {
+                    this.imageAdjustments = Object.assign(this.imageAdjustments, data.imageAdjustments);
+                }
+            }
+        } catch (e) {}
+        this.applyFilters();
+        this.applyImageAdjustments();
+    }
+}
+
+// Instantiate and initialize when DOM is ready
+window.battlemapApp = new BattlemapApp();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.battlemapApp.init();
+    });
+} else {
+    window.battlemapApp.init();
+}
