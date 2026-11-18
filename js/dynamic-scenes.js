@@ -122,7 +122,8 @@ class DynamicSceneEngine {
                 tavern_fire: 'tavern',
                 bridge_collapse: 'wind',
                 ritual_blood: 'cave',
-                forest_rift: 'forest'
+                forest_rift: 'forest',
+                reactor_meltdown: 'reactor'
             };
             window.livingElementsEngine.setEnvironmentSoundscape(envMap[scenarioKey] || 'forest');
         }
@@ -232,6 +233,11 @@ class DynamicSceneEngine {
             this.drawRitualState(ctxA, W, H, false);
             // STATE B: Blood-Soaked Eldritch Altar
             this.drawRitualState(ctxB, W, H, true);
+        } else if (scenarioKey === 'reactor_meltdown') {
+            // STATE A: Pristine Starship Engineering & Reactor Deck
+            this.drawReactorMeltdownState(ctxA, W, H, false);
+            // STATE B: Red-Alert Warp Reactor Meltdown & Coolant Breach
+            this.drawReactorMeltdownState(ctxB, W, H, true);
         } else {
             // 'forest_rift'
             this.drawForestRiftState(ctxA, W, H, false);
@@ -661,6 +667,88 @@ class DynamicSceneEngine {
                 ctx.arc(t.x - 15, t.y - 15, t.r * 0.72, 0, Math.PI * 2);
                 ctx.fill();
             }
+        });
+    }
+
+    drawReactorMeltdownState(ctx, W, H, isMeltdown) {
+        // 1. Metallic Starship Engineering Deck Plating
+        ctx.fillStyle = isMeltdown ? '#1a0a0d' : '#0f172a';
+        ctx.fillRect(0, 0, W, H);
+
+        const pw = W / 20, ph = H / 12;
+        ctx.strokeStyle = isMeltdown ? '#3b151e' : '#1e293b';
+        ctx.lineWidth = 3;
+        for (let x = 0; x < W; x += pw) {
+            for (let y = 0; y < H; y += ph) {
+                ctx.strokeRect(x, y, pw, ph);
+            }
+        }
+
+        // 2. Coolant Conduits Leading to Central Warp Core
+        const cx = W * 0.5, cy = H * 0.5;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = isMeltdown ? '#84cc16' : '#0284c7';
+        ctx.lineWidth = 54;
+        [
+            [0, cy, cx, cy],
+            [W, cy, cx, cy],
+            [cx, 0, cx, cy],
+            [cx, H, cx, cy]
+        ].forEach(([x1, y1, x2, y2]) => {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        });
+
+        // 3. Meltdown Radioactive Plasma Spills & Hull Fractures (State B)
+        if (isMeltdown) {
+            const spills = [
+                { x: W * 0.34, y: H * 0.36, rx: 220, ry: 140 },
+                { x: W * 0.68, y: H * 0.64, rx: 250, ry: 150 },
+                { x: W * 0.30, y: H * 0.68, rx: 180, ry: 120 }
+            ];
+            spills.forEach(sp => {
+                const sg = ctx.createRadialGradient(sp.x, sp.y, 15, sp.x, sp.y, sp.rx);
+                sg.addColorStop(0, 'rgba(163, 230, 53, 0.85)');
+                sg.addColorStop(0.5, 'rgba(101, 163, 13, 0.45)');
+                sg.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = sg;
+                ctx.beginPath();
+                ctx.ellipse(sp.x, sp.y, sp.rx, sp.ry, 0.25, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // 4. Central Antimatter Reactor Core Chamber
+        const coreGlow = ctx.createRadialGradient(cx, cy, 20, cx, cy, isMeltdown ? 620 : 360);
+        coreGlow.addColorStop(0, isMeltdown ? 'rgba(255, 240, 138, 0.95)' : 'rgba(186, 230, 253, 0.90)');
+        coreGlow.addColorStop(0.35, isMeltdown ? 'rgba(239, 68, 68, 0.72)' : 'rgba(14, 165, 233, 0.50)');
+        coreGlow.addColorStop(0.75, isMeltdown ? 'rgba(153, 27, 27, 0.32)' : 'rgba(2, 132, 199, 0.15)');
+        coreGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = coreGlow;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = isMeltdown ? '#450a0a' : '#090d16';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 185, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = isMeltdown ? '#ef4444' : '#38bdf8';
+        ctx.lineWidth = 10;
+        ctx.stroke();
+
+        // 5. Command Consoles & Bulkhead Walls
+        ctx.fillStyle = isMeltdown ? '#271216' : '#1e293b';
+        ctx.strokeStyle = isMeltdown ? '#f97316' : '#0ea5e9';
+        ctx.lineWidth = 4;
+        [
+            [W * 0.16, H * 0.18, 280, 90],
+            [W * 0.72, H * 0.18, 280, 90],
+            [W * 0.16, H * 0.74, 280, 90],
+            [W * 0.72, H * 0.74, 280, 90]
+        ].forEach(([bx, by, bw, bh]) => {
+            ctx.fillRect(bx, by, bw, bh);
+            ctx.strokeRect(bx, by, bw, bh);
         });
     }
 

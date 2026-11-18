@@ -18,14 +18,12 @@
         </div>
 
         <nav class="nav-actions">
-            <button class="nav-btn" data-panel="map-panel" title="Choose or upload battle maps">📁 Maps</button>
+            <button class="nav-btn btn-accent" data-panel="ai-generator-panel" title="Toggle-based AI prompt builder, Google Gemini floating companion &amp; 4K map search">✨ Map Finder &amp; AI</button>
             <button class="nav-btn" data-panel="keystone-panel" title="Projector keystone corner pin calibration">📐 Keystone</button>
-            <button class="nav-btn" data-panel="grid-panel" title="Physical miniature 1-inch grid setup">⊞ Grid & Minis</button>
-            <button class="nav-btn" data-panel="elements-panel" title="Animated Overlays & Hazards across Universal, Historic, Modern, Future & Eldritch settings">🌿 Realistic FX</button>
-            <button class="nav-btn" data-panel="dynamic-scenes-panel" title="Real-Time Map State Morphing, 3D Parallax Height & Infinite Scrolling Vehicle Chases">🎬 Dynamic Scenes</button>
-            <button class="nav-btn btn-accent" data-panel="ai-generator-panel" title="Toggle-based AI prompt builder, in-tool 4K map search & popout search tab">✨ Map Finder & AI</button>
+            <button class="nav-btn" data-panel="grid-panel" title="Physical miniature 1-inch grid setup">⊞ Grid &amp; Minis</button>
+            <button class="nav-btn" data-panel="elements-panel" title="Animated Overlays &amp; Hazards across Universal, Historic, Modern, Future &amp; Eldritch settings">🌿 Realistic FX</button>
             <button class="nav-btn" data-panel="projector-settings-panel" title="Projector brightness, contrast and tuning">⚙ Display</button>
-            <button class="nav-btn" data-panel="readme-panel" id="btn-nav-readme" title="Open Readme Manual & Keybindings (Hotkey: F9)">📖 Readme (F9)</button>
+            <button class="nav-btn" data-panel="readme-panel" id="btn-nav-readme" title="Open Readme Manual &amp; Keybindings (Hotkey: F9)">📖 Readme (F9)</button>
 
             <div class="divider"></div>
 
@@ -118,155 +116,10 @@
          FLOATING TOOLBAR PANELS
          ====================================================================== -->
 
-    <!-- 1. MAPS PANEL -->
-    <div id="map-panel" class="floating-panel">
-        <div class="panel-header">
-            <span class="panel-title">📁 Battle Map Library</span>
-            <button class="panel-close-btn">&times;</button>
-        </div>
-        <div class="panel-body">
-            <div class="setting-group">
-                <label class="setting-label">Preset Tactical Environments</label>
-                <div class="preset-grid">
-                    <div class="preset-card" data-preset="forest">
-                        <div class="preset-thumb" style="background: #1e3b20; display:flex; align-items:center; justify-content:center; color:#7ec483;">🌲 Forest & Stream</div>
-                        <div class="preset-name">Forest Glade</div>
-                    </div>
-                    <div class="preset-card" data-preset="desert">
-                        <div class="preset-thumb" style="background: #8a612d; display:flex; align-items:center; justify-content:center; color:#ecc48a;">🏜 Desert Dunes</div>
-                        <div class="preset-name">Desert Oasis</div>
-                    </div>
-                    <div class="preset-card" data-preset="dungeon">
-                        <div class="preset-thumb" style="background: #232830; display:flex; align-items:center; justify-content:center; color:#9db1cc;">🏰 Ancient Crypt</div>
-                        <div class="preset-name">Dungeon Vault</div>
-                    </div>
-                    <div class="preset-card" data-preset="tavern">
-                        <div class="preset-thumb" style="background: #4a3420; display:flex; align-items:center; justify-content:center; color:#e0b284;">🍺 Tavern Taproom</div>
-                        <div class="preset-name">Warm Tavern</div>
-                    </div>
-                    <div class="preset-card" data-preset="cavern">
-                        <div class="preset-thumb" style="background: #1f1418; display:flex; align-items:center; justify-content:center; color:#ff6633;">🌋 Volcanic Lava</div>
-                        <div class="preset-name">Lava Chasm</div>
-                    </div>
-                </div>
-            </div>
+    <!-- Hidden file input for local map uploads (triggered by 📥 Upload in Map Finder & AI or drag & drop on viewport) -->
+    <input type="file" id="map-file-input" accept="image/*,video/mp4,video/webm" style="display: none;">
 
-            <div class="setting-group">
-                <label class="setting-label">Custom Map Upload (Image or Animated MP4 Video)</label>
-                <div id="map-dropzone" class="dropzone">
-                    <span>📥 Click or Drag & Drop Image (PNG/JPG/WEBP) or Video (MP4/WebM) here</span>
-                    <input type="file" id="map-file-input" accept="image/*,video/mp4,video/webm" style="display: none;">
-                </div>
-            </div>
-
-            <div class="setting-group">
-                <label class="setting-label">Load Map from Web URL</label>
-                <div class="control-row">
-                    <input type="text" id="map-url-input" class="input-text" placeholder="https://... battlemap.jpg or .mp4">
-                    <button id="btn-load-map-url" class="btn btn-outline-primary">Load</button>
-                </div>
-            </div>
-
-            <!-- Intuitive Before/After Phased Map State Shift (Mid-Combat Morphing) -->
-            <div class="setting-group" style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.28); padding: 12px; border-radius: var(--radius-md);">
-                <div class="setting-label" style="color: #c084fc; font-weight: 600; font-size: 12.5px;">
-                    <span>🔄 Map Phase Shift (Before ↔ After)</span>
-                    <span id="quick-morph-badge" class="badge" style="background: rgba(168, 85, 247, 0.25); color: #e9d5ff;">0% Phase A</span>
-                </div>
-                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.4; margin: 3px 0 8px 0;">
-                    Seamlessly morph between pristine & destroyed states in real time mid-combat (tavern fire, bridge collapse, blood ritual, or reactor meltdown).
-                </div>
-
-                <!-- Instant Paired Presets -->
-                <div class="btn-grid-segment" style="grid-template-columns: repeat(2, 1fr); gap: 5px; margin-bottom: 8px;">
-                    <button class="btn-chip quick-morph-chip active" data-scenario="tavern_fire">🔥 Tavern: Normal ↔ Fire</button>
-                    <button class="btn-chip quick-morph-chip" data-scenario="bridge_collapse">🌉 Stone Bridge ↔ Collapse</button>
-                    <button class="btn-chip quick-morph-chip" data-scenario="ritual_blood">🩸 Temple: Holy ↔ Blood</button>
-                    <button class="btn-chip quick-morph-chip" data-scenario="reactor_meltdown">☢️ Starship ↔ Meltdown</button>
-                </div>
-
-                <!-- Dual Map Slots: Phase A and Phase B -->
-                <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                    <div style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px; text-align: center;">
-                        <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Phase A (Before)</div>
-                        <div style="font-size: 11px; font-weight: 600; color: #38bdf8; margin-top: 2px;">Normal / Pristine</div>
-                        <button class="btn" id="btn-quick-set-phase-a" style="font-size: 10px; padding: 2px 6px; margin-top: 4px; width: 100%;">Use Current Map</button>
-                    </div>
-                    <div style="font-size: 14px; color: var(--text-muted); font-weight: bold;">➔</div>
-                    <div style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px; text-align: center;">
-                        <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Phase B (After)</div>
-                        <div style="font-size: 11px; font-weight: 600; color: #f43f5e; margin-top: 2px;">Destroyed / Shifted</div>
-                        <input type="file" id="quick-phase-b-file-input" accept="image/*,video/*" style="display: none;">
-                        <button class="btn btn-outline-primary" id="btn-quick-upload-phase-b" style="font-size: 10px; padding: 2px 6px; margin-top: 4px; width: 100%;">Upload Custom B</button>
-                    </div>
-                </div>
-
-                <!-- Smooth Transition Slider -->
-                <div style="margin-bottom: 6px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-dim); margin-bottom: 2px;">
-                        <span>Phase A (Before)</span>
-                        <span id="quick-morph-slider-val" style="color: #e9d5ff; font-weight: 600;">0%</span>
-                        <span>Phase B (After)</span>
-                    </div>
-                    <input type="range" id="quick-morph-slider" class="range-slider" min="0" max="100" value="0" style="accent-color: #c084fc;">
-                </div>
-
-                <!-- 1-Click Tactile Action Buttons -->
-                <div class="control-row" style="gap: 6px;">
-                    <button id="btn-quick-instant-flip" class="btn btn-primary" style="flex: 1; font-size: 11px; padding: 6px 8px;" title="Instantly flip between 0% and 100% with one click">
-                        ⚡ Instant Flip A/B
-                    </button>
-                    <button id="btn-quick-cinematic-morph" class="btn btn-outline-primary" style="flex: 1.2; font-size: 11px; padding: 6px 8px;" title="Smoothly transitions between Before and After over 3 seconds">
-                        ▶ 3s Cinematic Shift
-                    </button>
-                </div>
-            </div>
-
-            <!-- Independent Map Image Adjustments (Separate from Projector Optics) -->
-            <div class="setting-group" style="background: rgba(0, 255, 200, 0.05); border: 1px solid rgba(0, 255, 200, 0.22); padding: 10px; border-radius: var(--radius-md);">
-                <div class="setting-label" style="color: var(--primary);">
-                    <span>🖼️ Map Image Adjustments</span>
-                    <button class="btn btn-reset-img-adjust" style="padding: 2px 7px; font-size: 10px;" title="Reset map image brightness, contrast, and sharpness to default">↺ Reset Image</button>
-                </div>
-                <div style="font-size: 10px; color: var(--text-dim); margin-bottom: 2px;">
-                    Fine-tune the map artwork itself (independent from global Projector Display optics).
-                </div>
-
-                <div class="setting-label" style="margin-top: 4px;">
-                    <span>Image Brightness</span>
-                    <span class="setting-val-display img-brightness-val">100%</span>
-                </div>
-                <input type="range" class="range-slider img-brightness-slider" min="40" max="200" value="100">
-
-                <div class="setting-label" style="margin-top: 4px;">
-                    <span>Image Contrast</span>
-                    <span class="setting-val-display img-contrast-val">100%</span>
-                </div>
-                <input type="range" class="range-slider img-contrast-slider" min="40" max="250" value="100">
-
-                <div class="setting-label" style="margin-top: 4px;">
-                    <span>Image Sharpness (Detail Boost)</span>
-                    <span class="setting-val-display img-sharpness-val">0%</span>
-                </div>
-                <input type="range" class="range-slider img-sharpness-slider" min="0" max="100" value="0">
-            </div>
-
-            <!-- Pro Map Sourcing Guide -->
-            <div class="setting-group" style="background: rgba(255, 170, 0, 0.08); border: 1px solid rgba(255, 170, 0, 0.25); padding: 10px; border-radius: var(--radius-md);">
-                <div class="setting-label" style="color: var(--accent-amber);">
-                    <span>⭐ Where to Get Ultra-HD 4K Battlemaps</span>
-                </div>
-                <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-top: 4px;">
-                    • <b>Reddit r/battlemaps</b>: The largest library in the world. Search for <i>"4k ungridded [location]"</i> and download the full-res file.<br>
-                    • <b>Google Pro / Gemini Advanced</b>: Ask Gemini to generate a 4K 16:9 top-down map, then drag & drop the image directly into this window.<br>
-                    • <b>Czepeku & Forgotten Adventures</b>: Free high-resolution map archives online.<br>
-                    • <b>Tip</b>: Always use <i>ungridded</i> maps so our projector grid aligns with your real miniature scale!
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 2. KEYSTONE CALIBRATION PANEL -->
+    <!-- 1. KEYSTONE CALIBRATION PANEL -->
     <div id="keystone-panel" class="floating-panel">
         <div class="panel-header">
             <span class="panel-title">📐 Keystone Calibration</span>
@@ -931,294 +784,265 @@
         </div>
     </div>
 
-
-    <!-- 4B. DYNAMIC SCENES: REAL-TIME MAP MORPHING, 3D PARALLAX & INFINITE SCROLLING CHASES -->
-    <div id="dynamic-scenes-panel" class="floating-panel" style="width: 440px;">
+    <!-- 5. MAPGEN — AI BATTLEMAP STUDIO & 4K MAP FINDER (M&M GM SUITE ARCHITECTURE • ZERO API KEY) -->
+    <div id="ai-generator-panel" class="floating-panel" style="width: 470px;">
         <div class="panel-header">
-            <span class="panel-title">🎬 Dynamic Scenes, Morphing & Chases</span>
+            <span class="panel-title">🗺️ MapGen — AI Battlemap Studio <span style="font-size: 10px; background: rgba(16, 185, 129, 0.18); color: #34d399; padding: 2px 7px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.35);">4K Studio • Zero API Key</span></span>
             <button class="panel-close-btn">&times;</button>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" style="gap: 10px;">
 
-            <!-- SECTION 1: REAL-TIME MAP STATE MORPHING (PHASED BATTLEMAPS) -->
-            <div class="setting-group" style="background: rgba(255, 170, 0, 0.06); border: 1px solid rgba(255, 170, 0, 0.28); padding: 10px; border-radius: var(--radius-md);">
-                <div class="setting-label" style="color: var(--accent-amber);">
-                    <span>🔥 1. Real-Time Map State Morphing</span>
-                    <span id="morph-progress-val" class="setting-val-display">0%</span>
-                </div>
-                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.4;">
-                    Seamlessly morph between two map states in real time (e.g. a tavern catching fire, a bridge collapsing mid-combat, or a clean ritual room shifting into a blood-soaked altar).
-                </div>
-
-                <label class="setting-label" style="margin-top: 6px;">Phased Battlemap Scenario</label>
-                <div class="control-row">
-                    <select id="morph-scenario-select" class="input-select" style="flex: 1;">
-                        <option value="tavern_fire">🍺 Tavern Taproom ↔ 🔥 Blazing Tavern Inferno</option>
-                        <option value="bridge_collapse">🌉 Intact Canyon Bridge ↔ 💥 Collapsed Chasm Bridge</option>
-                        <option value="ritual_blood">🏛️ Clean Marble Sanctum ↔ 🩸 Blood-Soaked Altar</option>
-                        <option value="forest_rift">🌲 Sunlit Forest Glade ↔ 🌋 Scorched Hellfire Rift</option>
-                        <option value="custom">📥 Custom Uploaded State B Map</option>
-                    </select>
-                    <button id="btn-load-morph-scenario" class="btn btn-outline-primary" style="padding: 6px 10px;">Load Pair</button>
-                </div>
-
-                <div class="setting-label" style="margin-top: 6px;">
-                    <span>State A (0%) &rarr; State B (100%) Morph Slider</span>
-                    <select id="morph-blend-style" class="input-select" style="width: auto; padding: 2px 6px; font-size: 10px;">
-                        <option value="crossfade">Smooth Crossfade</option>
-                        <option value="radial_spread">Shockwave / Radial Spread</option>
-                    </select>
-                </div>
-                <input type="range" id="morph-progress-slider" class="range-slider" min="0" max="100" step="1" value="0">
-
-                <div class="control-row" style="margin-top: 4px;">
-                    <button id="btn-morph-animate-100" class="btn btn-primary" style="flex: 1.2; padding: 6px 8px; font-size: 11px;">▶ Animate to State B</button>
-                    <button id="btn-morph-animate-0" class="btn" style="flex: 1; padding: 6px 8px; font-size: 11px;">◀ Revert to State A</button>
-                    <button id="btn-upload-morph-b" class="btn" style="flex: 1; padding: 6px 8px; font-size: 11px;" title="Upload any custom second-state map image">📥 Upload State B</button>
-                    <input type="file" id="morph-b-file-input" accept="image/*" style="display: none;">
-                </div>
+            <!-- MODE TABS: ✨ AI Map Generator vs 🔍 4K Battlemap Search -->
+            <div class="btn-grid-segment" style="grid-template-columns: repeat(2, 1fr); gap: 4px; background: rgba(0, 0, 0, 0.35); padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                <button type="button" class="btn-chip mapgen-mode-tab active" data-mapgen-tab="ai" style="font-size: 11.5px; font-weight: 700; padding: 6px 8px;">✨ AI Map Generator</button>
+                <button type="button" class="btn-chip mapgen-mode-tab" data-mapgen-tab="search" style="font-size: 11.5px; font-weight: 700; padding: 6px 8px;">🔍 4K Battlemap Search</button>
             </div>
 
-            <!-- SECTION 2: MULTI-LAYER 3D PARALLAX VERTICAL HEIGHT -->
-            <div class="setting-group" style="background: rgba(0, 255, 200, 0.05); border: 1px solid rgba(0, 255, 200, 0.24); padding: 10px; border-radius: var(--radius-md);">
-                <div class="setting-label" style="color: var(--primary);">
-                    <span>🏔️ 2. Multi-Layer 3D Parallax Vertical Height</span>
-                </div>
-                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.4;">
-                    Separates deep background (0.38x speed) and elevated foreground (1.55x speed) as the camera pans or drifts, creating a sense of vertical height on cliffs, rooftops, or airships.
-                </div>
+            <!-- ==========================================================
+                 TAB 1: ✨ AI MAP GENERATOR (M&M GM Suite MapGen Workflow)
+                 ========================================================== -->
+            <div id="mapgen-tab-ai" style="display: flex; flex-direction: column; gap: 10px;">
 
-                <label class="setting-label" style="margin-top: 4px;">Vertical Height Environment Layer</label>
-                <select id="parallax-mode-select" class="input-select">
-                    <option value="none">Off (Standard Single-Plane Map)</option>
-                    <option value="cliff">🏔️ High Cliff & Deep Canyon Chasm Below</option>
-                    <option value="rooftops">🏙️ City Rooftops & Lantern-Lit Streets Below</option>
-                    <option value="airship">⛵ High-Altitude Skyship & Cloud Deck Below</option>
-                    <option value="canopy">🌳 Giant Treetop Walk & Overarching Boughs</option>
-                </select>
+                <!-- 1. ENCOUNTER LOCATION & SCENE -->
+                <div class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-md);">
+                    <div class="setting-label">
+                        <span>1. Encounter Location &amp; Scene</span>
+                        <span style="font-size: 10px; color: var(--text-dim); text-transform: none;">Auto-updates prompt</span>
+                    </div>
 
-                <div class="setting-label" style="margin-top: 4px;">
-                    <span>Parallax Depth Separation</span>
-                    <span id="parallax-depth-val" class="setting-val-display">1.0x</span>
-                </div>
-                <input type="range" id="parallax-depth-slider" class="range-slider" min="0.2" max="2.5" step="0.1" value="1.0">
-
-                <div class="setting-label" style="margin-top: 4px;">
-                    <span>Gentle Camera Auto-Sway (Continuous Height Feel)</span>
-                    <input type="checkbox" id="parallax-autosway-toggle" style="cursor: pointer;">
-                </div>
-            </div>
-
-            <!-- SECTION 3: INFINITE SCROLLING BACKGROUNDS & STATIONARY VEHICLE CHASES -->
-            <div class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-md);">
-                <div class="setting-label">
-                    <span style="color: #7ec483;">🚂 3. Infinite Scrolling Vehicle Chase Mode</span>
-                    <button id="btn-toggle-chase" class="btn btn-outline-primary" style="padding: 4px 10px; font-size: 11px;">▶ Start Chase: OFF</button>
-                </div>
-                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.4;">
-                    For train robberies, riverboat chases, or skyship battles: the vehicle stays stationary in the center of the table while the ground, water, or clouds continuously scroll past underneath!
-                </div>
-
-                <div class="control-row" style="margin-top: 6px;">
-                    <div style="flex: 1;">
-                        <label class="setting-label">Stationary Center Vehicle</label>
-                        <select id="chase-vehicle-select" class="input-select" style="width: 100%; margin-top: 3px;">
-                            <option value="steam_train">🚂 Steam Train & Cars</option>
-                            <option value="riverboat">🛳️ Paddlewheel Riverboat</option>
-                            <option value="skyship">⛵ Arcane Skyship Galleon</option>
-                            <option value="war_wagon">🛡️ Armored War Wagon</option>
-                            <option value="none">None (Scrolling Terrain Only)</option>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <span style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">Quick Inspiration Preset:</span>
+                        <select id="ai-inspo-select" class="input-select" style="font-weight: 600; color: var(--primary); cursor: pointer;">
+                            <option value="custom">✦ Custom (Type your own scene below)</option>
+                            <option value="Ruined sunken elven temple with turquoise water pools and mossy stone columns" selected>🏛️ Elven Sunken Temple</option>
+                            <option value="Deep underground dwarven forge cavern with molten lava river and stone bridges">🌋 Dwarven Lava Forge</option>
+                            <option value="Lush forest road clearing with meandering river, rustic wooden bridge, wildflowers">🌲 Forest River Crossing</option>
+                            <option value="Cozy fantasy tavern taproom with roaring stone fireplace, wooden tables, cellar hatch">🍺 Cozy Tavern Taproom</option>
+                            <option value="Ancient stone crypt dungeon with sarcophagi, broken cobblestones, torch sconces">🏰 Ancient Crypt Dungeon</option>
+                            <option value="Windswept desert oasis with crumbling sandstone ruins and palm trees">🏜️ Desert Oasis Ruins</option>
+                            <option value="Haunted graveyard crossroads with mossy headstones, dead ironwood trees, foggy mausoleum">🪦 Haunted Graveyard</option>
+                            <option value="Coastal pirate cove with wrecked galleon ship, sandy beach, hidden sea cave">🏴‍☠️ Pirate Cove &amp; Shipwreck</option>
+                            <option value="Underground cavern with glowing violet crystal formations and subterranean lake">🔮 Crystal Cavern</option>
+                            <option value="Snowy mountain pass with rickety rope suspension bridge over icy chasm">❄️ Mountain Rope Bridge</option>
+                            <option value="Gothic cathedral ruin with shattered stained glass, stone altar, overgrown ivy">⛪ Gothic Cathedral Ruin</option>
+                            <option value="Rain-slicked cyberpunk back-alley with neon holographic signs, dumpster steam, puddles">🏙️ Cyberpunk Back-Alley</option>
+                            <option value="Sci-fi starship command bridge with holo-projector, sensory consoles, airlock">🚀 Sci-Fi Starship Bridge</option>
+                            <option value="Industrial warehouse docks with shipping containers, crane gantries, murky canal">⚓ Industrial Harbor Docks</option>
                         </select>
                     </div>
-                    <div style="flex: 1;">
-                        <label class="setting-label">Scrolling Terrain Underneath</label>
-                        <select id="chase-terrain-select" class="input-select" style="width: 100%; margin-top: 3px;">
-                            <option value="railroad_desert">🛤️ Desert Canyon Railroad</option>
-                            <option value="river_rapids">🌊 Whitewater River Rapids</option>
-                            <option value="sky_clouds">☁️ High-Altitude Cloud Sea</option>
-                            <option value="forest_road">🌲 Winding Forest Coach Road</option>
-                            <option value="current_map">🗺️ Tile Current Map Image</option>
-                        </select>
+
+                    <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                        <span style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">Scene Details &amp; Custom Features:</span>
+                        <input type="text" id="ai-location-input" class="input-text" value="Ruined sunken elven temple with turquoise water pools and mossy stone columns" placeholder="e.g. Ruined sunken elven temple with turquoise water pools and mossy stone columns...">
                     </div>
                 </div>
 
-                <div class="setting-label" style="margin-top: 6px;">
-                    <span>Scroll Speed</span>
-                    <span id="chase-speed-val" class="setting-val-display">45 mph</span>
-                </div>
-                <input type="range" id="chase-speed-slider" class="range-slider" min="0" max="140" step="5" value="45">
-
-                <div class="setting-label" style="margin-top: 4px;">
-                    <span>Scroll Direction</span>
-                </div>
-                <div class="btn-grid-segment" style="grid-template-columns: repeat(4, 1fr);">
-                    <div class="btn-chip chase-dir-chip active" data-dir="west">⬅ West</div>
-                    <div class="btn-chip chase-dir-chip" data-dir="east">➡ East</div>
-                    <div class="btn-chip chase-dir-chip" data-dir="north">⬆ North</div>
-                    <div class="btn-chip chase-dir-chip" data-dir="south">⬇ South</div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- 5. AI PROMPT BUILDER & IN-TOOL / POPOUT MAP FINDER STUDIO (ZERO API KEY) -->
-    <div id="ai-generator-panel" class="floating-panel">
-        <div class="panel-header">
-            <span class="panel-title">✨ Prompt Builder & Map Finder Studio <span style="font-size: 10px; background: rgba(0,255,200,0.15); color: var(--primary); padding: 2px 7px; border-radius: 10px;">No API Key Required</span></span>
-            <button class="panel-close-btn">&times;</button>
-        </div>
-        <div class="panel-body">
-
-            <!-- STEP 1: LOCATION / SCENE INPUT -->
-            <div class="setting-group">
-                <div class="setting-label">
-                    <span>1. Enter Your Map Location / Encounter Scene</span>
-                    <span style="font-size: 10px; color: var(--text-dim); text-transform: none;">Auto-updates prompt box below</span>
-                </div>
-                <input type="text" id="ai-location-input" class="input-text" value="a ruined sunken elven temple with turquoise water pools and mossy stone columns" placeholder="e.g. a ruined sunken elven temple with turquoise water pools and mossy stone columns">
-                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px;">
-                    <div class="btn-chip ai-prompt-chip" data-prompt="a ruined sunken elven temple with turquoise water pools and mossy stone columns">🏛️ Elven Sunken Temple</div>
-                    <div class="btn-chip ai-prompt-chip" data-prompt="an underground Dwarven forge with molten lava channels, stone bridge, and giant anvils">🌋 Dwarven Forge</div>
-                    <div class="btn-chip ai-prompt-chip" data-prompt="a windswept desert canyon oasis with sandstone arches, ancient ruins, and palm trees">🏜️ Desert Oasis Canyon</div>
-                    <div class="btn-chip ai-prompt-chip" data-prompt="an ancient mossy forest glade with a stone circle henge and winding rocky creek">🌲 Forest Druid Grove</div>
-                    <div class="btn-chip ai-prompt-chip" data-prompt="a rustic medieval tavern taproom with wooden tables, long bar counter, hearth, and barrels">🍺 Tavern Taproom</div>
-                    <div class="btn-chip ai-prompt-chip" data-prompt="a subterranean crystal cavern with glowing bioluminescent mushrooms and dark underground lake">💎 Crystal Cavern</div>
-                </div>
-            </div>
-
-            <!-- STEP 1B: OUTPUT SIZE INTENT, ASPECT RATIO & ORIENTATION -->
-            <div class="setting-group" style="background: rgba(0, 255, 200, 0.05); border: 1px solid rgba(0, 255, 200, 0.22); padding: 9px; border-radius: var(--radius-md);">
-                <div class="setting-label" style="color: var(--primary);">
-                    <span>📐 Output Size Intent &amp; Aspect Ratio</span>
-                    <span id="ai-size-intent-badge" class="setting-val-display" style="color: var(--primary);">36" × 24" (3:2 • Landscape)</span>
-                </div>
-                <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 5px;">
-                    Toggle <b>Landscape</b> or <b>Portrait</b> orientation and select your physical battle mat size or projector ratio to auto-format prompts and AI generation dimensions:
-                </div>
-
-                <!-- Landscape / Portrait Orientation Toggle -->
-                <div class="btn-grid-segment" style="grid-template-columns: repeat(2, 1fr); gap: 5px; margin-bottom: 6px;">
-                    <button id="btn-ai-orient-landscape" class="btn btn-secondary ai-orientation-chip active" data-orientation="landscape" style="border-color: var(--primary); background: var(--primary-dim); font-weight: 600;" title="Horizontal wide layout for tabletops and landscape projectors">↔️ Landscape (Horizontal)</button>
-                    <button id="btn-ai-orient-portrait" class="btn btn-secondary ai-orientation-chip" data-orientation="portrait" style="font-weight: 600;" title="Vertical tall layout for portrait corridors, bridges, and vertical mats">↕️ Portrait (Vertical)</button>
-                </div>
-
-                <div class="btn-grid-segment" style="grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 5px;">
-                    <button class="btn btn-secondary ai-size-chip active" data-size="24x36" data-ratio="2:3" data-label-landscape="📐 36&quot; × 24&quot; (Mat)" data-label-portrait="📐 24&quot; × 36&quot; (Mat)" data-desc="designed for 36x24 inch physical tabletop battle mat, landscape horizontal orientation, 3:2 aspect ratio, --ar 3:2" style="border-color: var(--primary); background: var(--primary-dim);">📐 36" × 24" (Mat)</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="16:9" data-ratio="16:9" data-label-landscape="🖥️ 16:9 (Widescreen)" data-label-portrait="📱 9:16 (Vertical)" data-desc="optimized for 16:9 widescreen projector display, --ar 16:9">🖥️ 16:9 (Widescreen)</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="4:3" data-ratio="4:3" data-label-landscape="📽️ 4:3 (Projector)" data-label-portrait="📽️ 3:4 (Vertical)" data-desc="optimized for 4:3 classic projector display, --ar 4:3">📽️ 4:3 (Projector)</button>
-                </div>
-                <div class="btn-grid-segment" style="grid-template-columns: repeat(4, 1fr); gap: 4px;">
-                    <button class="btn btn-secondary ai-size-chip" data-size="30x40" data-ratio="3:4" data-label-landscape="40&quot; × 30&quot;" data-label-portrait="30&quot; × 40&quot;" data-desc="designed for 40x30 inch large table battle mat, 4:3 aspect ratio, --ar 4:3">40" × 30"</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="18x24" data-ratio="3:4" data-label-landscape="24&quot; × 18&quot;" data-label-portrait="18&quot; × 24&quot;" data-desc="designed for 24x18 inch skirmish battle mat, 4:3 aspect ratio, --ar 4:3">24" × 18"</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="1:1" data-ratio="1:1" data-label-landscape="1:1 Square" data-label-portrait="1:1 Square" data-desc="square arena battle map, 1:1 aspect ratio, --ar 1:1">1:1 Square</button>
-                    <button class="btn btn-secondary ai-size-chip" data-size="21:9" data-ratio="21:9" data-label-landscape="21:9 Ultra" data-label-portrait="9:21 Tall" data-desc="21:9 cinematic ultrawide battle map, --ar 21:9">21:9 Ultra</button>
-                </div>
-            </div>
-
-            <!-- STEP 2: INTERACTIVE PROMPT TOGGLES (AUTO-PASTES INTO SEARCH BOX) -->
-            <div class="setting-group">
-                <div class="setting-label">
-                    <span>2. Toggle Prompt Modifiers (Auto-Pastes Into Search Box)</span>
-                    <div style="display: flex; gap: 6px;">
-                        <button id="btn-toggles-all-core" class="btn" style="padding: 2px 7px; font-size: 10px;">✓ Core Defaults</button>
-                        <button id="btn-toggles-clear" class="btn" style="padding: 2px 7px; font-size: 10px;">✕ Clear Toggles</button>
+                <!-- 2. ART STYLE & PERSPECTIVE -->
+                <div class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-md);">
+                    <div class="setting-label">
+                        <span>2. Art Style &amp; Perspective</span>
+                    </div>
+                    <div id="ai-style-chips" style="display: flex; flex-wrap: wrap; gap: 5px;">
+                        <button type="button" class="btn-chip ai-style-chip active" data-style="4K Orthographic Top-Down Satellite View, razor sharp textures, clean tactical surface">🛰️ 4K Top-Down (Best)</button>
+                        <button type="button" class="btn-chip ai-style-chip" data-style="Detailed hand-drawn fantasy cartography in the style of Czepeku and Forgotten Adventures">🖌️ Hand-Drawn / Czepeku</button>
+                        <button type="button" class="btn-chip ai-style-chip" data-style="Unreal Engine 5 photorealistic 3D environment render, raytraced ambient occlusion">🎮 3D Photorealistic</button>
+                        <button type="button" class="btn-chip ai-style-chip" data-style="Dark gritty grimdark fantasy tabletop battle map, weathered textures, deep shadows">🌑 Grimdark Fantasy</button>
+                        <button type="button" class="btn-chip ai-style-chip" data-style="Delicate watercolor and ink fantasy battle map with soft washes on textured parchment">🌊 Watercolor Wash</button>
+                        <button type="button" class="btn-chip ai-style-chip" data-style="Classic isometric 2.5D RPG battle map angle with clear tactical floorplan">🕹️ Isometric 2.5D</button>
                     </div>
                 </div>
-                <div id="prompt-toggles-container" class="prompt-toggles-grid"></div>
+
+                <!-- 3. LIGHTING & ATMOSPHERE -->
+                <div class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-md);">
+                    <div class="setting-label">
+                        <span>3. Lighting &amp; Atmosphere</span>
+                    </div>
+                    <div id="ai-lighting-chips" style="display: flex; flex-wrap: wrap; gap: 5px;">
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="direct high noon sunlight, crisp sharp shadows, bright radiant midday visibility">☀️ High Noon</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="soft dawn sunrise lighting, warm amber and rose morning hues, gentle dew glow, long angled shadows">🌅 Dawn / Sunrise</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="dusk twilight atmosphere, fiery orange horizon, deep purple evening shadows">🌇 Dusk / Sunset</button>
+                        <button type="button" class="btn-chip ai-lighting-chip active" data-light="bright natural daylight, high contrast, clean visibility">🌤️ Bright Daylight</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="moody night, ethereal silver moonlight, glowing ambient shadows">🌙 Moonlit Night</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="warm gaslamp and streetlight glow, golden lamppost halos on wet cobblestones, moody night shadows">🏮 Streetlight / Gaslamp</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="neon technicolor lighting, vivid electric cyan and hot pink neon glow, reflective rain puddles, high contrast">🌆 Neon Technicolor</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="dramatic warm flickering torchlight and subterranean braziers with deep shadows">🔥 Warm Torchlight</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="mystical arcane bioluminescence, glowing magical runes and radiant energy pools">🔮 Arcane / Magic Glow</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="dense eerie morning fog, volumetric diffuse mist, haunting atmospheric gloom">🌫️ Foggy Mist / Gloom</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="raging thunderstorm, flashes of violet lightning, rain-swept reflective surfaces">⛈️ Storm / Lightning</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="dim ritual candlelit glow, sinister crimson shadows, dark occult atmosphere">🕯️ Candlelit / Ritual</button>
+                        <button type="button" class="btn-chip ai-lighting-chip" data-light="Underdark abyss, pitch darkness pierced by glowing violet crystals and luminous subterranean mushrooms">🌌 Underdark Bioluminescent</button>
+                    </div>
+                </div>
+
+                <!-- 4. TARGET PIXEL RESOLUTION, ORIENTATION & ASPECT FIT/CROP -->
+                <div class="setting-group" style="background: rgba(0, 255, 200, 0.05); border: 1px solid rgba(0, 255, 200, 0.24); padding: 10px; border-radius: var(--radius-md);">
+                    <div class="setting-label" style="color: var(--primary);">
+                        <span>4. Target Pixel Resolution &amp; Aspect Fit</span>
+                        <span id="ai-size-intent-badge" class="setting-val-display" style="color: var(--primary);">3840×2160 (4K UHD)</span>
+                    </div>
+
+                    <!-- Landscape / Portrait Orientation Toggle -->
+                    <div class="btn-grid-segment" style="grid-template-columns: repeat(2, 1fr); gap: 5px; margin-bottom: 6px;">
+                        <button type="button" id="btn-ai-orient-landscape" class="btn btn-secondary ai-orientation-chip active" data-orientation="landscape" style="border-color: var(--primary); background: var(--primary-dim); font-weight: 600;" title="Horizontal wide layout for tabletops and landscape projectors">↔️ Landscape (Horizontal)</button>
+                        <button type="button" id="btn-ai-orient-portrait" class="btn btn-secondary ai-orientation-chip" data-orientation="portrait" style="font-weight: 600;" title="Vertical tall layout for portrait corridors, bridges, and vertical mats">↕️ Portrait (Vertical)</button>
+                    </div>
+
+                    <!-- Target Pixel Resolution Chips (M&M GM Suite + Physical Mat Presets) -->
+                    <div id="ai-res-chips" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px;">
+                        <button type="button" class="btn-chip ai-res-chip active" data-w="3840" data-h="2160" data-tag="3840×2160 (4K UHD)">3840 × 2160 (4K UHD)</button>
+                        <button type="button" class="btn-chip ai-res-chip" data-w="2560" data-h="1440" data-tag="2560×1440 (2K QHD)">2560 × 1440 (2K QHD)</button>
+                        <button type="button" class="btn-chip ai-res-chip" data-w="1920" data-h="1080" data-tag="1920×1080 (FHD 16:9)">1920 × 1080 (FHD)</button>
+                        <button type="button" class="btn-chip ai-res-chip" data-w="4096" data-h="4096" data-tag="4096×4096 (4K Square)">4096 × 4096 (4K Square)</button>
+                        <button type="button" class="btn-chip ai-res-chip" data-w="2048" data-h="2048" data-tag="2048×2048 (2K Square)">2048 × 2048 (2K Square)</button>
+                        <button type="button" class="btn-chip ai-res-chip" data-w="3440" data-h="1440" data-tag="3440×1440 (21:9 Ultrawide)">3440 × 1440 (Ultrawide)</button>
+                        <button type="button" class="btn-chip ai-res-chip" data-w="1920" data-h="1200" data-tag="1920×1200 (16:10 Tabletop)">1920 × 1200 (16:10)</button>
+                        <button type="button" class="btn-chip ai-res-chip" data-w="3600" data-h="2400" data-tag="3600×2400 (36&quot;×24&quot; Mat 3:2)">36"×24" Mat (3:2)</button>
+                        <button type="button" class="btn-chip ai-res-chip" data-w="custom" data-h="custom" data-tag="Custom Resolution">Custom</button>
+                    </div>
+
+                    <!-- Custom W x H Pixel Inputs -->
+                    <div style="display: flex; align-items: center; gap: 8px; background: rgba(0, 0, 0, 0.35); padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 4px; flex: 1;">
+                            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">W:</span>
+                            <input type="number" id="ai-res-w" class="input-text" value="3840" min="512" max="8192" step="64" style="padding: 3px 6px; text-align: center; font-family: var(--font-mono);">
+                            <span style="font-size: 11px; color: var(--text-muted);">px</span>
+                        </div>
+                        <span style="color: var(--text-muted); font-weight: bold;">×</span>
+                        <div style="display: flex; align-items: center; gap: 4px; flex: 1;">
+                            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">H:</span>
+                            <input type="number" id="ai-res-h" class="input-text" value="2160" min="512" max="8192" step="64" style="padding: 3px 6px; text-align: center; font-family: var(--font-mono);">
+                            <span style="font-size: 11px; color: var(--text-muted);">px</span>
+                        </div>
+                    </div>
+
+                    <!-- Auto-Upscale Toggle -->
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-main); cursor: pointer; margin-top: 6px;" title="Automatically scales smaller pasted/loaded images (like 1024px from Gemini) up to your selected target 4K resolution">
+                        <input type="checkbox" id="ai-chk-autoupscale" checked style="accent-color: var(--primary); cursor: pointer;">
+                        <span>⚡ <b>Auto-upscale smaller pasted/loaded maps to Target Resolution</b></span>
+                    </label>
+
+                    <!-- Aspect Fit / Crop Mode Chips -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; flex-wrap: wrap; gap: 4px;">
+                        <span style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">Aspect Fit / Crop:</span>
+                        <div id="ai-fit-chips" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button type="button" class="btn-chip ai-fit-chip active" data-fit="cover" title="Center-crop excess edges to fill the exact target resolution with zero stretching or distortion">Fill &amp; Crop (Best)</button>
+                            <button type="button" class="btn-chip ai-fit-chip" data-fit="contain" title="Fit entire map without cropping, adding clean dark borders if aspect ratios differ">Fit Entire Map</button>
+                            <button type="button" class="btn-chip ai-fit-chip" data-fit="fill" title="Stretch image to exact width &amp; height">Stretch to Fit</button>
+                        </div>
+                    </div>
+
+                    <!-- Active Map Dimension Readout & Manual Upscale Button -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(255, 255, 255, 0.12); font-size: 10.5px;">
+                        <span style="color: var(--text-muted);">Active Map Resolution: <b id="ai-active-map-dims" style="color: #fff; font-family: var(--font-mono);">3840 × 2160 px</b></span>
+                        <button type="button" id="btn-ai-upscale-4k" class="btn btn-outline-primary" style="display: none; padding: 2px 8px; font-size: 10px;" title="Upscale and fit the currently loaded map to the target pixel resolution">⚡ Scale to Target</button>
+                    </div>
+                </div>
+
+                <!-- 4B. OPTIONAL QUALITY & CONSTRAINT TOGGLES -->
+                <div class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 9px; border-radius: var(--radius-md);">
+                    <div class="setting-label">
+                        <span>Quality &amp; Tactical Surface Toggles</span>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" id="btn-toggles-all-core" class="btn" style="padding: 2px 7px; font-size: 10px;">✓ Core Defaults</button>
+                            <button type="button" id="btn-toggles-clear" class="btn" style="padding: 2px 7px; font-size: 10px;">✕ Clear</button>
+                        </div>
+                    </div>
+                    <div id="prompt-toggles-container" class="prompt-toggles-grid"></div>
+                </div>
+
+                <!-- 5. MASTER CARTOGRAPHER PROMPT & COMPANION LAUNCHERS -->
+                <div class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-md);">
+                    <div class="setting-label">
+                        <span>5. Master Cartographer Prompt</span>
+                        <div style="display: flex; gap: 5px;">
+                            <button type="button" id="btn-reset-prompt" class="btn" style="padding: 2px 8px; font-size: 10px;" title="Reset prompt to default template">Reset</button>
+                            <button type="button" id="btn-copy-assembled-prompt" class="btn btn-outline-primary" style="padding: 2px 8px; font-size: 10px;">📋 Copy Prompt</button>
+                        </div>
+                    </div>
+
+                    <textarea id="ai-prompt-input" class="input-textarea" style="min-height: 72px; font-size: 11.5px; line-height: 1.45; font-family: var(--font-mono); color: #93c5fd;" spellcheck="false"></textarea>
+
+                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                        <button type="button" id="btn-open-gemini-popup" class="btn btn-popout-search" data-popout="gemini" style="width: 100%; justify-content: center; padding: 10px 12px; font-size: 12.5px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%); border-color: #818cf8;" title="Copies prompt to clipboard and opens Google Gemini in a floating companion popup alongside your battlemap">
+                            🚀 Copy Prompt &amp; Open Gemini (Floating Popup)
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- STEP 3: ASSEMBLED SEARCH / PROMPT BOX -->
-            <div class="setting-group">
-                <div class="setting-label">
-                    <span>3. Auto-Assembled Search & AI Prompt Box</span>
-                    <button id="btn-copy-assembled-prompt" class="btn btn-outline-primary" style="padding: 3px 10px; font-size: 10px;">📋 Copy Prompt</button>
-                </div>
-                <textarea id="ai-prompt-input" class="input-textarea" style="min-height: 76px; font-size: 11.5px; line-height: 1.45;"></textarea>
-            </div>
+            <!-- ==========================================================
+                 TAB 2: 🔍 4K BATTLEMAP SEARCH & INSTANT 4K CURATED MAPS
+                 ========================================================== -->
+            <div id="mapgen-tab-search" style="display: none; flex-direction: column; gap: 10px;">
 
-            <!-- STEP 4: IN-TOOL SEARCH & POPOUT BROWSER TABS -->
-            <div class="setting-group">
-                <div class="setting-label">
-                    <span>4. Search Inside Tool OR Launch Pop-Out Tab (Auto-Copies Prompt)</span>
+                <!-- 1. 4K BATTLEMAP SEARCH ENGINES -->
+                <div class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-md);">
+                    <div class="setting-label">
+                        <span>🔍 4K Battlemap Search Engines</span>
+                    </div>
+                    <div class="control-row" style="gap: 6px;">
+                        <input type="text" id="ai-search-query-input" class="input-text" placeholder="e.g. forest river, sunken temple, tavern, starship..." value="forest river">
+                        <button type="button" id="btn-do-google-4k-search" class="btn btn-primary" style="white-space: nowrap; font-weight: 700; padding: 6px 12px;">🔍 Google 4K Search</button>
+                    </div>
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px;">
+                        <button type="button" class="btn btn-popout-search" data-popout="pinterest" style="flex: 1; font-size: 11px; padding: 5px 8px;" title="Search high-res tactical battlemaps on Pinterest">📌 Pinterest 4K</button>
+                        <button type="button" class="btn btn-popout-search" data-popout="reddit" style="flex: 1; font-size: 11px; padding: 5px 8px;" title="Search r/battlemaps top posts on Reddit">🛡️ r/battlemaps</button>
+                        <button type="button" class="btn btn-popout-search" data-popout="artstation" style="flex: 1; font-size: 11px; padding: 5px 8px;" title="Search tabletop battlemaps on ArtStation">🎨 ArtStation Maps</button>
+                        <button type="button" id="btn-search-maps-intool" class="btn btn-outline-primary" style="font-size: 11px; padding: 5px 8px;" title="Query r/battlemaps gallery directly inside this panel">🔎 In-Tool Gallery</button>
+                    </div>
+                    <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.4; margin-top: 4px; background: rgba(255, 255, 255, 0.03); padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                        💡 <b>How it works:</b> Launches search in a floating companion window. In the popup, right-click any battlemap &rarr; <b>Copy image</b>, then click back here and press <b>Ctrl+V</b> to instantly load &amp; auto-upscale to 4K!
+                    </div>
                 </div>
 
-                <!-- Primary In-Tool Search & Keyless AI Actions -->
-                <div class="control-row">
-                    <button id="btn-search-maps-intool" class="btn btn-primary" style="flex: 1.2; padding: 9px 12px;">
-                        🔎 Search 4K Maps Inside Tool
-                    </button>
-                    <button id="btn-generate-ai-map" class="btn btn-outline-primary" style="flex: 1; padding: 9px 12px;">
-                        ⚡ Generate AI Map In-Tool
-                    </button>
+                <!-- 2. DIRECT IMAGE URL / PASTE LOADER -->
+                <div class="setting-group" style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-md);">
+                    <div class="setting-label">
+                        <span>📥 Load Direct Image URL / Paste</span>
+                    </div>
+                    <div class="control-row" style="gap: 6px;">
+                        <input type="text" id="ai-direct-map-url" class="input-text" placeholder="Paste direct image URL (https://...jpg/png) or press Ctrl+V">
+                        <button type="button" id="btn-load-direct-url" class="btn btn-outline-primary" style="white-space: nowrap;">Load URL</button>
+                    </div>
                 </div>
 
-                <!-- Popout Browser Window Launchers -->
-                <div class="popout-btn-grid" style="margin-top: 4px;">
-                    <button class="popout-card-btn btn-popout-search" data-popout="gemini">
-                        <div>
-                            <span>🌟 Pop Out Google Gemini</span>
-                            <span class="popout-sub">Auto-copies prompt → Paste (Ctrl+V) in Google Pro</span>
-                        </div>
-                        <span>↗</span>
-                    </button>
-                    <button class="popout-card-btn btn-popout-search" data-popout="google_images">
-                        <div>
-                            <span>🔍 Pop Out Google Images 4K</span>
-                            <span class="popout-sub">Pre-filtered for Large 4K top-down battlemaps</span>
-                        </div>
-                        <span>↗</span>
-                    </button>
-                    <button class="popout-card-btn btn-popout-search" data-popout="reddit">
-                        <div>
-                            <span>🗺️ Pop Out r/battlemaps</span>
-                            <span class="popout-sub">Search 50,000+ ultra-HD community maps</span>
-                        </div>
-                        <span>↗</span>
-                    </button>
-                    <button class="popout-card-btn btn-popout-search" data-popout="pinterest">
-                        <div>
-                            <span>📌 Pop Out Pinterest Maps</span>
-                            <span class="popout-sub">Visual top-down TTRPG battlemap boards</span>
-                        </div>
-                        <span>↗</span>
-                    </button>
+                <!-- IN-TOOL SEARCH & AI RESULTS GALLERY -->
+                <div id="in-tool-results-section" class="setting-group" style="display: none;">
+                    <div class="setting-label">
+                        <span id="in-tool-results-title">In-Tool 4K Map Results (Click to Load or Save)</span>
+                        <span id="in-tool-results-count" class="setting-val-display"></span>
+                    </div>
+                    <div id="ai-search-results-grid" class="search-results-grid"></div>
                 </div>
             </div>
 
             <div id="ai-gen-status" style="display: none; font-size: 11px; color: var(--primary); text-align: center; padding: 6px; background: rgba(0,255,200,0.08); border-radius: var(--radius-sm); border: 1px solid rgba(0,255,200,0.25);"></div>
 
-            <!-- IN-TOOL SEARCH & AI RESULTS GALLERY -->
-            <div id="in-tool-results-section" class="setting-group" style="display: none;">
-                <div class="setting-label">
-                    <span id="in-tool-results-title">In-Tool 4K Map Results (Click to Load or Save)</span>
-                    <span id="in-tool-results-count" class="setting-val-display"></span>
-                </div>
-                <div id="ai-search-results-grid" class="search-results-grid"></div>
-            </div>
-
-            <!-- INSTANT IMPORT & SAVE BAR (CLIPBOARD PASTE / UPLOAD / SAVE TO DISK) -->
+            <!-- INSTANT IMPORT, COPY 4K IMAGE & SAVE BAR (SHARED ACROSS BOTH TABS) -->
             <div class="setting-group" style="background: rgba(0, 255, 200, 0.05); border: 1px solid rgba(0, 255, 200, 0.22); padding: 10px; border-radius: var(--radius-md);">
                 <div class="setting-label" style="color: var(--primary);">
-                    <span>⚡ Quick Import from Popout & Save to Disk</span>
-                    <span style="font-size: 10px; color: var(--text-muted); text-transform: none;">Right-click "Copy Image" in any window &rarr; Ctrl+V here!</span>
+                    <span>⚡ Quick Import, Copy &amp; 4K Export</span>
+                    <span style="font-size: 10px; color: var(--text-muted); text-transform: none;">Copy image anywhere &rarr; Ctrl+V here!</span>
                 </div>
-                <div class="control-row" style="margin-top: 4px;">
-                    <button id="btn-paste-clipboard-map" class="btn btn-outline-primary" style="flex: 1.2;" title="Paste any copied image directly onto the battlemap (Hotkey: Ctrl+V)">
-                        📋 Paste Image (Ctrl+V)
+                <div class="control-row" style="margin-top: 4px; gap: 5px; flex-wrap: wrap;">
+                    <button type="button" id="btn-paste-clipboard-map" class="btn btn-outline-primary" style="flex: 1.1; font-size: 11px; padding: 6px 8px;" title="Paste any copied image or URL from clipboard onto the battlemap (Hotkey: Ctrl+V)">
+                        📋 Paste (Ctrl+V)
                     </button>
-                    <button id="btn-upload-from-ai-panel" class="btn" style="flex: 1;" title="Upload a downloaded map file from your computer">
-                        📥 Upload File
+                    <button type="button" id="btn-upload-from-ai-panel" class="btn" style="flex: 0.9; font-size: 11px; padding: 6px 8px;" title="Upload a downloaded map file from your computer">
+                        📥 Upload
                     </button>
-                    <button id="btn-save-current-map" class="btn" style="flex: 1;" title="Download and save the currently displayed battlemap image to your computer">
-                        💾 Save Current Map
+                    <button type="button" id="btn-copy-current-map" class="btn" style="flex: 1; font-size: 11px; padding: 6px 8px;" title="Copy the active map (with target 4K resolution &amp; image adjustments baked in) to clipboard">
+                        🖼️ Copy Image
+                    </button>
+                    <button type="button" id="btn-save-current-map" class="btn btn-primary" style="flex: 1.1; font-size: 11px; padding: 6px 8px;" title="Download the active battlemap at target resolution with all adjustments baked in">
+                        💾 Download 4K
                     </button>
                 </div>
             </div>
 
             <!-- History Reel -->
             <div class="setting-group">
-                <label class="setting-label">Recent & Saved Session Maps</label>
+                <label class="setting-label">Recent &amp; Saved Session Maps</label>
                 <div id="ai-history-reel" class="ai-history-reel"></div>
             </div>
         </div>
@@ -1252,6 +1076,12 @@
                     <span class="setting-val-display img-contrast-val">100%</span>
                 </div>
                 <input type="range" class="range-slider img-contrast-slider" min="40" max="250" value="100">
+
+                <div class="setting-label" style="margin-top: 4px;">
+                    <span>Image Saturation</span>
+                    <span class="setting-val-display img-saturation-val">100%</span>
+                </div>
+                <input type="range" class="range-slider img-saturation-slider" min="0" max="220" value="100">
 
                 <div class="setting-label" style="margin-top: 4px;">
                     <span>Image Sharpness (Detail Boost)</span>
@@ -1628,7 +1458,6 @@
                 <button class="readme-jump-chip" data-target="readme-section-fx">🌿 160 Features</button>
                 <button class="readme-jump-chip" data-target="readme-section-inspector">🎛️ Attributes</button>
                 <button class="readme-jump-chip" data-target="readme-section-keystone">📐 Keystone &amp; Grid</button>
-                <button class="readme-jump-chip" data-target="readme-section-scenes">🎬 Dynamic Scenes</button>
             </div>
 
             <!-- SECTION 1: KEYBOARD SHORTCUTS REFERENCE TABLE -->
@@ -1831,15 +1660,6 @@
                 </ul>
             </div>
 
-            <!-- SECTION 8: DYNAMIC SCENES & MORPHING -->
-            <div id="readme-section-scenes" class="readme-card">
-                <h4>🎬 Dynamic Scenes: Phased Battlemaps &amp; Vehicle Chases</h4>
-                <ul style="margin: 0; padding-left: 18px;">
-                    <li><b>Real-Time Map Morphing</b>: Smoothly crossfade between pristine and destroyed map states mid-combat (Tavern Fire, Bridge Collapse, Blood Altar).</li>
-                    <li><b>Stationary Center Vehicles</b>: Keep your train, riverboat, or skyship centered for physical miniatures while terrain continuously scrolls underneath!</li>
-                </ul>
-            </div>
-
         </div>
     </div>
 
@@ -1847,7 +1667,7 @@
          BOTTOM FLOATING HUD BAR
          ====================================================================== -->
     <div class="hud-bar">
-        <span id="active-map-name" style="font-size: 11px; font-weight: 600; color: #fff; padding: 0 8px;">Forest Glade</span>
+        <span id="active-map-name" style="font-size: 11px; font-weight: 600; color: #fff; padding: 0 8px;">Tactical Grid</span>
         <div class="divider"></div>
         <button class="hud-btn" onclick="window.battlemapApp.resetPanZoom()">🔄 Reset Zoom</button>
         <button class="hud-btn" id="hud-btn-pan" onclick="window.battlemapApp.togglePanMode()" title="Pan Mode (P): drag empty map to move it">✋ Pan (P)</button>

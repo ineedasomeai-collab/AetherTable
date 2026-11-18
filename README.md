@@ -40,18 +40,17 @@ A high-performance, web-based digital battle map utility engineered specifically
 6. **↩ 16 Levels of Undo & Redo**:
    - Universal `Ctrl+Z` (Undo) and `Ctrl+Y` / `Ctrl+Shift+Z` (Redo) with live `0/16` step badges across the top nav bar, Realistic FX panel, and Element Inspector.
 
-7. **✨ Map Finder, AI Prompt Studio & Popout Tabs**:
-   - **Landscape / Portrait Orientation Toggle**: Instantly switch output size intents between horizontal tabletop projection and vertical upright displays.
-   - **Output Size Intent Presets**: `24"x36" Mat (2:3)`, `16:9 Widescreen`, `4:3 Projector`, `30"x40" Large`, `18"x24" Medium`, `1:1 Square`, and `21:9 Ultra`.
-   - **Interactive Toggle-Based Prompt Builder**: Assemble professional master cartographer prompts without typing.
-   - **In-Tool 4K Map Search & Keyless AI Generator**: Find community maps from `r/battlemaps` or generate custom maps directly inside the app.
+7. **✨ MapGen — AI Battlemap Studio & 4K Search (M&M GM Suite Architecture)**:
+   - **2-Tab Studio**: Dedicated **✨ AI Map Generator** and **🔍 4K Battlemap Search** tabs.
+   - **15 Encounter Inspiration Presets & Editable Scene Prompt**: Elven Sunken Temple, Dwarven Lava Forge, Forest River Crossing, Cozy Tavern Taproom, Ancient Crypt Dungeon, Desert Oasis Ruins, Haunted Graveyard, Pirate Cove & Shipwreck, Crystal Cavern, Mountain Rope Bridge, Gothic Cathedral Ruin, Cyberpunk Back-Alley, Sci-Fi Starship Bridge, Industrial Harbor Docks, and Custom.
+   - **6 Art Styles & 13 Lighting/Atmosphere Presets**: Top-Down 4K Orthographic, Hand-Drawn / Czepeku, 3D Photorealistic, Grimdark Fantasy, Watercolor Wash, and Isometric 2.5D paired with 13 lighting moods (High Noon, Dawn, Dusk, Bright Daylight, Moonlit Night, Gaslamp, Neon Technicolor, Warm Torchlight, Arcane Glow, Foggy Mist, Storm/Lightning, Candlelit Ritual, and Underdark Bioluminescent).
+   - **4K Target Pixel Resolution, Orientation & Aspect Fit/Crop**:
+     - Landscape (`↔️`) / Portrait (`↕️`) toggle with 1-click presets (`3840 × 2160 4K UHD`, `2560 × 1440 2K QHD`, `1920 × 1080 FHD`, `4096 × 4096 4K Square`, `2048 × 2048 2K Square`, `3440 × 1440 Ultrawide`, `1920 × 1200 16:10`, `36"×24" Mat 3:2`, and custom `W × H` px).
+     - **Auto-Upscale & Aspect Fit/Crop**: Automatically upscales and fits pasted or uploaded images to target 4K resolution using **Fill & Crop (`cover`)**, **Fit Entire Map (`contain`)**, or **Stretch to Fit (`fill`)**, plus an on-demand **⚡ Scale to Target** button.
+   - **Floating Gemini Companion & 4K Search**: Under `✨ AI Map Generator`, click **🚀 Copy Prompt & Open Gemini (Floating Popup)** to copy your assembled Master Cartographer Prompt and launch Google Gemini in a companion popup window. Under `🔍 4K Battlemap Search`, search **Google 4K Images**, **Pinterest 4K**, **Reddit `r/battlemaps`**, or **ArtStation**. Right-click any image → **Copy Image** → press **`Ctrl+V`** in AetherTable to project and upscale to 4K automatically.
+   - **4K Baked Export & Clipboard Copy**: **🖼️ Copy Image** and **💾 Download 4K** bake your target pixel resolution, Fit/Crop mode, Brightness, Contrast, Saturation, and 3×3 Convolution Sharpness directly into the exported file.
 
-8. **🎬 Dynamic Scenes: Real-Time Map State Morphing & Infinite Vehicle Chases**:
-   - **Phased Battlemap Morphing**: Smooth 0%–100% crossfade slider and instant flip buttons between pristine and destroyed map states (*Tavern Fire*, *Bridge Collapse*, *Blood Altar*, *Reactor Meltdown*).
-   - **3D Parallax Height**: Independent background (`0.38x`) and foreground (`1.55x`) camera drift for dramatic vertical depth.
-   - **Stationary Center Vehicles**: Keeps your physical train, riverboat, skyship, or war wagon centered for physical miniatures while terrain scrolls continuously underneath.
-
-9. **📐 Keystone Homography & ⊞ Physical 1-Inch Grid Calibration**:
+8. **📐 Keystone Homography & ⊞ Physical 1-Inch Grid Calibration**:
    - **4-Corner Homography (`matrix3d`)**: Complete perspective correction for projectors set at angles to the table surface.
    - **Touch-Friendly Pins**: 68px targets with 92px cushions and on-screen touch D-Pad for tablet/phone calibration without keyboards.
    - **Physical 1-Inch (25mm) Base Calibrator**: Calibrate the digital grid to match your physical miniature bases with a physical ruler.

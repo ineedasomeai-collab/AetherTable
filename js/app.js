@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Main Application Coordinator
  * Connects Keystone, Grid, Living Elements, AI Generator, Fog of War, and UI
  */
@@ -32,6 +32,7 @@ class BattlemapApp {
         this.imageAdjustments = {
             brightness: 100,
             contrast: 100,
+            saturation: 100,
             sharpness: 0
         };
 
@@ -40,38 +41,16 @@ class BattlemapApp {
         this.panMode = false;
         this.activePanelId = null;
 
-        // Preset battle maps (high-res procedural SVG maps with rich textures)
+        // Curated 4K Tactical Environments (lazy on-demand 4K procedural generation + live 160x90 canvas thumbnails)
         this.presets = [
-            {
-                id: 'forest',
-                name: 'Forest Glade & Stream',
-                type: 'svg',
-                src: this.generateForestMapSVG()
-            },
-            {
-                id: 'desert',
-                name: 'Desert Dunes & Canyon',
-                type: 'svg',
-                src: this.generateDesertMapSVG()
-            },
-            {
-                id: 'dungeon',
-                name: 'Ancient Crypt Vault',
-                type: 'svg',
-                src: this.generateDungeonMapSVG()
-            },
-            {
-                id: 'tavern',
-                name: 'Tavern Taproom',
-                type: 'svg',
-                src: this.generateTavernMapSVG()
-            },
-            {
-                id: 'cavern',
-                name: 'Volcanic Lava Cavern',
-                type: 'svg',
-                src: this.generateLavaMapSVG()
-            }
+            { id: 'forest', name: 'Forest River Crossing', soundscape: 'forest' },
+            { id: 'dungeon', name: 'Ancient Crypt Dungeon', soundscape: 'cave' },
+            { id: 'cavern', name: 'Volcanic Lava Chasm', soundscape: 'volcano' },
+            { id: 'tavern', name: 'Cozy Tavern Taproom', soundscape: 'tavern' },
+            { id: 'desert', name: 'Desert Oasis Ruins', soundscape: 'wind' },
+            { id: 'cyber', name: 'Cyberpunk Neon Alley', soundscape: 'city' },
+            { id: 'crystal', name: 'Underdark Crystal Cavern', soundscape: 'cave' },
+            { id: 'ship', name: 'Starship Command Bridge', soundscape: 'wind' }
         ];
     }
 
@@ -82,8 +61,21 @@ class BattlemapApp {
         this.initDraggablePanels();
         this.loadSettings();
 
-        // Load initial default map (Forest Glade)
-        this.loadPreset('forest');
+        // Start on a clean tactical grid backdrop until the user pastes, uploads, or loads a map
+        const titleEl = document.getElementById('active-map-name');
+        if (titleEl) titleEl.textContent = 'Tactical Grid';
+    }
+
+    renderPresetThumbnails() {
+        if (!window.aiMapGenerator) return;
+        document.querySelectorAll('.preset-thumb-canvas').forEach(canvas => {
+            const presetId = canvas.getAttribute('data-preset-canvas');
+            const presetSpec = window.aiMapGenerator.CURATED_MAPS.find(m => m.id === presetId);
+            if (presetSpec && typeof presetSpec.render === 'function') {
+                const ctx = canvas.getContext('2d');
+                presetSpec.render(ctx, canvas.width || 160, canvas.height || 90);
+            }
+        });
     }
 
     cacheElements() {
@@ -140,6 +132,24 @@ class BattlemapApp {
             this.dom.mapVideo.style.display = 'none';
             this.dom.mapVideo.pause();
             this.dom.mapImage.style.display = 'block';
+            this.dom.mapImage.onload = () => {
+                const nw = this.dom.mapImage.naturalWidth || 0;
+                const nh = this.dom.mapImage.naturalHeight || 0;
+                const dimsEl = document.getElementById('ai-active-map-dims');
+                const upscaleBtn = document.getElementById('btn-ai-upscale-4k');
+                if (dimsEl && nw > 0 && nh > 0) {
+                    const targetW = (window.aiMapGenerator && window.aiMapGenerator.state) ? window.aiMapGenerator.state.w : 3840;
+                    const targetH = (window.aiMapGenerator && window.aiMapGenerator.state) ? window.aiMapGenerator.state.h : 2160;
+                    const isExactTarget = (nw === targetW && nh === targetH);
+                    dimsEl.textContent = isExactTarget
+                        ? `${nw} × ${nh} px (Target Match ✓)`
+                        : `${nw} × ${nh} px`;
+                    dimsEl.style.color = isExactTarget ? 'var(--primary)' : '#fbbf24';
+                    if (upscaleBtn) {
+                        upscaleBtn.style.display = isExactTarget ? 'none' : 'inline-flex';
+                    }
+                }
+            };
             this.dom.mapImage.src = src;
         }
 
@@ -156,22 +166,78 @@ class BattlemapApp {
         this.saveSettings();
     }
 
+    /**
+     * Loads and processes an image (pasted, uploaded, or URL) through the 4K MapGen pipeline
+     * so auto-upscale & aspect fit/crop are respected automatically.
+     */
+    async loadAndProcessMapImage(srcUrl, label = 'Custom Map', forceUpscale = false, provider = 'Imported') {
+        if (!window.aiMapGenerator) {
+            this.setMap(srcUrl, false, label);
+            return;
+        }
+        try {
+            const processed = await window.aiMapGenerator.processAndFitImage(srcUrl, forceUpscale);
+            const finalUrl = processed.dataUrl || srcUrl;
+            this.setMap(finalUrl, false, label);
+            window.aiMapGenerator.addToHistory({
+                id: `map_${Date.now()}`,
+                prompt: label,
+                provider: processed.wasAdjusted ? `${provider} (${processed.width}×${processed.height})` : provider,
+                url: finalUrl
+            });
+            return processed;
+        } catch (err) {
+            this.setMap(srcUrl, false, label);
+            window.aiMapGenerator.addToHistory({
+                id: `map_${Date.now()}`,
+                prompt: label,
+                provider: provider,
+                url: srcUrl
+            });
+            return null;
+        }
+    }
+
+    async reprocessActiveMapToTarget() {
+        if (!this.currentMap || !this.currentMap.src || this.currentMap.isVideo || !window.aiMapGenerator) return null;
+        const processed = await window.aiMapGenerator.processAndFitImage(this.currentMap.src, true);
+        if (processed && processed.dataUrl) {
+            this.setMap(processed.dataUrl, false, this.currentMap.name);
+        }
+        return processed;
+    }
+
     loadPreset(presetId) {
         const p = this.presets.find(item => item.id === presetId);
-        if (p) {
-            this.setMap(p.src, false, p.name);
+        let dataUrl = null;
+        let mapTitle = p ? p.name : 'Tactical Map';
 
-            // Sync map environment soundscape automatically
-            if (window.livingElementsEngine) {
-                const envLookup = {
-                    forest: 'forest',
-                    desert: 'wind',
-                    dungeon: 'cave',
-                    tavern: 'tavern',
-                    cavern: 'volcano'
-                };
-                window.livingElementsEngine.setEnvironmentSoundscape(envLookup[presetId] || 'forest');
+        if (window.aiMapGenerator) {
+            const generated = window.aiMapGenerator.generateCurated4KMap(presetId);
+            if (generated && generated.dataUrl) {
+                dataUrl = generated.dataUrl;
+                mapTitle = generated.title || mapTitle;
             }
+        }
+        if (!dataUrl) {
+            dataUrl = this.generateForestMapSVG();
+        }
+
+        this.setMap(dataUrl, false, mapTitle);
+
+        // Sync map environment soundscape automatically
+        if (window.livingElementsEngine) {
+            const envLookup = {
+                forest: 'forest',
+                desert: 'wind',
+                dungeon: 'cave',
+                tavern: 'tavern',
+                cavern: 'volcano',
+                cyber: 'city',
+                crystal: 'cave',
+                ship: 'wind'
+            };
+            window.livingElementsEngine.setEnvironmentSoundscape((p && p.soundscape) || envLookup[presetId] || 'forest');
         }
     }
 
@@ -263,11 +329,11 @@ class BattlemapApp {
     }
 
     /**
-     * Applies independent Map Image Adjustments (Brightness, Contrast, and SVG Convolution Sharpness)
+     * Applies independent Map Image Adjustments (Brightness, Contrast, Saturation, and SVG Convolution Sharpness)
      * directly to the map asset (#map-image / #map-video), separate from Projector Optics
      */
     applyImageAdjustments() {
-        const { brightness, contrast, sharpness } = this.imageAdjustments;
+        const { brightness, contrast, saturation = 100, sharpness } = this.imageAdjustments;
 
         // Update 3x3 Unsharp / Laplacian Convolution Kernel when sharpness > 0
         const kernelEl = document.getElementById('map-sharpen-kernel');
@@ -280,7 +346,7 @@ class BattlemapApp {
         }
 
         const sharpenUrl = sharpness > 0 ? ' url(#map-sharpen-filter)' : '';
-        const assetFilter = `brightness(${brightness}%) contrast(${contrast}%)${sharpenUrl}`;
+        const assetFilter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)${sharpenUrl}`;
 
         if (this.dom.mapImage) {
             this.dom.mapImage.style.filter = assetFilter;
@@ -299,6 +365,9 @@ class BattlemapApp {
 
         document.querySelectorAll('.img-contrast-slider').forEach(el => { el.value = contrast; });
         document.querySelectorAll('.img-contrast-val').forEach(el => { el.textContent = `${contrast}%`; });
+
+        document.querySelectorAll('.img-saturation-slider').forEach(el => { el.value = saturation; });
+        document.querySelectorAll('.img-saturation-val').forEach(el => { el.textContent = `${saturation}%`; });
 
         document.querySelectorAll('.img-sharpness-slider').forEach(el => { el.value = sharpness; });
         document.querySelectorAll('.img-sharpness-val').forEach(el => { el.textContent = `${sharpness}%`; });
@@ -1089,87 +1158,101 @@ class BattlemapApp {
             });
         });
 
-        // Drag & Drop File OR Cross-Window Browser Image Drop on viewport
+        // Drag & Drop File OR Cross-Window Browser Image Drop on viewport, plus #map-file-input change
         const dropzone = document.getElementById('map-dropzone');
         const fileInput = document.getElementById('map-file-input');
 
-        if (dropzone && fileInput) {
-            dropzone.addEventListener('click', () => fileInput.click());
+        if (fileInput) {
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files && e.target.files[0]) {
                     this.handleFileUpload(e.target.files[0]);
                 }
             });
-
-            window.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('dragover');
-            });
-            window.addEventListener('dragleave', (e) => {
-                if (e.clientX === 0 && e.clientY === 0) {
-                    dropzone.classList.remove('dragover');
-                }
-            });
-            window.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('dragover');
-
-                // 1. Local file or dragged image blob
-                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    this.handleFileUpload(e.dataTransfer.files[0]);
-                    return;
-                }
-
-                // 2. Dragged directly from a popout browser tab (HTML img or URI)
-                const htmlData = e.dataTransfer.getData('text/html');
-                if (htmlData) {
-                    const match = htmlData.match(/<img[^>]+src=["']([^"']+)["']/i);
-                    if (match && match[1]) {
-                        const imgUrl = match[1].replace(/&amp;/g, '&');
-                        this.setMap(imgUrl, false, 'Dropped Browser Map');
-                        window.aiMapGenerator.addToHistory({
-                            id: `drop_${Date.now()}`,
-                            prompt: 'Dropped Map',
-                            provider: 'Web',
-                            url: imgUrl
-                        });
-                        return;
-                    }
-                }
-
-                const uriData = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
-                if (uriData && /^https?:\/\//i.test(uriData.trim())) {
-                    const cleanUrl = uriData.trim().split('\n')[0].trim();
-                    const isVid = cleanUrl.endsWith('.mp4') || cleanUrl.endsWith('.webm');
-                    this.setMap(cleanUrl, isVid, 'Dropped Web Map');
-                    if (!isVid) {
-                        window.aiMapGenerator.addToHistory({
-                            id: `drop_${Date.now()}`,
-                            prompt: 'Dropped Web Map',
-                            provider: 'Web',
-                            url: cleanUrl
-                        });
-                    }
-                }
-            });
         }
 
-        // Global Clipboard Paste (Ctrl+V) for pasting copied maps from Google Gemini / Google Images popout
-        window.addEventListener('paste', (e) => {
-            if (!e.clipboardData || !e.clipboardData.items) return;
-            for (const item of e.clipboardData.items) {
-                if (item.type && item.type.startsWith('image/')) {
-                    const blob = item.getAsFile();
-                    if (blob) {
-                        e.preventDefault();
-                        this.handleFileUpload(blob, 'Pasted Clipboard Map');
-                        return;
-                    }
+        if (dropzone && fileInput) {
+            dropzone.addEventListener('click', () => fileInput.click());
+        }
+
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (dropzone) dropzone.classList.add('dragover');
+        });
+        window.addEventListener('dragleave', (e) => {
+            if (e.clientX === 0 && e.clientY === 0 && dropzone) {
+                dropzone.classList.remove('dragover');
+            }
+        });
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (dropzone) dropzone.classList.remove('dragover');
+
+            // 1. Local file or dragged image blob
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                this.handleFileUpload(e.dataTransfer.files[0]);
+                return;
+            }
+
+            // 2. Dragged directly from a popout browser tab (HTML img or URI)
+            const htmlData = e.dataTransfer.getData('text/html');
+            if (htmlData) {
+                const match = htmlData.match(/<img[^>]+src=["']([^"']+)["']/i);
+                if (match && match[1]) {
+                    const imgUrl = match[1].replace(/&amp;/g, '&');
+                    this.loadAndProcessMapImage(imgUrl, 'Dropped Browser Map', false, 'Web Drop');
+                    return;
+                }
+            }
+
+            const uriData = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+            if (uriData && /^https?:\/\//i.test(uriData.trim())) {
+                const cleanUrl = uriData.trim().split('\n')[0].trim();
+                const isVid = cleanUrl.endsWith('.mp4') || cleanUrl.endsWith('.webm');
+                if (isVid) {
+                    this.setMap(cleanUrl, true, 'Dropped Web Video Map');
+                } else {
+                    this.loadAndProcessMapImage(cleanUrl, 'Dropped Web Map', false, 'Web Drop');
                 }
             }
         });
 
-        // URL Map Loader
+        // Global Clipboard Paste (Ctrl+V) for pasting copied maps or image URLs from Gemini / AI Studio / Google Images popouts
+        window.addEventListener('paste', (e) => {
+            if (!e.clipboardData) return;
+
+            // 1. Check for image blob in clipboard
+            if (e.clipboardData.items) {
+                for (const item of e.clipboardData.items) {
+                    if (item.type && item.type.startsWith('image/')) {
+                        const blob = item.getAsFile();
+                        if (blob) {
+                            e.preventDefault();
+                            this.handleFileUpload(blob, 'Pasted Clipboard Map');
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // 2. If not typing inside an input/textarea, also accept pasted image URLs (https://... or data:image/...)
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+                const text = e.clipboardData.getData('text/plain');
+                if (text && (/^https?:\/\/\S+/i.test(text.trim()) || /^data:image\//i.test(text.trim()))) {
+                    e.preventDefault();
+                    this.loadAndProcessMapImage(text.trim(), 'Pasted URL Map', false, 'Clipboard URL');
+                }
+            }
+        });
+
+        // Listen for cross-window EXTERNAL_IMAGE_PASTE messages (matching M&M GM Suite MapGen companion protocol)
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'EXTERNAL_IMAGE_PASTE' && e.data.dataUrl) {
+                this.loadAndProcessMapImage(e.data.dataUrl, 'Companion Pasted Map', false, 'Companion');
+            }
+        });
+
+        // URL Map Loader (Maps Panel)
         const urlInput = document.getElementById('map-url-input');
         const btnLoadUrl = document.getElementById('btn-load-map-url');
         if (btnLoadUrl && urlInput) {
@@ -1177,7 +1260,11 @@ class BattlemapApp {
                 const url = urlInput.value.trim();
                 if (url) {
                     const isVid = url.endsWith('.mp4') || url.endsWith('.webm');
-                    this.setMap(url, isVid, 'URL Map');
+                    if (isVid) {
+                        this.setMap(url, true, 'URL Video Map');
+                    } else {
+                        this.loadAndProcessMapImage(url, 'URL Map', false, 'Direct URL');
+                    }
                     urlInput.value = '';
                 }
             });
@@ -1337,19 +1424,34 @@ class BattlemapApp {
         const isVideo = (file.type && file.type.startsWith('video/')) || (file.name && (file.name.endsWith('.mp4') || file.name.endsWith('.webm')));
         const label = customLabel || file.name || 'Imported Map';
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const dataUrl = e.target.result;
-            this.setMap(dataUrl, isVideo, label);
-            if (!isVideo && window.aiMapGenerator) {
-                window.aiMapGenerator.addToHistory({
-                    id: `import_${Date.now()}`,
-                    prompt: label,
-                    provider: 'Imported',
-                    url: dataUrl
-                });
+            if (isVideo) {
+                this.setMap(dataUrl, true, label);
+            } else {
+                await this.loadAndProcessMapImage(dataUrl, label, false, 'Imported');
             }
         };
         reader.readAsDataURL(file);
+    }
+
+    async copyMapToClipboard() {
+        if (!window.aiMapGenerator || !this.currentMap || !this.currentMap.src || this.currentMap.isVideo) {
+            return false;
+        }
+        try {
+            const targetW = window.aiMapGenerator.state ? window.aiMapGenerator.state.w : 3840;
+            const targetH = window.aiMapGenerator.state ? window.aiMapGenerator.state.h : 2160;
+            const canvas = window.aiMapGenerator.renderFinalAdjustedCanvas(this.dom.mapImage, targetW, targetH, this.imageAdjustments);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            if (blob && navigator.clipboard && window.ClipboardItem) {
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                return { width: targetW, height: targetH };
+            }
+        } catch (err) {
+            console.warn('Clipboard image copy fallback:', err);
+        }
+        return false;
     }
 
     async saveMapToDisk(srcUrl, mapName = 'battlemap') {
@@ -1365,6 +1467,21 @@ class BattlemapApp {
             .replace(/^-+|-+$/g, '') || 'battlemap';
 
         try {
+            // When exporting the active map image, bake target 4K resolution, fit/crop mode, brightness, contrast, saturation & sharpness
+            if (!srcUrl && !this.currentMap.isVideo && window.aiMapGenerator && this.dom.mapImage && this.dom.mapImage.complete && this.dom.mapImage.naturalWidth > 0) {
+                const targetW = window.aiMapGenerator.state ? window.aiMapGenerator.state.w : 3840;
+                const targetH = window.aiMapGenerator.state ? window.aiMapGenerator.state.h : 2160;
+                const canvas = window.aiMapGenerator.renderFinalAdjustedCanvas(this.dom.mapImage, targetW, targetH, this.imageAdjustments);
+                const bakedUrl = canvas.toDataURL('image/jpeg', 0.94);
+                const a = document.createElement('a');
+                a.href = bakedUrl;
+                a.download = `${safeName}-${targetW}x${targetH}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                return;
+            }
+
             if (targetUrl.startsWith('data:')) {
                 const a = document.createElement('a');
                 a.href = targetUrl;
@@ -2719,22 +2836,38 @@ class BattlemapApp {
     }
 
     bindAIGeneratorControls() {
+        const inspoSelect = document.getElementById('ai-inspo-select');
         const locationInput = document.getElementById('ai-location-input');
+        const searchQueryInput = document.getElementById('ai-search-query-input');
+        const directUrlInput = document.getElementById('ai-direct-map-url');
+        const btnLoadDirectUrl = document.getElementById('btn-load-direct-url');
         const togglesContainer = document.getElementById('prompt-toggles-container');
         const promptInput = document.getElementById('ai-prompt-input');
+        const btnResetPrompt = document.getElementById('btn-reset-prompt');
         const btnCopyPrompt = document.getElementById('btn-copy-assembled-prompt');
         const btnAllCore = document.getElementById('btn-toggles-all-core');
         const btnClearToggles = document.getElementById('btn-toggles-clear');
+        const btnOpenGeminiPopup = document.getElementById('btn-open-gemini-popup');
+        const btnOpenAiStudioPopup = document.getElementById('btn-open-aistudio-popup');
+        const btnDoGoogle4KSearch = document.getElementById('btn-do-google-4k-search');
         const btnSearchInTool = document.getElementById('btn-search-maps-intool');
         const btnGenerate = document.getElementById('btn-generate-ai-map');
         const statusBox = document.getElementById('ai-gen-status');
         const resultsSection = document.getElementById('in-tool-results-section');
         const resultsGrid = document.getElementById('ai-search-results-grid');
         const resultsCount = document.getElementById('in-tool-results-count');
+        const curatedGrid = document.getElementById('ai-curated-grid');
         const btnPasteClipboard = document.getElementById('btn-paste-clipboard-map');
         const btnUploadFromPanel = document.getElementById('btn-upload-from-ai-panel');
+        const btnCopyCurrent = document.getElementById('btn-copy-current-map');
         const btnSaveCurrent = document.getElementById('btn-save-current-map');
         const fileInput = document.getElementById('map-file-input');
+
+        const resWInput = document.getElementById('ai-res-w');
+        const resHInput = document.getElementById('ai-res-h');
+        const chkAutoUpscale = document.getElementById('ai-chk-autoupscale');
+        const btnUpscale4K = document.getElementById('btn-ai-upscale-4k');
+        const sizeBadge = document.getElementById('ai-size-intent-badge');
 
         const showStatus = (msg, isError = false, autoHideMs = 5000) => {
             if (!statusBox) return;
@@ -2750,21 +2883,39 @@ class BattlemapApp {
             }
         };
 
-        // Syncs active toggles + location input directly into the search/prompt textarea
+        // 0. 2-Tab Mode Switcher (✨ AI Map Generator vs 🔍 4K Battlemap Search)
+        document.querySelectorAll('.mapgen-mode-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const mode = tab.getAttribute('data-mapgen-tab');
+                document.querySelectorAll('.mapgen-mode-tab').forEach(t => {
+                    const active = t === tab;
+                    t.classList.toggle('active', active);
+                    t.style.background = active ? 'var(--primary-dim)' : 'rgba(255,255,255,0.03)';
+                    t.style.color = active ? 'var(--primary)' : 'var(--text-muted)';
+                    t.style.borderColor = active ? 'var(--primary)' : 'var(--border-glass)';
+                });
+                const tabAi = document.getElementById('mapgen-tab-ai');
+                const tabSearch = document.getElementById('mapgen-tab-search');
+                if (tabAi) tabAi.style.display = (mode === 'ai') ? 'flex' : 'none';
+                if (tabSearch) tabSearch.style.display = (mode === 'search') ? 'flex' : 'none';
+            });
+        });
+
+        // Syncs active toggles + location + style + lighting + resolution directly into the master prompt box
         const syncPromptBox = () => {
-            if (!promptInput) return;
+            if (!promptInput || !window.aiMapGenerator) return;
             const loc = locationInput ? locationInput.value : '';
             promptInput.value = window.aiMapGenerator.buildAssembledPrompt(loc);
         };
 
-        // Renders the interactive toggle chips
+        // Renders the interactive quality & surface toggle chips
         const renderToggles = () => {
-            if (!togglesContainer) return;
+            if (!togglesContainer || !window.aiMapGenerator) return;
             togglesContainer.innerHTML = '';
             window.aiMapGenerator.promptToggles.forEach(t => {
                 const chip = document.createElement('div');
                 chip.className = `prompt-toggle-chip ${t.active ? 'active' : ''}`;
-                chip.title = `Toggle auto-paste: "${t.text}"`;
+                chip.title = `Toggle prompt modifier: "${t.text}"`;
                 chip.innerHTML = `<span class="chip-check">${t.active ? '✓' : '+'}</span><span>${t.label}</span>`;
                 chip.addEventListener('click', () => {
                     window.aiMapGenerator.togglePromptChip(t.id);
@@ -2775,28 +2926,156 @@ class BattlemapApp {
             });
         };
 
-        renderToggles();
-        syncPromptBox();
+        // 1. Encounter Location & Quick Inspiration Dropdown
+        if (inspoSelect) {
+            inspoSelect.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val && locationInput) {
+                    locationInput.value = val;
+                    window.aiMapGenerator.setLocation(val);
+                    if (searchQueryInput) {
+                        searchQueryInput.value = val.split(' with ')[0];
+                    }
+                    syncPromptBox();
+                }
+            });
+        }
 
-        // Location input live typing updates prompt box
         if (locationInput) {
             locationInput.addEventListener('input', () => {
+                window.aiMapGenerator.setLocation(locationInput.value);
+                if (inspoSelect) inspoSelect.value = '';
                 syncPromptBox();
             });
         }
 
-        // Quick scene starter chips
-        document.querySelectorAll('.ai-prompt-chip').forEach(chip => {
+        // 2. Art Style & Perspective Chips
+        document.querySelectorAll('.ai-style-chip').forEach(chip => {
             chip.addEventListener('click', () => {
-                const sceneText = chip.getAttribute('data-prompt');
-                if (locationInput) {
-                    locationInput.value = sceneText;
-                }
+                document.querySelectorAll('.ai-style-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                const styleVal = chip.getAttribute('data-style');
+                window.aiMapGenerator.setStyle(styleVal);
                 syncPromptBox();
             });
         });
 
-        // Core defaults / Clear all toggles buttons
+        // 3. Lighting & Atmosphere Chips (13 presets)
+        document.querySelectorAll('.ai-lighting-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.ai-lighting-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                const lightVal = chip.getAttribute('data-light');
+                window.aiMapGenerator.setLighting(lightVal);
+                syncPromptBox();
+            });
+        });
+
+        // 4. Target Pixel Resolution, Orientation & Aspect Fit/Crop
+        const orientChips = document.querySelectorAll('.ai-orientation-chip');
+        const resChips = document.querySelectorAll('.ai-res-chip');
+        const fitChips = document.querySelectorAll('.ai-fit-chip');
+
+        const syncResolutionAndFitUI = () => {
+            if (!window.aiMapGenerator) return;
+            const st = window.aiMapGenerator.state;
+            const spec = window.aiMapGenerator.refreshOrientedSizeSpec();
+
+            if (resWInput) resWInput.value = st.w;
+            if (resHInput) resHInput.value = st.h;
+            if (chkAutoUpscale) chkAutoUpscale.checked = !!st.autoUpscale;
+            if (sizeBadge && spec && spec.badge) sizeBadge.textContent = spec.badge;
+
+            orientChips.forEach(oc => {
+                const isMatch = oc.getAttribute('data-orientation') === st.orientation;
+                oc.classList.toggle('active', isMatch);
+            });
+
+            let matchedPreset = false;
+            resChips.forEach(rc => {
+                const rw = parseInt(rc.getAttribute('data-w'), 10);
+                const rh = parseInt(rc.getAttribute('data-h'), 10);
+                if (rw > 0 && rh > 0) {
+                    const isMatch = (rw === st.w && rh === st.h) || (rh === st.w && rw === st.h);
+                    rc.classList.toggle('active', isMatch);
+                    if (isMatch) matchedPreset = true;
+                } else {
+                    rc.classList.toggle('active', !matchedPreset);
+                }
+            });
+
+            fitChips.forEach(fc => {
+                const isMatch = fc.getAttribute('data-fit') === st.fitMode;
+                fc.classList.toggle('active', isMatch);
+            });
+        };
+
+        orientChips.forEach(oc => {
+            oc.addEventListener('click', () => {
+                const nextOrient = oc.getAttribute('data-orientation') || 'landscape';
+                window.aiMapGenerator.setOrientation(nextOrient);
+                syncResolutionAndFitUI();
+                syncPromptBox();
+            });
+        });
+
+        resChips.forEach(rc => {
+            rc.addEventListener('click', () => {
+                const rw = parseInt(rc.getAttribute('data-w'), 10);
+                const rh = parseInt(rc.getAttribute('data-h'), 10);
+                const rLabel = rc.getAttribute('data-ratio') || '';
+                if (rw > 0 && rh > 0) {
+                    const curOrient = window.aiMapGenerator.state.orientation;
+                    const finalW = (curOrient === 'portrait' && rw > rh) ? rh : rw;
+                    const finalH = (curOrient === 'portrait' && rw > rh) ? rw : rh;
+                    window.aiMapGenerator.setResolution(finalW, finalH, rLabel);
+                    syncResolutionAndFitUI();
+                    syncPromptBox();
+                } else if (resWInput) {
+                    resWInput.focus();
+                }
+            });
+        });
+
+        const onCustomResChange = () => {
+            const w = parseInt(resWInput ? resWInput.value : 3840, 10) || 3840;
+            const h = parseInt(resHInput ? resHInput.value : 2160, 10) || 2160;
+            window.aiMapGenerator.setResolution(w, h, `${w}×${h} Custom`);
+            syncResolutionAndFitUI();
+            syncPromptBox();
+        };
+
+        if (resWInput) resWInput.addEventListener('change', onCustomResChange);
+        if (resHInput) resHInput.addEventListener('change', onCustomResChange);
+
+        if (chkAutoUpscale) {
+            chkAutoUpscale.addEventListener('change', (e) => {
+                window.aiMapGenerator.setAutoUpscale(e.target.checked);
+            });
+        }
+
+        fitChips.forEach(fc => {
+            fc.addEventListener('click', () => {
+                const mode = fc.getAttribute('data-fit') || 'cover';
+                window.aiMapGenerator.setFitMode(mode);
+                syncResolutionAndFitUI();
+            });
+        });
+
+        if (btnUpscale4K) {
+            btnUpscale4K.addEventListener('click', async () => {
+                const st = window.aiMapGenerator.state;
+                showStatus(`⚡ Upscaling & fitting active map to <b>${st.w} × ${st.h} px (${st.fitMode})</b>...`, false, 0);
+                const res = await this.reprocessActiveMapToTarget();
+                if (res && res.dataUrl) {
+                    showStatus(`✅ Active map scaled & fitted to <b>${res.width} × ${res.height} px</b>!`, false, 4500);
+                } else {
+                    showStatus(`⚠️ Could not reprocess active map.`, true, 4000);
+                }
+            });
+        }
+
+        // Core defaults / Clear all toggles / Reset prompt buttons
         if (btnAllCore) {
             btnAllCore.addEventListener('click', () => {
                 window.aiMapGenerator.setAllToggles(true, true);
@@ -2813,62 +3092,14 @@ class BattlemapApp {
             });
         }
 
-        // Output Size Intent, Aspect Ratio & Landscape/Portrait Orientation Toggle
-        const sizeBadge = document.getElementById('ai-size-intent-badge');
-        const sizeChips = document.querySelectorAll('.ai-size-chip');
-        const orientChips = document.querySelectorAll('.ai-orientation-chip');
-
-        const syncSizeAndOrientationUI = () => {
-            const curOrient = window.aiMapGenerator.orientation || 'landscape';
-            const curSize = window.aiMapGenerator.sizeIntent || '24x36';
-            const spec = window.aiMapGenerator.refreshOrientedSizeSpec();
-
-            orientChips.forEach(oc => {
-                const isMatch = oc.getAttribute('data-orientation') === curOrient;
-                oc.classList.toggle('active', isMatch);
-                oc.style.borderColor = isMatch ? 'var(--primary)' : '';
-                oc.style.background = isMatch ? 'var(--primary-dim)' : '';
-            });
-
-            sizeChips.forEach(sc => {
-                const labelAttr = curOrient === 'portrait' ? 'data-label-portrait' : 'data-label-landscape';
-                const newLabel = sc.getAttribute(labelAttr);
-                if (newLabel) sc.textContent = newLabel;
-
-                const isMatch = sc.getAttribute('data-size') === curSize;
-                sc.classList.toggle('active', isMatch);
-                sc.style.borderColor = isMatch ? 'var(--primary)' : '';
-                sc.style.background = isMatch ? 'var(--primary-dim)' : '';
-            });
-
-            if (sizeBadge && spec && spec.badge) {
-                sizeBadge.textContent = spec.badge;
-            }
-        };
-
-        orientChips.forEach(oc => {
-            oc.addEventListener('click', () => {
-                const nextOrient = oc.getAttribute('data-orientation') || 'landscape';
-                window.aiMapGenerator.setOrientation(nextOrient);
-                syncSizeAndOrientationUI();
+        if (btnResetPrompt) {
+            btnResetPrompt.addEventListener('click', () => {
+                window.aiMapGenerator.setAllToggles(true, true);
+                renderToggles();
                 syncPromptBox();
+                showStatus(`🔄 Master prompt reset to current studio selections.`, false, 3000);
             });
-        });
-
-        sizeChips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                const sz = chip.getAttribute('data-size');
-                const ratio = chip.getAttribute('data-ratio');
-                const desc = chip.getAttribute('data-desc');
-                window.aiMapGenerator.setSizeIntent(sz, ratio, desc);
-                syncSizeAndOrientationUI();
-                syncPromptBox();
-            });
-        });
-
-        // Initialize Size & Orientation UI from saved or default state
-        syncSizeAndOrientationUI();
-        syncPromptBox();
+        }
 
         // Copy assembled prompt button
         if (btnCopyPrompt && promptInput) {
@@ -2885,14 +3116,121 @@ class BattlemapApp {
             });
         }
 
-        // In-Tool 4K Map Search (Reddit r/battlemaps JSON gallery right inside the panel)
+        // 5. Floating Companion Popup Launchers (Gemini, AI Studio, Google 4K, Pinterest, Reddit, ArtStation)
+        if (btnOpenGeminiPopup) {
+            btnOpenGeminiPopup.addEventListener('click', async () => {
+                const loc = locationInput ? locationInput.value.trim() : '';
+                const assembled = promptInput ? promptInput.value.trim() : '';
+                await window.aiMapGenerator.openPopoutSearch('gemini', loc, assembled);
+                showStatus(`🌟 <b>Gemini Companion Popup Opened & Prompt Copied!</b> Press <b>Ctrl+V</b> in Gemini to generate your 4K map, then right-click the image &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> right here in AetherTable!`, false, 10000);
+            });
+        }
+
+        if (btnOpenAiStudioPopup) {
+            btnOpenAiStudioPopup.addEventListener('click', async () => {
+                const loc = locationInput ? locationInput.value.trim() : '';
+                const assembled = promptInput ? promptInput.value.trim() : '';
+                await window.aiMapGenerator.openPopoutSearch('aistudio', loc, assembled);
+                showStatus(`🧪 <b>Google AI Studio Companion Opened & Prompt Copied!</b> Paste the prompt (<b>Ctrl+V</b>), generate your map, right-click &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> here!`, false, 10000);
+            });
+        }
+
+        if (btnDoGoogle4KSearch) {
+            btnDoGoogle4KSearch.addEventListener('click', async () => {
+                const q = (searchQueryInput && searchQueryInput.value.trim()) || (locationInput ? locationInput.value.trim() : 'fantasy forest river crossing');
+                const assembled = promptInput ? promptInput.value.trim() : '';
+                await window.aiMapGenerator.openPopoutSearch('google_images', q, assembled);
+                showStatus(`🔍 <b>Google 4K Battlemap Companion Opened!</b> Right-click any high-res map &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> here (auto-upscales to ${window.aiMapGenerator.state.w}×${window.aiMapGenerator.state.h})!`, false, 9000);
+            });
+        }
+
+        if (searchQueryInput) {
+            searchQueryInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && btnDoGoogle4KSearch) {
+                    e.preventDefault();
+                    btnDoGoogle4KSearch.click();
+                }
+            });
+        }
+
+        document.querySelectorAll('.btn-popout-search').forEach(btn => {
+            if (btn === btnOpenGeminiPopup) return; // Handled above with Gemini-specific status banner
+            btn.addEventListener('click', async () => {
+                const target = btn.getAttribute('data-popout');
+                const isSearchTab = btn.closest('#mapgen-tab-search');
+                const loc = (isSearchTab && searchQueryInput && searchQueryInput.value.trim())
+                    ? searchQueryInput.value.trim()
+                    : (locationInput ? locationInput.value.trim() : '');
+                const assembled = promptInput ? promptInput.value.trim() : '';
+
+                await window.aiMapGenerator.openPopoutSearch(target, loc, assembled);
+                showStatus(`🔍 <b>Floating Search Companion Opened!</b> Right-click any high-res map &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> here to project & auto-scale to 4K!`, false, 9000);
+            });
+        });
+
+        // Direct Image URL Loader inside Tab 2
+        if (btnLoadDirectUrl && directUrlInput) {
+            const triggerDirectUrl = async () => {
+                const url = directUrlInput.value.trim();
+                if (!url) return;
+                showStatus(`⏳ Loading & processing map URL to target 4K resolution...`, false, 0);
+                const res = await this.loadAndProcessMapImage(url, 'Direct URL Map', false, 'Direct URL');
+                directUrlInput.value = '';
+                if (res) {
+                    showStatus(`✅ Loaded & fitted map (<b>${res.width}×${res.height} px</b>) onto the tabletop!`, false, 4500);
+                }
+            };
+            btnLoadDirectUrl.addEventListener('click', triggerDirectUrl);
+            directUrlInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    triggerDirectUrl();
+                }
+            });
+        }
+
+        // Instant Curated 4K Procedural Battlemaps Grid (Tab 2)
+        const initCuratedPresetsGrid = () => {
+            if (!curatedGrid || !window.aiMapGenerator) return;
+            curatedGrid.innerHTML = '';
+            window.aiMapGenerator.CURATED_MAPS.forEach(preset => {
+                const card = document.createElement('div');
+                card.className = 'search-result-card';
+                card.style.cursor = 'pointer';
+                card.innerHTML = `
+                    <div style="position: relative;">
+                        <canvas class="search-card-thumb" width="160" height="90" style="width: 100%; height: 68px; display: block; object-fit: cover; border-radius: 4px;"></canvas>
+                        <span style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.82); color: var(--primary); font-size: 9px; font-family: var(--font-mono); padding: 1px 4px; border-radius: 3px;">4K UHD</span>
+                    </div>
+                    <div class="search-card-info" title="${preset.title} — ${preset.subtitle}"><b>${preset.title}</b> <span style="color:var(--text-dim);">(${preset.subtitle})</span></div>
+                `;
+                const thumbCanvas = card.querySelector('canvas');
+                if (thumbCanvas && typeof preset.render === 'function') {
+                    preset.render(thumbCanvas.getContext('2d'), 160, 90);
+                }
+                card.addEventListener('click', () => {
+                    const st = window.aiMapGenerator.state;
+                    showStatus(`⚡ Rendering <b>${preset.title}</b> at <b>${st.w}×${st.h}</b>...`, false, 0);
+                    setTimeout(() => {
+                        const out = window.aiMapGenerator.generateCurated4KMap(preset.id);
+                        if (out && out.dataUrl) {
+                            this.setMap(out.dataUrl, false, preset.title);
+                            showStatus(`✅ Projected <b>${preset.title}</b> (${out.width}×${out.height} 4K Procedural)!`, false, 4000);
+                        }
+                    }, 20);
+                });
+                curatedGrid.appendChild(card);
+            });
+        };
+
+        // In-Tool 4K Map Search (Reddit r/battlemaps JSON gallery + Curated 4K fallback)
         const renderSearchResults = (items) => {
             if (!resultsSection || !resultsGrid) return;
             resultsGrid.innerHTML = '';
             if (!items || items.length === 0) {
                 resultsSection.style.display = 'block';
                 if (resultsCount) resultsCount.textContent = '0 found';
-                resultsGrid.innerHTML = `<div style="grid-column: 1 / -1; padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center;">No direct in-tool matches for that phrase. Try a shorter keyword (e.g. "elven temple", "desert canyon", "tavern") or click one of the Pop Out buttons above!</div>`;
+                resultsGrid.innerHTML = `<div style="grid-column: 1 / -1; padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center;">No direct in-tool matches for that phrase. Try a shorter keyword or click <b>🔍 Google 4K Search</b> above!</div>`;
                 return;
             }
 
@@ -2902,7 +3240,7 @@ class BattlemapApp {
             items.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'search-result-card';
-                const resBadge = (item.width && item.height) ? `${item.width}×${item.height}` : 'HD';
+                const resBadge = (item.width && item.height) ? `${item.width}×${item.height}` : '4K';
                 card.innerHTML = `
                     <div style="position: relative;">
                         <img class="search-card-thumb" src="${item.thumb}" alt="${item.title}" loading="lazy">
@@ -2910,20 +3248,22 @@ class BattlemapApp {
                     </div>
                     <div class="search-card-info" title="${item.title}">${item.title}</div>
                     <div class="search-card-actions">
-                        <button class="btn-mini btn-load-result">🗺️ Load Map</button>
+                        <button class="btn-mini btn-load-result">🗺️ Project 4K</button>
                         <button class="btn-mini btn-save-result" style="flex: 0.6;" title="Save high-res map to disk">💾 Save</button>
                     </div>
                 `;
 
-                const loadAction = () => {
-                    this.setMap(item.url, false, item.title);
-                    window.aiMapGenerator.addToHistory({
-                        id: item.id,
-                        prompt: item.title,
-                        provider: '4K Search',
-                        url: item.url
-                    });
-                    showStatus(`✅ Loaded <b>${item.title}</b> onto tabletop!`, false, 3500);
+                const loadAction = async () => {
+                    if (item.curatedId) {
+                        const gen = window.aiMapGenerator.generateCurated4KMap(item.curatedId);
+                        if (gen && gen.dataUrl) {
+                            this.setMap(gen.dataUrl, false, item.title);
+                            showStatus(`✅ Projected <b>${item.title}</b> (${gen.width}×${gen.height})!`, false, 3500);
+                        }
+                        return;
+                    }
+                    await this.loadAndProcessMapImage(item.url, item.title, false, '4K Search');
+                    showStatus(`✅ Loaded & fitted <b>${item.title}</b> onto tabletop!`, false, 3500);
                 };
 
                 card.querySelector('.search-card-thumb').addEventListener('click', loadAction);
@@ -2939,24 +3279,23 @@ class BattlemapApp {
 
         if (btnSearchInTool) {
             btnSearchInTool.addEventListener('click', async () => {
-                const loc = locationInput ? locationInput.value.trim() : '';
-                // Extract concise keywords if the user left the long default phrase
-                const searchPhrase = loc
+                const rawQuery = (searchQueryInput && searchQueryInput.value.trim()) || (locationInput ? locationInput.value.trim() : '');
+                const searchPhrase = rawQuery
                     .replace(/^a\s+|^an\s+|^the\s+/i, '')
                     .replace(/\b(with|and|of|in|on)\b.*$/i, '')
-                    .trim() || loc || 'battlemap';
+                    .trim() || rawQuery || 'battlemap';
 
                 btnSearchInTool.disabled = true;
                 const origHTML = btnSearchInTool.innerHTML;
-                btnSearchInTool.innerHTML = `<div class="spinner"></div> Searching 4K Maps...`;
-                showStatus(`🔎 Searching ultra-HD community battlemaps for <b>"${searchPhrase}"</b>...`, false, 0);
+                btnSearchInTool.innerHTML = `<div class="spinner"></div> Searching...`;
+                showStatus(`🔎 Searching 4K battlemaps for <b>"${searchPhrase}"</b>...`, false, 0);
 
                 try {
                     const results = await window.aiMapGenerator.searchMapsInTool(searchPhrase);
                     renderSearchResults(results);
-                    showStatus(`✅ Found <b>${results.length}</b> high-resolution battlemaps! Click any map below to project it on your table or save it.`, false, 5000);
+                    showStatus(`✅ Found <b>${results.length}</b> battlemaps! Click any map below to project it at 4K.`, false, 5000);
                 } catch (err) {
-                    showStatus(`⚠️ In-tool search couldn't reach Reddit (${err.message}). Use the <b>Pop Out</b> buttons above to search in a browser tab!`, true, 6000);
+                    showStatus(`⚠️ Search fallback triggered (${err.message}).`, true, 5000);
                 } finally {
                     btnSearchInTool.disabled = false;
                     btnSearchInTool.innerHTML = origHTML;
@@ -2964,25 +3303,26 @@ class BattlemapApp {
             });
         }
 
-        // In-Tool Keyless AI Map Generator (Flux)
+        // Instant 4K Procedural Scene-Matched Renderer (#btn-generate-ai-map)
         if (btnGenerate && promptInput) {
             btnGenerate.addEventListener('click', async () => {
                 const assembled = promptInput.value.trim();
-                const locLabel = (locationInput && locationInput.value.trim()) ? locationInput.value.trim() : 'Custom AI Map';
+                const locLabel = (locationInput && locationInput.value.trim()) ? locationInput.value.trim() : 'Custom 4K Map';
                 if (!assembled) {
-                    showStatus('Please toggle on some prompt modifiers or enter a location first.', true);
+                    showStatus('Please enter an encounter location or select an inspiration preset first.', true);
                     return;
                 }
 
                 btnGenerate.disabled = true;
                 const origHTML = btnGenerate.innerHTML;
-                btnGenerate.innerHTML = `<div class="spinner"></div> Rendering AI Map...`;
-                showStatus(`⚡ Rendering custom top-down AI battlemap (no API key needed)...`, false, 0);
+                btnGenerate.innerHTML = `<div class="spinner"></div> Rendering 4K...`;
+                const st = window.aiMapGenerator.state;
+                showStatus(`⚡ Rendering <b>${st.w}×${st.h}</b> top-down battlemap for <b>"${locLabel}"</b>...`, false, 0);
 
                 try {
                     const item = await window.aiMapGenerator.generateKeylessMap(assembled, locLabel);
-                    this.setMap(item.url, false, `AI: ${locLabel}`);
-                    showStatus(`✅ AI Battlemap generated and loaded onto the table! Click <b>💾 Save Current Map</b> below to keep it.`, false, 5000);
+                    this.setMap(item.url, false, `4K: ${locLabel}`);
+                    showStatus(`✅ 4K Battlemap rendered (${st.w}×${st.h})! For custom AI diffusion art, click <b>🚀 Copy Prompt & Open Gemini</b>.`, false, 6000);
                 } catch (err) {
                     showStatus(`⚠️ ${err.message}`, true, 6000);
                 } finally {
@@ -2993,29 +3333,12 @@ class BattlemapApp {
             });
         }
 
-        // Popout Search & Google Gemini Studio Launchers
-        document.querySelectorAll('.btn-popout-search').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const target = btn.getAttribute('data-popout');
-                const loc = locationInput ? locationInput.value.trim() : '';
-                const assembled = promptInput ? promptInput.value.trim() : '';
-
-                await window.aiMapGenerator.openPopoutSearch(target, loc, assembled);
-
-                if (target === 'gemini') {
-                    showStatus(`🌟 <b>Popout Opened & Prompt Copied!</b> Press <b>Ctrl+V</b> in Google Gemini to generate your map, then right-click the image &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> right here in AetherTable!`, false, 10000);
-                } else {
-                    showStatus(`🔍 <b>Search Popout Opened!</b> Right-click any high-res map &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> here (or drag & drop it across windows) to load it!`, false, 9000);
-                }
-            });
-        });
-
         // Quick Paste Image from Clipboard button
         if (btnPasteClipboard) {
             btnPasteClipboard.addEventListener('click', async () => {
                 try {
                     if (!navigator.clipboard || !navigator.clipboard.read) {
-                        showStatus(`💡 Press <b>Ctrl+V</b> (or Cmd+V) on your keyboard anywhere in this window to paste your copied map image!`, false, 6000);
+                        showStatus(`💡 Press <b>Ctrl+V</b> (or Cmd+V) anywhere in this window to paste your copied map image!`, false, 6000);
                         return;
                     }
                     const items = await navigator.clipboard.read();
@@ -3024,11 +3347,11 @@ class BattlemapApp {
                         if (imgType) {
                             const blob = await item.getType(imgType);
                             this.handleFileUpload(blob, 'Pasted Clipboard Map');
-                            showStatus(`✅ Pasted image from clipboard directly onto the battlemap!`, false, 4000);
+                            showStatus(`✅ Pasted & auto-fitted clipboard map onto the tabletop!`, false, 4000);
                             return;
                         }
                     }
-                    showStatus(`⚠️ No image found on clipboard. Right-click an image in your popout tab and choose <b>"Copy Image"</b> first, or press <b>Ctrl+V</b>.`, true, 5000);
+                    showStatus(`⚠️ No image found on clipboard. Right-click an image in your companion window and choose <b>"Copy Image"</b> first, or press <b>Ctrl+V</b>.`, true, 5000);
                 } catch (err) {
                     showStatus(`💡 Press <b>Ctrl+V</b> on your keyboard anywhere in this window to paste your copied map image!`, false, 6000);
                 }
@@ -3042,12 +3365,32 @@ class BattlemapApp {
             });
         }
 
-        // Save Current Map to Disk button
-        if (btnSaveCurrent) {
-            btnSaveCurrent.addEventListener('click', () => {
-                this.saveMapToDisk(this.currentMap.src, this.currentMap.name);
+        // Copy Current 4K Baked Map to Clipboard button
+        if (btnCopyCurrent) {
+            btnCopyCurrent.addEventListener('click', async () => {
+                const res = await this.copyMapToClipboard();
+                if (res) {
+                    showStatus(`✅ Copied <b>${res.width}×${res.height} px</b> adjusted map image to clipboard!`, false, 4000);
+                } else {
+                    showStatus(`⚠️ Could not copy map image to clipboard. Try <b>💾 Download 4K</b> instead.`, true, 4000);
+                }
             });
         }
+
+        // Save Current 4K Baked Map to Disk button
+        if (btnSaveCurrent) {
+            btnSaveCurrent.addEventListener('click', () => {
+                this.saveMapToDisk(null, this.currentMap.name);
+                const st = window.aiMapGenerator ? window.aiMapGenerator.state : { w: 3840, h: 2160 };
+                showStatus(`💾 Exported <b>${st.w}×${st.h} px</b> battlemap (with brightness, contrast, saturation & sharpness baked in)!`, false, 4500);
+            });
+        }
+
+        // Initialize UI state
+        renderToggles();
+        syncResolutionAndFitUI();
+        syncPromptBox();
+        initCuratedPresetsGrid();
 
         // Render AI / Session History
         this.renderAIHistory();
@@ -3140,6 +3483,13 @@ class BattlemapApp {
             });
         });
 
+        document.querySelectorAll('.img-saturation-slider').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                this.imageAdjustments.saturation = parseInt(e.target.value, 10);
+                this.applyImageAdjustments();
+            });
+        });
+
         document.querySelectorAll('.img-sharpness-slider').forEach(slider => {
             slider.addEventListener('input', (e) => {
                 this.imageAdjustments.sharpness = parseInt(e.target.value, 10);
@@ -3152,6 +3502,7 @@ class BattlemapApp {
                 this.imageAdjustments = {
                     brightness: 100,
                     contrast: 100,
+                    saturation: 100,
                     sharpness: 0
                 };
                 this.applyImageAdjustments();
