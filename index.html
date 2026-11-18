@@ -44,28 +44,15 @@
     <main id="keystone-container" class="keystone-container">
         <div id="keystone-viewport" class="keystone-viewport">
             
-            <!-- Deep Background Parallax Layer (Moves at 0.38x camera speed for canyon floors, streets below rooftops, or cloud decks) -->
-            <canvas id="parallax-bg-canvas" class="parallax-canvas" style="display: none;"></canvas>
-
-            <!-- Infinite Scrolling Terrain Layer (For Train Robberies, Riverboat Chases & Skyship Battles) -->
-            <canvas id="infinite-scroll-canvas" class="infinite-scroll-canvas" style="display: none;"></canvas>
-
-            <!-- Map Layer (Supports Pan & Zoom, Independent Image Filters, and Real-Time Map State Morphing) -->
+            <!-- Map Layer (Supports Pan & Zoom and Independent Image Filters) -->
             <div id="map-layer" class="map-layer">
                 <img id="map-image" class="map-asset" src="" alt="Battle Map" style="display: none;">
-                <img id="map-morph-image" class="map-asset map-morph-asset" src="" alt="Morphed State B Map" style="display: none; opacity: 0;">
                 <video id="map-video" class="map-asset" loop muted playsinline style="display: none;"></video>
                 <div id="map-default-backdrop" class="map-default-backdrop"></div>
             </div>
 
-            <!-- Stationary Center Vehicle Layer (Train, Riverboat, Skyship, or War Wagon stays centered while terrain scrolls underneath) -->
-            <canvas id="vehicle-canvas" class="vehicle-canvas" style="display: none;"></canvas>
-
             <!-- Living / Moving Interactive Overlays Layer -->
             <div id="living-elements-layer" class="living-elements-layer"></div>
-
-            <!-- Elevated Foreground Parallax Layer (Moves at 1.55x camera speed for high cliff crags, rooftop towers, or upper canopies) -->
-            <canvas id="parallax-fg-canvas" class="parallax-canvas parallax-fg" style="display: none;"></canvas>
 
             <!-- Physical Tactical Grid Overlay -->
             <canvas id="grid-canvas" class="grid-canvas"></canvas>
@@ -1704,7 +1691,6 @@
     <script src="js/keystone.js"></script>
     <script src="js/grid.js"></script>
     <script src="js/living-elements.js"></script>
-    <script src="js/dynamic-scenes.js"></script>
     <script src="js/ai-generator.js"></script>
     <script src="js/app.js"></script>
 </body>

@@ -205,7 +205,7 @@ All organic shapes (forest canopies, deciduous trees, pine whorls, palm fronds, 
 ## 📁 Project Structure
 
 ```
-ttrpg-projector-battlemap/
+AetherTable/
 ├── index.html              # Main single-screen projector battlemap utility & floating UI
 ├── css/
 │   └── style.css           # Dark theme, keystone handles, river handles, inspector & HUD styles
@@ -213,8 +213,7 @@ ttrpg-projector-battlemap/
 │   ├── keystone.js         # 4-corner perspective homography solver & CSS matrix3d engine
 │   ├── grid.js             # Canvas tactical grid & 1-inch miniature calibrator
 │   ├── living-elements.js  # 160 realistic features, fractal geometry engine & synced audio
-│   ├── dynamic-scenes.js   # Map state morphing, 3D parallax height & infinite vehicle chases
-│   ├── ai-generator.js     # Toggle prompt builder, in-tool 4K map search & popout tabs
-│   └── app.js              # Application coordinator, panning engine, hotkeys & presets
+│   ├── ai-generator.js     # Gemini 4K prompt studio, 4K upscale/crop pipeline & 4K search popouts
+│   └── app.js              # Application coordinator, panning engine, freehand draw & hotkeys
 └── README.md               # User guide & documentation
 ```
