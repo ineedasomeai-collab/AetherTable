@@ -224,21 +224,6 @@ class BattlemapApp {
         }
 
         this.setMap(dataUrl, false, mapTitle);
-
-        // Sync map environment soundscape automatically
-        if (window.livingElementsEngine) {
-            const envLookup = {
-                forest: 'forest',
-                desert: 'wind',
-                dungeon: 'cave',
-                tavern: 'tavern',
-                cavern: 'volcano',
-                cyber: 'city',
-                crystal: 'cave',
-                ship: 'wind'
-            };
-            window.livingElementsEngine.setEnvironmentSoundscape((p && p.soundscape) || envLookup[presetId] || 'forest');
-        }
     }
 
     resetPanZoom() {
@@ -264,8 +249,11 @@ class BattlemapApp {
         if (window.dynamicSceneEngine) {
             window.dynamicSceneEngine.onCameraPanZoom(this.panZoom.x, this.panZoom.y, this.panZoom.scale);
         }
+        const pct = `${Math.round(this.panZoom.scale * 100)}%`;
         const zoomBadge = document.getElementById('fx-view-zoom-badge');
-        if (zoomBadge) zoomBadge.textContent = `${Math.round(this.panZoom.scale * 100)}%`;
+        if (zoomBadge) zoomBadge.textContent = pct;
+        const hudZoomBadge = document.getElementById('hud-zoom-badge');
+        if (hudZoomBadge) hudZoomBadge.textContent = pct;
     }
 
     /** Zoom the map by a factor around a screen point (defaults to the centre of the screen). */
@@ -1814,77 +1802,59 @@ class BattlemapApp {
             });
         }
 
-        // Ambient Audio Toggle & Volume
-        const audioBtn = document.getElementById('btn-toggle-audio');
-        if (audioBtn) {
-            audioBtn.addEventListener('click', () => {
-                const active = window.livingElementsEngine.toggleAudio();
-                audioBtn.classList.toggle('active', active);
-                audioBtn.innerHTML = active ? '🔊 Ambient Audio: ON' : '🔈 Ambient Audio: OFF';
-            });
-        }
-
-        const volSlider = document.getElementById('audio-volume-slider');
-        if (volSlider) {
-            volSlider.addEventListener('input', (e) => {
-                window.livingElementsEngine.setMasterVolume(parseFloat(e.target.value));
-            });
-        }
-
-        const soundscapeSelect = document.getElementById('soundscape-mode-select');
-        if (soundscapeSelect) {
-            soundscapeSelect.value = window.livingElementsEngine.soundscapeMode || 'auto';
-            soundscapeSelect.addEventListener('change', (e) => {
-                window.livingElementsEngine.setSoundscapeMode(e.target.value);
-            });
-        }
-
-        // 160 Living FX Controls: 5 Broad Setting Tabs (Universal + 4 Genres), Category Filters, Fast Search
-        const genreTabs = document.querySelectorAll('.fx-genre-tab');
-        const catFilters = document.querySelectorAll('.fx-cat-filter');
+        // 375 Deduplicated Living FX Controls: 5 Genre Chips, 3 Physical Geometry Tabs, & Search
+        const genreChips = document.querySelectorAll('.fx-genre-chip');
+        const sectionTabs = document.querySelectorAll('.fx-section-tab');
         const searchInput = document.getElementById('fx-search-input');
-        const genreContainers = document.querySelectorAll('.fx-genre-container');
+        const countDisplay = document.getElementById('fx-count-display');
+        const sectionContainers = document.querySelectorAll('.fx-section-container');
         const groupCards = document.querySelectorAll('.fx-group-card');
+        const allItemBtns = document.querySelectorAll('.btn-add-element');
 
-        const catLabelNames = {
-            all: 'All Categories',
-            weather: '☁️ Weather',
-            hazards: '⚠️ Hazards',
-            lights: '💡 Lights',
-            actors: '🐾 Passive',
-            environment: '🌿 Environment'
-        };
+        let activeGenre = 'all';
 
         const applyFXFilters = () => {
             const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
-            const activeGenreTab = document.querySelector('.fx-genre-tab.active');
-            const activeCatFilter = document.querySelector('.fx-cat-filter.active');
-            const selectedGenre = activeGenreTab ? activeGenreTab.getAttribute('data-genre') : 'universal';
-            const selectedCat = activeCatFilter ? activeCatFilter.getAttribute('data-cat') : 'all';
+            const activeSectionTab = document.querySelector('.fx-section-tab.active');
+            const selectedSection = activeSectionTab ? activeSectionTab.getAttribute('data-section') : 'drawn';
 
-            // Update category filter chip counts dynamically (60/12 for Universal, 25/5 for Genre tabs)
-            const totalForGenre = activeGenreTab ? (activeGenreTab.getAttribute('data-total') || '60') : '60';
-            const perCatForGenre = activeGenreTab ? (activeGenreTab.getAttribute('data-per-cat') || '12') : '12';
-            catFilters.forEach(chip => {
-                const c = chip.getAttribute('data-cat') || 'all';
-                const baseLabel = catLabelNames[c] || c;
-                const count = c === 'all' ? totalForGenre : perCatForGenre;
-                chip.textContent = `${baseLabel} (${count})`;
+            // Calculate and update tab counts based on activeGenre
+            sectionTabs.forEach(tab => {
+                const sec = tab.getAttribute('data-section');
+                let count = 0;
+                allItemBtns.forEach(btn => {
+                    const bSec = btn.getAttribute('data-section');
+                    const bGenre = btn.getAttribute('data-genre');
+                    if (bSec === sec && (activeGenre === 'all' || bGenre === activeGenre)) {
+                        count++;
+                    }
+                });
+                const countSpan = tab.querySelector('.tab-count');
+                if (countSpan) countSpan.textContent = count;
             });
 
+            let visibleTotal = 0;
+
             if (query.length > 0) {
-                // In search mode, search across all 160 buttons in all 5 broad categories and auto-expand matching cards
-                genreContainers.forEach(container => { container.style.display = 'block'; });
+                // In search mode, search across all 375 buttons in all 3 physical sections respecting genre filter
+                sectionContainers.forEach(container => { container.style.display = 'block'; });
                 groupCards.forEach(card => {
                     let hasMatchingBtn = false;
                     const btns = card.querySelectorAll('.btn-add-element');
                     btns.forEach(btn => {
+                        const bGenre = btn.getAttribute('data-genre') || '';
+                        if (activeGenre !== 'all' && bGenre !== activeGenre) {
+                            btn.style.display = 'none';
+                            return;
+                        }
                         const txt = (btn.textContent || '').toLowerCase();
                         const title = (btn.getAttribute('title') || '').toLowerCase();
                         const type = (btn.getAttribute('data-element-type') || '').toLowerCase();
-                        if (txt.includes(query) || title.includes(query) || type.includes(query)) {
+                        const subcat = (btn.getAttribute('data-subcat') || '').toLowerCase();
+                        if (txt.includes(query) || title.includes(query) || type.includes(query) || subcat.includes(query) || bGenre.includes(query)) {
                             btn.style.display = 'inline-flex';
                             hasMatchingBtn = true;
+                            visibleTotal++;
                         } else {
                             btn.style.display = 'none';
                         }
@@ -1892,10 +1862,13 @@ class BattlemapApp {
                     card.style.display = hasMatchingBtn ? 'flex' : 'none';
                     card.classList.toggle('force-expanded', hasMatchingBtn);
                 });
+                if (countDisplay) {
+                    countDisplay.textContent = `Found ${visibleTotal} matching`;
+                }
             } else {
-                // Switch active broad setting container
-                const targetId = 'fx-genre-' + selectedGenre;
-                genreContainers.forEach(container => {
+                // Normal browsing mode: filter by selected section & active genre
+                const targetId = 'fx-section-' + selectedSection;
+                sectionContainers.forEach(container => {
                     const id = container.id || '';
                     if (id === targetId) {
                         container.style.display = 'block';
@@ -1906,23 +1879,57 @@ class BattlemapApp {
                     }
                 });
 
-                // Filter category cards inside the active container
                 groupCards.forEach(card => {
-                    const cardCat = card.getAttribute('data-category');
-                    if (selectedCat === 'all' || cardCat === selectedCat) {
-                        card.style.display = 'flex';
-                        // If a specific single category chip is chosen, auto-expand that category card
-                        card.classList.toggle('force-expanded', selectedCat !== 'all' && cardCat === selectedCat);
-                    } else {
-                        card.style.display = 'none';
-                        card.classList.remove('force-expanded');
-                    }
-                    card.querySelectorAll('.btn-add-element').forEach(btn => {
-                        btn.style.display = 'inline-flex';
+                    let hasVisibleInCard = false;
+                    const btns = card.querySelectorAll('.btn-add-element');
+                    btns.forEach(btn => {
+                        const bGenre = btn.getAttribute('data-genre') || '';
+                        if (activeGenre === 'all' || bGenre === activeGenre) {
+                            btn.style.display = 'inline-flex';
+                            hasVisibleInCard = true;
+                            visibleTotal++;
+                        } else {
+                            btn.style.display = 'none';
+                        }
                     });
+                    // Only show card if it belongs to the active section container and has visible buttons
+                    const parentContainer = card.closest('.fx-section-container');
+                    const isInActiveSection = parentContainer && parentContainer.id === targetId;
+                    if (isInActiveSection) {
+                        card.style.display = hasVisibleInCard ? 'flex' : 'none';
+                    }
+                    card.classList.remove('force-expanded');
                 });
+
+                if (countDisplay) {
+                    const genreLabels = {
+                        all: 'All Genres',
+                        cyberpunk: 'Cyberpunk',
+                        frontier: 'Weird West',
+                        scifi: 'Deep Space',
+                        horror: 'Cosmic Horror',
+                        fantasy: 'High Fantasy'
+                    };
+                    const gName = genreLabels[activeGenre] || activeGenre;
+                    const secName = selectedSection === 'drawn' ? 'Drawn Paths' : (selectedSection === 'filled' ? 'Filled Areas' : 'Single Props');
+                    if (activeGenre === 'all') {
+                        countDisplay.textContent = `Showing 125 in ${secName} (375 Total)`;
+                    } else {
+                        countDisplay.textContent = `Showing 25 in ${secName} (${gName} • 75 Total)`;
+                    }
+                }
             }
         };
+
+        // Genre Quick-Filter Chips
+        genreChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                genreChips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                activeGenre = chip.getAttribute('data-genre') || 'all';
+                applyFXFilters();
+            });
+        });
 
         // Collapsible Category Card Headers (click any category title to expand/collapse)
         groupCards.forEach(card => {
@@ -1972,20 +1979,23 @@ class BattlemapApp {
             });
         }
 
-        genreTabs.forEach(tab => {
+        sectionTabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                genreTabs.forEach(t => t.classList.remove('active'));
+                sectionTabs.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 if (searchInput) searchInput.value = '';
-                applyFXFilters();
-            });
-        });
-
-        catFilters.forEach(filter => {
-            filter.addEventListener('click', () => {
-                catFilters.forEach(f => f.classList.remove('active'));
-                filter.classList.add('active');
-                if (searchInput) searchInput.value = '';
+                const section = tab.getAttribute('data-section');
+                // Smart sync with Draw Mode submode when tab switches
+                const eng = window.livingElementsEngine;
+                if (eng) {
+                    if (section === 'drawn') {
+                        eng.setDrawSubMode('line');
+                        eng.setDrawTargetType('uni_river');
+                    } else if (section === 'filled') {
+                        eng.setDrawSubMode('shape');
+                        eng.setDrawTargetType('uni_pond');
+                    }
+                }
                 applyFXFilters();
             });
         });
@@ -2836,9 +2846,7 @@ class BattlemapApp {
     }
 
     bindAIGeneratorControls() {
-        const inspoSelect = document.getElementById('ai-inspo-select');
         const locationInput = document.getElementById('ai-location-input');
-        const searchQueryInput = document.getElementById('ai-search-query-input');
         const directUrlInput = document.getElementById('ai-direct-map-url');
         const btnLoadDirectUrl = document.getElementById('btn-load-direct-url');
         const togglesContainer = document.getElementById('prompt-toggles-container');
@@ -2848,19 +2856,12 @@ class BattlemapApp {
         const btnAllCore = document.getElementById('btn-toggles-all-core');
         const btnClearToggles = document.getElementById('btn-toggles-clear');
         const btnOpenGeminiPopup = document.getElementById('btn-open-gemini-popup');
-        const btnOpenAiStudioPopup = document.getElementById('btn-open-aistudio-popup');
-        const btnDoGoogle4KSearch = document.getElementById('btn-do-google-4k-search');
-        const btnSearchInTool = document.getElementById('btn-search-maps-intool');
-        const btnGenerate = document.getElementById('btn-generate-ai-map');
         const statusBox = document.getElementById('ai-gen-status');
-        const resultsSection = document.getElementById('in-tool-results-section');
-        const resultsGrid = document.getElementById('ai-search-results-grid');
-        const resultsCount = document.getElementById('in-tool-results-count');
-        const curatedGrid = document.getElementById('ai-curated-grid');
         const btnPasteClipboard = document.getElementById('btn-paste-clipboard-map');
         const btnUploadFromPanel = document.getElementById('btn-upload-from-ai-panel');
         const btnCopyCurrent = document.getElementById('btn-copy-current-map');
         const btnSaveCurrent = document.getElementById('btn-save-current-map');
+        const btnClearHistory = document.getElementById('btn-clear-ai-history');
         const fileInput = document.getElementById('map-file-input');
 
         const resWInput = document.getElementById('ai-res-w');
@@ -2882,24 +2883,6 @@ class BattlemapApp {
                 }, autoHideMs);
             }
         };
-
-        // 0. 2-Tab Mode Switcher (✨ AI Map Generator vs 🔍 4K Battlemap Search)
-        document.querySelectorAll('.mapgen-mode-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const mode = tab.getAttribute('data-mapgen-tab');
-                document.querySelectorAll('.mapgen-mode-tab').forEach(t => {
-                    const active = t === tab;
-                    t.classList.toggle('active', active);
-                    t.style.background = active ? 'var(--primary-dim)' : 'rgba(255,255,255,0.03)';
-                    t.style.color = active ? 'var(--primary)' : 'var(--text-muted)';
-                    t.style.borderColor = active ? 'var(--primary)' : 'var(--border-glass)';
-                });
-                const tabAi = document.getElementById('mapgen-tab-ai');
-                const tabSearch = document.getElementById('mapgen-tab-search');
-                if (tabAi) tabAi.style.display = (mode === 'ai') ? 'flex' : 'none';
-                if (tabSearch) tabSearch.style.display = (mode === 'search') ? 'flex' : 'none';
-            });
-        });
 
         // Syncs active toggles + location + style + lighting + resolution directly into the master prompt box
         const syncPromptBox = () => {
@@ -2926,25 +2909,10 @@ class BattlemapApp {
             });
         };
 
-        // 1. Encounter Location & Quick Inspiration Dropdown
-        if (inspoSelect) {
-            inspoSelect.addEventListener('change', (e) => {
-                const val = e.target.value;
-                if (val && locationInput) {
-                    locationInput.value = val;
-                    window.aiMapGenerator.setLocation(val);
-                    if (searchQueryInput) {
-                        searchQueryInput.value = val.split(' with ')[0];
-                    }
-                    syncPromptBox();
-                }
-            });
-        }
-
+        // 1. Bespoke Encounter Location & Scene (typed in at table)
         if (locationInput) {
             locationInput.addEventListener('input', () => {
                 window.aiMapGenerator.setLocation(locationInput.value);
-                if (inspoSelect) inspoSelect.value = '';
                 syncPromptBox();
             });
         }
@@ -3116,7 +3084,7 @@ class BattlemapApp {
             });
         }
 
-        // 5. Floating Companion Popup Launchers (Gemini, AI Studio, Google 4K, Pinterest, Reddit, ArtStation)
+        // 5. Google Gemini Companion Popup Launcher
         if (btnOpenGeminiPopup) {
             btnOpenGeminiPopup.addEventListener('click', async () => {
                 const loc = locationInput ? locationInput.value.trim() : '';
@@ -3126,49 +3094,7 @@ class BattlemapApp {
             });
         }
 
-        if (btnOpenAiStudioPopup) {
-            btnOpenAiStudioPopup.addEventListener('click', async () => {
-                const loc = locationInput ? locationInput.value.trim() : '';
-                const assembled = promptInput ? promptInput.value.trim() : '';
-                await window.aiMapGenerator.openPopoutSearch('aistudio', loc, assembled);
-                showStatus(`🧪 <b>Google AI Studio Companion Opened & Prompt Copied!</b> Paste the prompt (<b>Ctrl+V</b>), generate your map, right-click &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> here!`, false, 10000);
-            });
-        }
-
-        if (btnDoGoogle4KSearch) {
-            btnDoGoogle4KSearch.addEventListener('click', async () => {
-                const q = (searchQueryInput && searchQueryInput.value.trim()) || (locationInput ? locationInput.value.trim() : 'fantasy forest river crossing');
-                const assembled = promptInput ? promptInput.value.trim() : '';
-                await window.aiMapGenerator.openPopoutSearch('google_images', q, assembled);
-                showStatus(`🔍 <b>Google 4K Battlemap Companion Opened!</b> Right-click any high-res map &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> here (auto-upscales to ${window.aiMapGenerator.state.w}×${window.aiMapGenerator.state.h})!`, false, 9000);
-            });
-        }
-
-        if (searchQueryInput) {
-            searchQueryInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && btnDoGoogle4KSearch) {
-                    e.preventDefault();
-                    btnDoGoogle4KSearch.click();
-                }
-            });
-        }
-
-        document.querySelectorAll('.btn-popout-search').forEach(btn => {
-            if (btn === btnOpenGeminiPopup) return; // Handled above with Gemini-specific status banner
-            btn.addEventListener('click', async () => {
-                const target = btn.getAttribute('data-popout');
-                const isSearchTab = btn.closest('#mapgen-tab-search');
-                const loc = (isSearchTab && searchQueryInput && searchQueryInput.value.trim())
-                    ? searchQueryInput.value.trim()
-                    : (locationInput ? locationInput.value.trim() : '');
-                const assembled = promptInput ? promptInput.value.trim() : '';
-
-                await window.aiMapGenerator.openPopoutSearch(target, loc, assembled);
-                showStatus(`🔍 <b>Floating Search Companion Opened!</b> Right-click any high-res map &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> here to project & auto-scale to 4K!`, false, 9000);
-            });
-        });
-
-        // Direct Image URL Loader inside Tab 2
+        // Direct Image URL Loader
         if (btnLoadDirectUrl && directUrlInput) {
             const triggerDirectUrl = async () => {
                 const url = directUrlInput.value.trim();
@@ -3185,150 +3111,6 @@ class BattlemapApp {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     triggerDirectUrl();
-                }
-            });
-        }
-
-        // Instant Curated 4K Procedural Battlemaps Grid (Tab 2)
-        const initCuratedPresetsGrid = () => {
-            if (!curatedGrid || !window.aiMapGenerator) return;
-            curatedGrid.innerHTML = '';
-            window.aiMapGenerator.CURATED_MAPS.forEach(preset => {
-                const card = document.createElement('div');
-                card.className = 'search-result-card';
-                card.style.cursor = 'pointer';
-                card.innerHTML = `
-                    <div style="position: relative;">
-                        <canvas class="search-card-thumb" width="160" height="90" style="width: 100%; height: 68px; display: block; object-fit: cover; border-radius: 4px;"></canvas>
-                        <span style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.82); color: var(--primary); font-size: 9px; font-family: var(--font-mono); padding: 1px 4px; border-radius: 3px;">4K UHD</span>
-                    </div>
-                    <div class="search-card-info" title="${preset.title} — ${preset.subtitle}"><b>${preset.title}</b> <span style="color:var(--text-dim);">(${preset.subtitle})</span></div>
-                `;
-                const thumbCanvas = card.querySelector('canvas');
-                if (thumbCanvas && typeof preset.render === 'function') {
-                    preset.render(thumbCanvas.getContext('2d'), 160, 90);
-                }
-                card.addEventListener('click', () => {
-                    const st = window.aiMapGenerator.state;
-                    showStatus(`⚡ Rendering <b>${preset.title}</b> at <b>${st.w}×${st.h}</b>...`, false, 0);
-                    setTimeout(() => {
-                        const out = window.aiMapGenerator.generateCurated4KMap(preset.id);
-                        if (out && out.dataUrl) {
-                            this.setMap(out.dataUrl, false, preset.title);
-                            showStatus(`✅ Projected <b>${preset.title}</b> (${out.width}×${out.height} 4K Procedural)!`, false, 4000);
-                        }
-                    }, 20);
-                });
-                curatedGrid.appendChild(card);
-            });
-        };
-
-        // In-Tool 4K Map Search (Reddit r/battlemaps JSON gallery + Curated 4K fallback)
-        const renderSearchResults = (items) => {
-            if (!resultsSection || !resultsGrid) return;
-            resultsGrid.innerHTML = '';
-            if (!items || items.length === 0) {
-                resultsSection.style.display = 'block';
-                if (resultsCount) resultsCount.textContent = '0 found';
-                resultsGrid.innerHTML = `<div style="grid-column: 1 / -1; padding: 12px; font-size: 11px; color: var(--text-muted); text-align: center;">No direct in-tool matches for that phrase. Try a shorter keyword or click <b>🔍 Google 4K Search</b> above!</div>`;
-                return;
-            }
-
-            resultsSection.style.display = 'flex';
-            if (resultsCount) resultsCount.textContent = `${items.length} HD Maps`;
-
-            items.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'search-result-card';
-                const resBadge = (item.width && item.height) ? `${item.width}×${item.height}` : '4K';
-                card.innerHTML = `
-                    <div style="position: relative;">
-                        <img class="search-card-thumb" src="${item.thumb}" alt="${item.title}" loading="lazy">
-                        <span style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); color: var(--primary); font-size: 9px; font-family: var(--font-mono); padding: 1px 4px; border-radius: 3px;">${resBadge}</span>
-                    </div>
-                    <div class="search-card-info" title="${item.title}">${item.title}</div>
-                    <div class="search-card-actions">
-                        <button class="btn-mini btn-load-result">🗺️ Project 4K</button>
-                        <button class="btn-mini btn-save-result" style="flex: 0.6;" title="Save high-res map to disk">💾 Save</button>
-                    </div>
-                `;
-
-                const loadAction = async () => {
-                    if (item.curatedId) {
-                        const gen = window.aiMapGenerator.generateCurated4KMap(item.curatedId);
-                        if (gen && gen.dataUrl) {
-                            this.setMap(gen.dataUrl, false, item.title);
-                            showStatus(`✅ Projected <b>${item.title}</b> (${gen.width}×${gen.height})!`, false, 3500);
-                        }
-                        return;
-                    }
-                    await this.loadAndProcessMapImage(item.url, item.title, false, '4K Search');
-                    showStatus(`✅ Loaded & fitted <b>${item.title}</b> onto tabletop!`, false, 3500);
-                };
-
-                card.querySelector('.search-card-thumb').addEventListener('click', loadAction);
-                card.querySelector('.btn-load-result').addEventListener('click', loadAction);
-                card.querySelector('.btn-save-result').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.saveMapToDisk(item.url, item.title);
-                });
-
-                resultsGrid.appendChild(card);
-            });
-        };
-
-        if (btnSearchInTool) {
-            btnSearchInTool.addEventListener('click', async () => {
-                const rawQuery = (searchQueryInput && searchQueryInput.value.trim()) || (locationInput ? locationInput.value.trim() : '');
-                const searchPhrase = rawQuery
-                    .replace(/^a\s+|^an\s+|^the\s+/i, '')
-                    .replace(/\b(with|and|of|in|on)\b.*$/i, '')
-                    .trim() || rawQuery || 'battlemap';
-
-                btnSearchInTool.disabled = true;
-                const origHTML = btnSearchInTool.innerHTML;
-                btnSearchInTool.innerHTML = `<div class="spinner"></div> Searching...`;
-                showStatus(`🔎 Searching 4K battlemaps for <b>"${searchPhrase}"</b>...`, false, 0);
-
-                try {
-                    const results = await window.aiMapGenerator.searchMapsInTool(searchPhrase);
-                    renderSearchResults(results);
-                    showStatus(`✅ Found <b>${results.length}</b> battlemaps! Click any map below to project it at 4K.`, false, 5000);
-                } catch (err) {
-                    showStatus(`⚠️ Search fallback triggered (${err.message}).`, true, 5000);
-                } finally {
-                    btnSearchInTool.disabled = false;
-                    btnSearchInTool.innerHTML = origHTML;
-                }
-            });
-        }
-
-        // Instant 4K Procedural Scene-Matched Renderer (#btn-generate-ai-map)
-        if (btnGenerate && promptInput) {
-            btnGenerate.addEventListener('click', async () => {
-                const assembled = promptInput.value.trim();
-                const locLabel = (locationInput && locationInput.value.trim()) ? locationInput.value.trim() : 'Custom 4K Map';
-                if (!assembled) {
-                    showStatus('Please enter an encounter location or select an inspiration preset first.', true);
-                    return;
-                }
-
-                btnGenerate.disabled = true;
-                const origHTML = btnGenerate.innerHTML;
-                btnGenerate.innerHTML = `<div class="spinner"></div> Rendering 4K...`;
-                const st = window.aiMapGenerator.state;
-                showStatus(`⚡ Rendering <b>${st.w}×${st.h}</b> top-down battlemap for <b>"${locLabel}"</b>...`, false, 0);
-
-                try {
-                    const item = await window.aiMapGenerator.generateKeylessMap(assembled, locLabel);
-                    this.setMap(item.url, false, `4K: ${locLabel}`);
-                    showStatus(`✅ 4K Battlemap rendered (${st.w}×${st.h})! For custom AI diffusion art, click <b>🚀 Copy Prompt & Open Gemini</b>.`, false, 6000);
-                } catch (err) {
-                    showStatus(`⚠️ ${err.message}`, true, 6000);
-                } finally {
-                    btnGenerate.disabled = false;
-                    btnGenerate.innerHTML = origHTML;
-                    this.renderAIHistory();
                 }
             });
         }
@@ -3351,7 +3133,7 @@ class BattlemapApp {
                             return;
                         }
                     }
-                    showStatus(`⚠️ No image found on clipboard. Right-click an image in your companion window and choose <b>"Copy Image"</b> first, or press <b>Ctrl+V</b>.`, true, 5000);
+                    showStatus(`⚠️ No image found on clipboard. Right-click an image in Gemini and choose <b>"Copy Image"</b> first, or press <b>Ctrl+V</b>.`, true, 5000);
                 } catch (err) {
                     showStatus(`💡 Press <b>Ctrl+V</b> on your keyboard anywhere in this window to paste your copied map image!`, false, 6000);
                 }
@@ -3386,11 +3168,20 @@ class BattlemapApp {
             });
         }
 
+        // Clear Session Maps History
+        if (btnClearHistory) {
+            btnClearHistory.addEventListener('click', () => {
+                if (window.aiMapGenerator) {
+                    window.aiMapGenerator.clearHistory();
+                    showStatus(`🗑️ Session map history cleared.`, false, 3000);
+                }
+            });
+        }
+
         // Initialize UI state
         renderToggles();
         syncResolutionAndFitUI();
         syncPromptBox();
-        initCuratedPresetsGrid();
 
         // Render AI / Session History
         this.renderAIHistory();
@@ -3401,11 +3192,11 @@ class BattlemapApp {
         const historyContainer = document.getElementById('ai-history-reel');
         if (!historyContainer) return;
 
-        const history = window.aiMapGenerator.history;
+        const history = (window.aiMapGenerator && window.aiMapGenerator.history) ? window.aiMapGenerator.history : [];
         historyContainer.innerHTML = '';
 
         if (history.length === 0) {
-            historyContainer.innerHTML = '<span style="font-size: 11px; color: var(--text-dim);">Maps you search, generate, or paste will appear here for 1-click switching.</span>';
+            historyContainer.innerHTML = '<span style="font-size: 11px; color: var(--text-dim); padding: 4px 0;">No session maps stored. Paste or generate maps to see them here.</span>';
             return;
         }
 
@@ -3604,6 +3395,21 @@ class BattlemapApp {
             }
 
             switch (e.key.toLowerCase()) {
+                case '1':
+                    this.togglePanel('ai-generator-panel');
+                    break;
+                case '2':
+                    this.togglePanel('elements-panel');
+                    break;
+                case '3':
+                    this.togglePanel('grid-panel');
+                    break;
+                case '4':
+                    this.togglePanel('keystone-panel');
+                    break;
+                case '5':
+                    this.togglePanel('projector-settings-panel');
+                    break;
                 case 'p':
                     this.togglePanMode();
                     break;

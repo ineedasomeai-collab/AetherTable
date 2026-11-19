@@ -81,13 +81,6 @@ class AIMapGenerator {
                 active: true
             },
             {
-                id: 'artstation',
-                label: '🎨 Trending on Artstation',
-                role: 'post',
-                text: 'trending on Artstation',
-                active: true
-            },
-            {
                 id: 'textures8k',
                 label: '💎 Ultra-HD Crisp Cartography',
                 role: 'post',
@@ -341,7 +334,7 @@ class AIMapGenerator {
     }
 
     setAllToggles(activeState, coreOnly = false) {
-        const coreIds = ['flat2d', 'tactical', 'ungridded', 'nominis', 'notext', 'artstation', 'textures8k'];
+        const coreIds = ['flat2d', 'tactical', 'ungridded', 'nominis', 'notext', 'textures8k'];
         this.promptToggles.forEach(t => {
             if (coreOnly) {
                 t.active = coreIds.includes(t.id) ? activeState : false;
@@ -364,47 +357,16 @@ class AIMapGenerator {
     // ------------------------------------------------------------------------
     // POPOUT SEARCH & AI STUDIO LAUNCHERS
     // ------------------------------------------------------------------------
-    async openPopoutSearch(target, locationText, assembledPrompt) {
+    async openPopoutSearch(target = 'gemini', locationText, assembledPrompt) {
         const fullPrompt = (assembledPrompt || this.buildAssembledPrompt(locationText)).trim();
-        const rawLoc = (locationText !== undefined ? locationText : this.state.location || 'fantasy dungeon').trim();
-        const conciseLoc = rawLoc
-            .replace(/^a\s+|^an\s+|^the\s+/i, '')
-            .replace(/\b(with|and|of|in|on)\b.*$/i, '')
-            .trim() || rawLoc || 'fantasy dungeon';
 
-        const iarParam = this.state.w === this.state.h
-            ? 'iar:s'
-            : (this.state.h > this.state.w ? 'iar:t' : 'iar:w');
-
-        // Always copy prompt to clipboard so user can immediately press Ctrl+V in Gemini / AI Studio
+        // Always copy prompt to clipboard so user can immediately press Ctrl+V in Gemini
         try {
             await navigator.clipboard.writeText(fullPrompt);
         } catch (e) {}
 
-        let url = '';
-        let winName = 'MapStudioCompanion';
-
-        if (target === 'gemini') {
-            url = 'https://gemini.google.com/app';
-            winName = 'GeminiBattlemapPopup';
-        } else if (target === 'aistudio') {
-            url = `https://aistudio.google.com/apps?prompt=${encodeURIComponent(fullPrompt)}`;
-            winName = 'AIStudioBattlemapPopup';
-        } else if (target === 'google_images') {
-            url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(conciseLoc + ' battlemap 4k')}&tbs=isz:l,${iarParam}`;
-            winName = 'Google4KBattlemaps';
-        } else if (target === 'pinterest') {
-            url = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(conciseLoc + ' battlemap 4k')}`;
-            winName = 'PinterestBattlemaps';
-        } else if (target === 'reddit') {
-            url = `https://www.reddit.com/r/battlemaps/search/?q=${encodeURIComponent(conciseLoc)}&restrict_sr=1&sort=top`;
-            winName = 'RedditBattlemaps';
-        } else if (target === 'artstation') {
-            url = `https://www.artstation.com/search?sort_by=relevance&query=${encodeURIComponent(conciseLoc + ' battlemap')}`;
-            winName = 'ArtstationBattlemaps';
-        } else {
-            url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(conciseLoc + ' battlemap 4k')}&tbs=isz:l`;
-        }
+        const url = 'https://gemini.google.com/app';
+        const winName = 'GeminiBattlemapPopup';
 
         this.openFloatingAIPopup(url, winName);
         return { url, copiedPrompt: fullPrompt };
@@ -1174,6 +1136,14 @@ class AIMapGenerator {
         this.history = this.history.filter(h => h.url !== item.url);
         this.history.unshift(item);
         if (this.history.length > 20) this.history.pop();
+        this.notify();
+    }
+
+    clearHistory() {
+        this.history = [];
+        try {
+            localStorage.removeItem('ttrpg_ai_history');
+        } catch (e) {}
         this.notify();
     }
 

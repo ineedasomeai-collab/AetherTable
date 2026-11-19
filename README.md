@@ -1,4 +1,4 @@
-# AetherTable • TTRPG Projector Battlemap Utility
+﻿# AetherTable • TTRPG Projector Battlemap Utility
 
 A high-performance, web-based digital battle map utility engineered specifically for **in-person tabletop roleplaying games (D&D, Pathfinder, Call of Cthulhu, Cyberpunk, etc.) played via digital tabletop projection**.
 
@@ -18,15 +18,42 @@ A high-performance, web-based digital battle map utility engineered specifically
    - **🗺️ Scale & Move with Map (`mapAnchored`)**: Pins effects directly to the battle map coordinate system so they pan, drift, and zoom in lockstep with the map graphics underneath.
    - **Bulk Controls**: 1-click **🔒 Lock All**, **🔓 Unlock All**, and **📌 Pin All to Map** in the **🌿 Realistic FX** panel.
 
-3. **🌿 160 Unique Animated Realistic FX (5 Broad Categories × 5 Sub-Categories)**:
-   - **60 Universal Features** (Rain, downpour, blizzard, ground mist, fire, campfire, sunbeams, bats, tumbleweeds, deformable rivers, lakes, ponds, and swaying forests).
-   - **25 per Setting** across **Historic & Fantasy**, **Modern & Pulp**, **Future & Sci-Fi**, and **Other & Eldritch** (160 total unique effects with zero duplicate placeholders).
-   - **Collapsible Category Sections**: Save screen space with individual toggles or **▾ Expand All** / **▸ Collapse All**.
-   - **🔍 Live Instant Search**: Filter features across all 160 overlays by keyword (*pond*, *fire*, *river*, *tentacles*, *drone*, etc.).
+3. **🌿 375 Deduplicated Master Animated VTT Elements (5 Distinct Genres × 3 Physical Geometries)**:
+   - **100% Dedicated Procedural Canvas Renderers (Zero Generic Color-Shifted Fallbacks)**: Every single one of the 375 elements across all 5 genres possesses its own dedicated procedural renderer module (`js/fx/` architecture) with unique physical geometry silhouettes, distinct kinetic motion patterns, and multi-octave fractal noise detail:
+     - **⚡ Cyberpunk & Dystopian Sci-Fi (75, `js/fx/fx-cyberpunk.js`)**: High-speed maglev subways, flying car headlight sweeps, netrunner code streams, sewer solvent vats, holographic billboards, ripperdoc chairs, and pivoting CCTV cameras.
+     - **🤠 Weird West & Frontier (75, `js/fx/fx-frontier.js`)**: Steam locomotive beams, arroyo flash floods, Gatling gun tracer fire, spinning dust devils, ghost-rock craters, tumbleweeds, and batwing saloon doors.
+     - **🚀 Deep Space & Hard Sci-Fi (75, `js/fx/fx-space.js`)**: FTL star-streak warps, reactor coolant arcs, tracked repair drones, Cherenkov core glows, alien hive biomass, and 3D planetary holo-globes.
+     - **👁️ Cosmic Horror, Noir & Occult Modern (75, `js/fx/fx-horror.js`)**: Fog lighthouse beams, crawling shadow tendrils, weeping basalt idols, vintage subways, venetian blind office shadows, and flickering London gaslamps.
+     - **⚔️ High Fantasy & Sword-and-Sorcery (75, `js/fx/fx-fantasy.js`)**: Magic missile corkscrews, dragon-fire scorch waves, underground cavern rivers, cathedral god rays, bubbling witch cauldrons, and animated mimic chests.
+   - **3 Physical Geometry Modes (125 Elements Each)**:
+     - **〰️ Drawn Lines & Paths (125)**: Directional traveling paths and continuous ribbons that follow your stroke (headlight beams, flash floods, mining lasers, laser grids, conduits, and rivers).
+     - **⭕ Filled Areas & Volumes (125)**: Custom enclosed perimeters and atmospheric textures (neon reflections, wheat fields, alien spore clouds, hoarfrost decks, and astral voids).
+     - **🎯 Single Props & Focal Objects (125)**: Standalone point placements (broken neon signs, campfires, repair droids, bleeding daggers, and floating spellbooks).
+   - **5 Subcategories per Geometry & Genre (25 Each per Section, 75 Total per Category)**:
+     - **💡 Lighting & Optical Beams**: Beams, lanterns, glowing conduits, neon signs, and god rays.
+     - **⚠️ Hazards, Traps & Active Barriers**: Flash floods, laser grids, acid pools, spike pits, and mimic chests.
+     - **⚙️ Props, Machinery & Conveyance**: Locomotives, subway cars, conveyor tracks, windmills, and cauldrons.
+     - **✨ Special Effects, Magic & Phenomena**: Shockwaves, wormholes, psychic madness ripples, and summoning circles.
+     - **🌫️ Ambiance, Weather & Atmosphere**: Dust storms, coastal fog, falling soot, and wildlife colonies.
+   - **Genre Quick-Filter Bar & Live Keyword Search**: Instant 1-click genre chips (`🌐 All 375`, `⚡ Cyber 75`, `🤠 West 75`, `🚀 Space 75`, `👁️ Horror 75`, `⚔️ Fantasy 75`) paired with sub-millisecond search that filters across titles, descriptions, and tags while dynamically updating tab count badges.
+   - **Soundscape Cleanout**: Clutter-free tabletop audio — removed redundant synthesized in-browser audio so GMs can run their preferred sound setups (Spotify, Syrinscape, Discord, or Bluetooth speakers) without in-browser audio clutter.
 
-4. **🌊 Deformable Water, Custom Pools & Living Forests**:
+4. **🌊 Deformable Waterways, Custom Pools & Living Forests (Zero Sameness)**:
    - **Curved River Spline Mode**: Drag cyan control points to bend water around terrain; drag amber diamonds to widen/narrow riverbanks up to 3000px.
-   - **Custom Pond / Lake Polygon Mode**: Mold custom shorelines, flooded dungeon chambers, or oasis pools with perimeter handles.
+   - **8 Bespoke Procedural Waterway Physics Engines**: Completely eliminated generic color-shifted waterways:
+     - `🩸 River of Blood`: Visceral dark maroon arterial flow, congealed dried liver-crust shores, rotating dark blood clots with specular glints, frothy crimson bubbles, branching capillary tendrils, and bobbing bleached human skulls & rib bones drifting downstream.
+     - `🌋 Molten Lava River`: Scorched basalt banks with glowing orange thermal stress cracks, multi-pass incandescent yellow-white magma core, drifting dark polygonal cooling crust plates that collide and fracture, and bursting magma domes throwing flying cinder sparks.
+     - `🌊 Whitewater River Rapids`: Deep teal-slate glacial torrent with partially submerged wet granite boulders, violent V-shaped standing wave rooster tails, and foaming cavitation eddies.
+     - `🐊 Murky Bayou Swamp Water`: Sluggish olive-brown peat water with shimmering iridescent oil sheens, rotting sunken cypress knees, and swelling methane marsh gas bubbles.
+     - `🌊 Concrete Storm-Drain Canal`: Stepped concrete retaining walls with expansion joints and weep holes, rapid urban runoff stormwater with diamond standing wave shockwaves, and floating flotsam.
+     - `🧪 Reactor Coolant Conduit`: Armored gunmetal conduit casing with yellow/black hazard chevrons and bulkhead clamps, luminescent Cherenkov/emerald plasma fluid, cavitation shockwave rings, and crackling ionization electrical arcs.
+     - `🏰 Castle Moat`: Stagnant muddy water with double-staggered rows of sharpened wooden palisade stakes with chisel tips driven into inner and outer embankments.
+     - `🌲 Alpine Forest Stream`: Crystal-clear babbling mountain brook over smooth multi-colored river gravel pebbles with cellular sunlit caustics and floating autumn leaves.
+   - **Custom Pond / Lake Polygon Mode**: Mold custom shorelines, flooded dungeon chambers, or oasis pools with perimeter handles:
+     - `🩸 Ritual Blood Pool`: Congealed gore rim, glowing carved sacrificial pentagram & occult runes burning beneath the gore, drifting dark clots, and floating bleached skulls.
+     - `💎 Crystal Cavern Pool`: Subterranean sapphire pool with ceiling stalactite water drop impacts creating concentric expanding interference wave rings, and submerged glowing quartz crystal geodes emitting prismatic caustic flares.
+     - `💧 Woodland Lily Pond`: Clear emerald-tinted water with sunlit caustics, 3D notched green lily pads with radial leaf veins, drop shadows, and blooming 6-petal pink, white & gold lotus flowers.
+     - `🏝️ Ocean Surf`: Translucent turquoise ocean shallows, submerged coral reef silhouettes, rolling white foam surf breakers, and receding backwash swash lines.
    - **Living Forest Tool**: Fill irregular forest clearings and roadsides with swaying oak, pine, tropical palm, or deadwood canopies and falling leaves.
 
 5. **🎛️ Dedicated Selected Element Attributes Popup Window**:
@@ -34,28 +61,40 @@ A high-performance, web-based digital battle map utility engineered specifically
    - **Speed (`0.1x`–`4.0x`)**, **Intensity (`20%`–`250%`)**, **Quantity (`20%`–`400%`)**, and **Opacity (`10%`–`100%`)**.
    - **🌈 Color Grading & Tints**: Full-spectrum rainbow Hue Shift (`-180°` to `+180°`) with 1-click tint chips (*Base*, *🔥Gold*, *🧪Green*, *❄️Cyan*, *🔮Void*, *🩸Red*), Saturation (`0%`–`300%`), Brightness (`30%`–`250%`), and Blend Modes (`Normal`, `Screen`, `Color Dodge`, `Multiply`, `Overlay`, `Hard Light`).
    - **🔍 Edge Blur / Sharpen & Soft Feather**: Real-time 3×3 Laplacian convolution unsharp mask sharpening and smooth radial feathering.
-   - **🌿 6-Octave Procedural Fractal Roughness (`0%` to `200%` Ultra-Gnarled)**: Procedural multi-octave FBM + ridged crevice cascade with tangential curl.
+   - **🌿 6-Octave Procedural Fractal Roughness Engine (`0%` Smooth to `200%` Ultra-Gnarled)**: True multi-octave FBM + ridged crevice cascade that actively drives all spline ribbons (rivers, canals, conduits), polygon areas (lakes, pools, groves), and procedural bogs — as well as volumetric smoke, toxic gas clouds, industrial smog, and spreading wildfire boundaries! At `0%`, shapes and billows are mathematically smooth and laminar; at `75%` (default), shorelines develop natural rocky erosion, smoke puffs billow with organic cauliflower lobes, and flame perimeters develop natural licking tongues; at `150%`–`200%`, waterways become deeply gouged canyon gorges, and smoke/fumes become fiercely shredded, chaotic storm billows with violent vortex curls.
    - **📐 3D Perspective Tilt & Rotation**: 3D Pitch (`Tilt X`), Bank (`Tilt Y`), and 1-click presets (*Top-Down*, *Isometric*, *Oblique*, *Billboard*).
 
 6. **↩ 16 Levels of Undo & Redo**:
    - Universal `Ctrl+Z` (Undo) and `Ctrl+Y` / `Ctrl+Shift+Z` (Redo) with live `0/16` step badges across the top nav bar, Realistic FX panel, and Element Inspector.
 
-7. **✨ MapGen — AI Battlemap Studio & 4K Search (M&M GM Suite Architecture)**:
-   - **2-Tab Studio**: Dedicated **✨ AI Map Generator** and **🔍 4K Battlemap Search** tabs.
-   - **15 Encounter Inspiration Presets & Editable Scene Prompt**: Elven Sunken Temple, Dwarven Lava Forge, Forest River Crossing, Cozy Tavern Taproom, Ancient Crypt Dungeon, Desert Oasis Ruins, Haunted Graveyard, Pirate Cove & Shipwreck, Crystal Cavern, Mountain Rope Bridge, Gothic Cathedral Ruin, Cyberpunk Back-Alley, Sci-Fi Starship Bridge, Industrial Harbor Docks, and Custom.
-   - **6 Art Styles & 13 Lighting/Atmosphere Presets**: Top-Down 4K Orthographic, Hand-Drawn / Czepeku, 3D Photorealistic, Grimdark Fantasy, Watercolor Wash, and Isometric 2.5D paired with 13 lighting moods (High Noon, Dawn, Dusk, Bright Daylight, Moonlit Night, Gaslamp, Neon Technicolor, Warm Torchlight, Arcane Glow, Foggy Mist, Storm/Lightning, Candlelit Ritual, and Underdark Bioluminescent).
+7. **✨ MapGen — AI Battlemap Studio (Bespoke Gemini Workflow)**:
+   - **Bespoke Encounter Scene**: Dedicated, roomy scene description area designed for rapid typing directly at the game table — no canned preset dropdowns.
+   - **6 Art Styles & Pruned Lighting Atmosphere**: Top-Down 4K Orthographic, Hand-Drawn / Czepeku, 3D Photorealistic, Grimdark Fantasy, Watercolor Wash, and Isometric 2.5D paired with non-redundant lighting moods (Bright Daylight, Dawn, Dusk, Moonlit Night, Warm Torchlight, Gaslamp / Lantern, Neon Technicolor, Arcane Glow, Foggy Mist, Storm & Lightning, Candlelit Ritual, and Underdark Bioluminescent).
    - **4K Target Pixel Resolution, Orientation & Aspect Fit/Crop**:
      - Landscape (`↔️`) / Portrait (`↕️`) toggle with 1-click presets (`3840 × 2160 4K UHD`, `2560 × 1440 2K QHD`, `1920 × 1080 FHD`, `4096 × 4096 4K Square`, `2048 × 2048 2K Square`, `3440 × 1440 Ultrawide`, `1920 × 1200 16:10`, `36"×24" Mat 3:2`, and custom `W × H` px).
      - **Auto-Upscale & Aspect Fit/Crop**: Automatically upscales and fits pasted or uploaded images to target 4K resolution using **Fill & Crop (`cover`)**, **Fit Entire Map (`contain`)**, or **Stretch to Fit (`fill`)**, plus an on-demand **⚡ Scale to Target** button.
-   - **Floating Gemini Companion & 4K Search**: Under `✨ AI Map Generator`, click **🚀 Copy Prompt & Open Gemini (Floating Popup)** to copy your assembled Master Cartographer Prompt and launch Google Gemini in a companion popup window. Under `🔍 4K Battlemap Search`, search **Google 4K Images**, **Pinterest 4K**, **Reddit `r/battlemaps`**, or **ArtStation**. Right-click any image → **Copy Image** → press **`Ctrl+V`** in AetherTable to project and upscale to 4K automatically.
-   - **4K Baked Export & Clipboard Copy**: **🖼️ Copy Image** and **💾 Download 4K** bake your target pixel resolution, Fit/Crop mode, Brightness, Contrast, Saturation, and 3×3 Convolution Sharpness directly into the exported file.
+   - **Floating Gemini Companion (One-Click Launch)**: Click **🚀 Copy Prompt & Open Gemini (Floating Popup)** to copy your assembled Master Cartographer Prompt and open Google Gemini side-by-side with your battlemap. Press `Ctrl+V` in Gemini, generate your map, right-click &rarr; **"Copy Image"** &rarr; press **`Ctrl+V`** right in AetherTable to instantly project and upscale to 4K!
+   - **Quick Import, Paste & 4K Baked Export**: Direct image URL loader, 1-click clipboard paste (`Ctrl+V`), local file upload, **🖼️ Copy Image**, and **💾 Download 4K** with image adjustments baked in.
+   - **Session Map History with Clear Button**: Quick thumbnails reel of all session maps with an instant **🗑️ Clear History** button to wipe unwanted maps.
 
-8. **📐 Keystone Homography & ⊞ Physical 1-Inch Grid Calibration**:
-   - **4-Corner Homography (`matrix3d`)**: Complete perspective correction for projectors set at angles to the table surface.
-   - **Touch-Friendly Pins**: 68px targets with 92px cushions and on-screen touch D-Pad for tablet/phone calibration without keyboards.
-   - **Physical 1-Inch (25mm) Base Calibrator**: Calibrate the digital grid to match your physical miniature bases with a physical ruler.
+8. **📐 Keystone Homography (Projector Calibration)**:
+   - **4-Corner Homography (`matrix3d`)**: Complete projective perspective correction allowing projectors mounted at arbitrary tilt or angle to project a perfectly square, undistorted image onto the table.
+   - **Touch-Friendly Pins**: Large 68px targets with 92px outer grab zones and on-screen touch D-Pad for tablet or mobile calibration without keyboards.
+   - **Fine Keyboard Nudge**: Use `Tab` to cycle corner pins (`TL` → `TR` → `BR` → `BL`) and arrow keys to micro-nudge corners by `0.2%` (or `Shift + Arrow` for `1.0%`).
+   - **Persistent Profiles**: Save and load keystone presets for different projection venues and table setups.
 
-10. **📖 In-Tool Readme & Manual Viewer (`F9` Key)**:
+9. **⊞ Physical 1-Inch (25mm) Miniature Grid Calibration**:
+   - **Physical Ruler Matching**: Place a standard 1-inch physical miniature base or ruler onto the table projection and adjust the slider to match grid squares to real-world dimensions.
+   - **Multiple Grid Formats**: Square grid, Flat-Top Hex, Pointy-Top Hex, and Isometric grid overlays with customizable line weight, opacity, and color.
+   - **Fine Sub-Pixel Offsets**: Align grid lines with imported map graphics using sub-pixel X and Y translation controls.
+
+10. **🖥️ Display Optics Engine (Brightness, Contrast, Sharpness & Gamma)**:
+    - **Optical Compensation**: Dedicated visual post-processing engine to compensate for ambient room light, low-lumen projectors, or textured tabletop surfaces.
+    - **Brightness (`50%`–`200%`) & Contrast (`50%`–`250%`)**: Cut through bright room lighting with enhanced shadow/highlight punch.
+    - **Edge Sharpness Unsharp Mask**: Real-time SVG 3×3 convolution kernel sharpening to restore crisp details through soft projector optics.
+    - **Color Saturation (`0%`–`250%`) & Gamma**: Adjust color vibrancy and midtone contrast for matte or semi-gloss table surfaces.
+
+11. **📖 In-Tool Readme & Manual Viewer (`F9` Key)**:
     - Press **`F9`** (or **`F2`**, or click the **📖 Readme (F9)** button) at any time to open the complete, draggable user guide directly inside the tool.
 
 ---
@@ -64,6 +103,11 @@ A high-performance, web-based digital battle map utility engineered specifically
 
 | Key / Shortcut | Action | Description |
 |----------------|--------|-------------|
+| **1** | **Maps & Studio** | Opens / closes the Map Finder, 4K Upscale & AI Map Studio panel |
+| **2** | **Realistic FX** | Opens / closes the 375 Realistic FX & Living Overlays library |
+| **3** | **Tactical Grid** | Opens / closes the Grid & 1-Inch Physical Miniature Calibrator |
+| **4** | **Keystone** | Opens / closes the 4-Corner Projector Keystone Homography panel |
+| **5** | **Display Optics** | Opens / closes the Display Brightness, Contrast & Sharpness panel |
 | **F9** *(or F2)* | **Open Readme & Manual** | Opens or toggles the in-tool Readme guide and keybindings reference window |
 | **P** | **Toggle Map Pan Mode** | Switches left mouse drag between element selection and free map panning |
 | **D** | **Toggle Freehand Draw FX** | Sketch custom paths (rivers, fire walls) or shapes (lakes, groves) directly on map |
@@ -131,42 +175,132 @@ Instead of relying on corner handles to stretch a rectangle, sketch directly on 
 
 ---
 
-## 🌿 160 Realistic Animated Features Catalog
+## 🌿 375 Deduplicated Master Animated VTT Elements Catalog
 
-### 🌍 Universal (60 Features — 12 per Category)
-- **☁️ Weather & Ambiance**: 🌧️ Light Rain & Drizzle, ⛈️ Heavy Storm Downpour, ❄️ Gentle Snow Flurry, 🌨️ Howling Whiteout Blizzard, 🌫️ Rolling Ground Mist, 🌫️ Dense Swamp & Moor Fog, 🍂 Swirling Autumn Leaves, 🌸 Drifting Blossom Petals, ✨ Floating Sunlit Dust Motes, 🏜️ Swirling Desert Sandstorm, ✨ Woodland Evening Fireflies, 🌋 Volcanic Soot & Ash Fall.
-- **⚠️ Hazards & Obstacles**: 🔥 Spreading Brush & Timber Fire, 💨 Thick Black Fire Smoke, 🌫️ Choking Gray Ash Cloud, 🫧 Sucking Swamp Mud Mire, 🏜️ Churning Desert Quicksand, 🖤 Boiling Natural Tar Pit, 🕸️ Thick Spiderweb Tangle, ⚡ Natural Ground Lightning Zone, 💨 Scalding Geyser Steam Vent, 🌋 Molten Volcanic Magma Fissure, ☠️ Noxious Swamp Gas Fumes, 🕳️ Collapsed Sinkhole Chasm.
-- **💡 Light Sources**: 🔥 Campsite Log Campfire, 🔥 Roaring Great Bonfire, 🔥 Smoldering Dying Coals, ☀️ Golden Forest Sunbeams, 🌙 Silvery Midnight Moonbeams, 💎 Cavern Skylight Shafts, 🕯️ Flickering Wall/Post Torch, 🏮 Warm Oil Camp Lantern, 🕯️ Cluster of Wax Candles, 🪔 Indoor Hearth Fireplace, 🍄 Bioluminescent Cave Flora, 🌌 Natural Polar Aurora Skyglow.
-- **🐾 Passive Actors**: 🦇 Flocking Cave Bats, 🦅 Circling Crows & Ravens, 🦅 Soaring Desert Vultures, 🕊️ Coastal Seagulls Flock, 🐀 Skittering Brown Rats, 🕷️ Scuttling Cave Spiders, 🦂 Desert Sand Scorpions, 🪲 Swarming Ground Beetles, 🐟 Freshwater Brook Trout, 🎏 Ornate Pond Koi Fish, 🦈 Reef Sharks & Ocean Fish, 🌾 Rolling Desert Tumbleweeds.
-- **🌿 Environment**: 🌊 Flowing Stream / River (Deformable Spline), 🌊 Deep Rushing River Current (Deformable Spline), 🐊 Murky Bayou & Marsh Water (Deformable Spline), 🌋 Flowing Molten Lava River (Deformable Spline), 🌊 Roaring Cliff Waterfall, 💧 Subterranean Cavern Cascade, 🌳 Swaying Oak Forest Canopy, 🌲 Boreal Pine & Conifer Forest, 🌴 Dense Tropical Jungle Canopy, 🍁 Golden Autumn Maple Grove, 🏖️ Sandy Beach & Reef Surf, 🌊 Tempestuous Deep Ocean Waves.
+Every single entry across all **375 items** has its own bespoke object, physical motion, and visual identity — with **zero concept duplication** across genres or subcategories.
 
-### ⚔️ Historic & Fantasy (25 Features — 5 per Category)
-- **☁️ Weather**: 🧚 Enchanted Feywild Pixie Dust, 🔥 Siege Battlefield Cinders, 🌫️ Ancient Crypt Floor Mist, ✨ Arcane Leyline Breeze, 🌊 Galleon Deck Sea Spray.
-- **⚠️ Hazards**: 🕳️ Concealed Iron Punji Spike Pit, 🧪 Alchemical Green Greek Fire, 🔮 Wild Magic Runic Ground Ward, ☀️ Radiant Celestial Sanctuary Seal, ⚔️ Siege Pitch & Snare Trench.
-- **💡 Lights**: 🕯️ Dungeon Iron Wall Sconce, 🪔 Temple Bronze Tripod Brazier, 🕯️ Great Hall Feast Chandelier, 🌈 Stained-Glass Cathedral Rays, 🔮 Wizard's Floating Magelight.
-- **🐾 Passive Actors**: 🔵 Moorland Will-o'-the-Wisp, 🧚 Fluttering Feywild Sprite, 🐀 Plague Swarm of Crypt Rats, 🦅 Battlefield Carrion Ravens, 🪲 Tomb Golden Scarab Swarm.
-- **🌿 Environment**: 🌀 Ancient Runic Teleport Circle, ⛲ Courtyard Marble Fountain, 🌸 Sacred Shrine Sakura Grove, 🏰 Castle Defensive Moat Channel (Deformable Spline), ⚡ Glowing Arcane Leyline Fracture.
+### 🌐 Structural Symmetry of the Catalog
+- **5 Genres (75 Elements Each)**: Cyberpunk &amp; Dystopian Sci-Fi, Weird West &amp; Frontier, Deep Space &amp; Hard Sci-Fi, Cosmic Horror &amp; Occult Modern, High Fantasy &amp; Sword-and-Sorcery.
+- **3 Physical Geometry Modes (125 Elements Each / 25 per Genre)**:
+  - **〰️ Drawn Lines &amp; Paths (125)**: Continuous directional traveling paths and ribbons that follow strokes and splines.
+  - **⭕ Filled Areas &amp; Textures (125)**: Custom enclosed perimeters, deformable polygons, and atmospheric area-fills.
+  - **🎯 Single Props &amp; Spot Objects (125)**: Standalone point placements, focal objects, and localized hazards.
+- **5 Subcategories per Geometry (25 Elements per Category per Section = 75 Total per Category)**:
+  - **💡 Lighting &amp; Optical Beams (75)**
+  - **⚠️ Hazards, Traps &amp; Active Barriers (75)**
+  - **⚙️ Props, Machinery &amp; Conveyance (75)**
+  - **✨ Special Effects, Magic &amp; Phenomena (75)**
+  - **🌫️ Ambiance, Weather &amp; Atmosphere (75)**
 
-### 🕵️ Modern & Pulp (25 Features — 5 per Category)
-- **☁️ Weather**: 🌧️ Noir Alleyway Acid Downpour, 🏭 Industrial Chemical Smog Haze, 💨 Subway Grate & Manhole Steam, 🌪️ Route 66 Dust Devil Eddy, 🌨️ Urban Sidewalk Slush Flurry.
-- **⚠️ Hazards**: 🚗 Gasoline Vehicle Wreck Blaze, ☠️ SWAT Riot Tear Gas Cloud, ⚡ Sparking Downed Power Line, 🛢️ Iridescent Garage Oil Slick, 🚧 Concertina Razorwire Barrier.
-- **💡 Lights**: 🚁 Helicopter / Prison Searchlight, 🔦 Tactical SWAT Weapon Light, 💡 Sodium-Vapor City Streetlamp, 🚘 Twin Automotive Headlights, 🛢️ Alleyway 55-Gallon Burn Barrel.
-- **🐾 Passive Actors**: 🕊️ City Plaza Pigeon Flock, 🐈 Prowling Stray Alley Cat, 🐀 Subway Track Sewer Rats, 📰 Windblown Street Newspaper, 🚨 Roving Security Guard Beacon.
-- **🌿 Environment**: 🌊 Concrete Storm Drainage Canal (Deformable Spline), ⛲ Civic Park Plaza Fountain, 🌀 Rooftop HVAC Exhaust Fan, 🍸 Buzzing Dive-Bar Neon Sign, ⚓ Industrial Harbor Pier Wake.
+---
 
-### 🚀 Future & Sci-Fi (25 Features — 5 per Category)
-- **☁️ Weather**: 🌧️ Cyberpunk Acid Neon Rain, 🚀 Relativistic Warp Starfield, ☢️ Nuclear Fallout Ash Drift, 🦠 Bioluminescent Xeno-Spores, 🤖 Self-Assembling Nanite Cloud.
-- **⚠️ Hazards**: 🛡️ High-Voltage Laser Tripwire Grid, ⚡ Superheated Fusion Plasma Vent, ☢️ Mutagen Radioactive Sludge, ❄️ Sub-Zero Cryo Nitrogen Breach, 💥 Warp Core Overload Arc Vent.
-- **💡 Lights**: 🪐 3D Tactical Planetary Holo-Table, 🎯 Targeting Reticle Hologram, 🔦 Security Drone Scanner Cone, 🚨 Emergency Red Alert Klaxon, ⏩ Floor LED Runway Chevron Strip.
-- **🐾 Passive Actors**: 🛸 Sentry Surveillance Drone Swarm, 🤖 Cyber-Scuttler Maintenance Bots, 🧹 Autonomous Deck Scrubber Droid, 🐟 Digital Holographic Wireframe Koi, 🛰️ Deep-Space Telemetry Probe.
-- **🌿 Environment**: 🛡️ Hexagonal Energy Shield Barrier, 💠 Quantum Transmat Teleporter, 🖥️ Tactical Command HUD Console, ⚙️ Factory Conveyor Belt Track, 🧪 Bio-Mutagen Coolant Conduit (Deformable Spline).
+### ⚡ 1. Cyberpunk & Dystopian Sci-Fi (75 Elements, #1–75)
+- **A. Linear Motion (Drawn Paths #1–25)**:
+  - *Lighting*: Flying car headlight beams (#1), Police spinner lightbars (#2), Fiber-optic data conduits (#3), Patrol drone searchlights (#4), Elevated monorail window blur (#5).
+  - *Hazards*: Red security laser grids (#6), High-speed maglev subway trains (#7), Chemical runoff culverts (#8), Scrap metal smelter conveyors (#9), Armed perimeter patrol drones (#10).
+  - *Props*: Pneumatic message canisters (#11), Warehouse delivery bots (#12), Mega-mall escalators (#13), Overhead gantry welders (#14), Spaceport baggage carousels (#15).
+  - *Special Effects*: Smart-gun railgun tracers (#16), Expanding EMP shockwave rings (#17), Holographic riot-control barriers (#18), Netrunner ice-breaker code streams (#19), Acid skylight rain rivulets (#20).
+  - *Ambiance*: Multi-tier sky-traffic lanes (#21), Windblown gutter flyers (#22), Ruptured alley steam pipes (#23), Platform cyber-rats (#24), High-rise smog banks (#25).
+- **B. Animated Textures (Filled Areas #26–50)**:
+  - *Lighting*: Neon oily puddle refractions (#26), Biotech algae vat glow (#27), Nightclub strobe grids (#28), Server-rack LED matrices (#29), Slatted mega-vent sunlight rays (#30).
+  - *Hazards*: Electrified metal decking (#31), Corrosive solvent vats (#32), Storm-drain sewage churn (#33), Radioactive sludge pools (#34), Smoldering foundry slag heaps (#35).
+  - *Props*: CRT telemetry monitor banks (#36), Hydroponic crop misting beds (#37), Sparking e-waste piles (#38), Server coolant sub-flooring (#39), Mag-crane shipping container yards (#40).
+  - *Special Effects*: Cyberspace glitch grids (#41), Hex hangar energy shields (#42), Riot tear-gas banks (#43), Thermal heat-map distortion (#44), Nanobot deck sand swarms (#45).
+  - *Ambiance*: Diagonal acid rain with splash rings (#46), Dense subway grate street vapor (#47), Burned slum soot fall (#48), Windy plaza trash eddies (#49), Overhead sky-traffic shadows (#50).
+- **C. Single Elements (Focal Props #51–75)**:
+  - *Lighting*: Broken neon storefront signs (#51), Holographic corporate billboards (#52), Bent sputtering streetlamps (#53), Homeless camp fire barrels (#54), Rotary warning beacons (#55).
+  - *Hazards*: Thrashing severed power cables (#56), Automated ceiling turrets (#57), Vault laser tripwires (#58), Overheating plasma cores (#59), Industrial exhaust fans (#60).
+  - *Props*: 3D holographic city maps (#61), Hacked matrix terminals (#62), Street noodle stall steam (#63), Fluorescent vending machines (#64), Ripperdoc surgical chairs (#65).
+  - *Special Effects*: Cyberspace avatar spawn pads (#66), Sonic riot suppressors (#67), Holographic decoy projections (#68), Armed EMP grenades (#69), Cryo-stasis unsealing pods (#70).
+  - *Ambiance*: Pivoting CCTV cameras (#71), Fire-escape cyber-cats (#72), Bobbing neon umbrellas (#73), Dripping window AC units (#74), Chroma-shift digital graffiti (#75).
 
-### 🐙 Other & Eldritch (25 Features — 5 per Category)
-- **☁️ Weather**: 🩸 Eldritch Crimson Blood Rain, 💀 Necrotic Cemetery Specter Fog, 🌌 Cosmic Void Dimensional Tear, 🦴 Ashen Necropolis Bone Blizzard, 👻 Swirling Tormented Shadow Spirits.
-- **⚠️ Hazards**: 🐙 Writhing Eldritch Void Tentacles, 🔥 Soul-Consuming Brimstone Hellfire, 🩸 Sacrificial Runic Blood Pool, ☣️ Choking Pestilence Plague Miasma, 🧪 Caustic Alchemical Ooze Mire.
-- **💡 Lights**: 💀 Gothic Skull Ritual Candelabra, 💙 Pale Blue Spectral Witchfire, 💎 Floating Amethyst Soul Crystal, ⚙️ Victorian Steampunk Gaslamp, 🌕 Blood Moon Volumetric Shafts.
-- **🐾 Passive Actors**: 👻 Floating Victorian Phantom Lady, 👁️ Wandering Eldritch All-Seeing Eye, 🕷️ Swarming Abyssal Shadow Spiders, 🐟 Deep-One Bioluminescent Anglers, 🦋 Death's-Head Crypt Lunar Moths.
-- **🌿 Environment**: 🩸 Flowing Sanguine River of Blood (Deformable Spline), ⛲ Vampiric Sanguine Stone Fountain, 🌲 Twisted Haunted Deadwood Thicket, 🍄 Alien Myconid Spore-Cap Grove, 🌀 Shattered Reality Void Rift.
+---
+
+### 🤠 2. Weird West & Frontier (75 Elements, #76–150)
+- **A. Linear Motion (Drawn Paths #76–100)**:
+  - *Lighting*: Steam locomotive headlamp beams (#76), Stagecoach lanterns (#77), Racing kerosene trails (#78), Canyon floor sunbeams (#79), Railroad ghost-lights (#80).
+  - *Hazards*: Arroyo flash floods (#81), Runaway ore carts (#82), Stampeding longhorns (#83), Flaming tumbleweeds (#84), Gatling gun tracer fire (#85).
+  - *Props*: Stagecoach dust trails (#86), Iron horse steam locomotives (#87), Gold-panning sluice boxes (#88), Riverboat paddlewheels (#89), Telegraph ticker paper feeds (#90).
+  - *Special Effects*: Burning dynamite fuses (#91), Phantom ghost-trains (#92), Spinning desert dust devils (#93), Lead bullet ricochets (#94), Haboob sandstorm walls (#95).
+  - *Ambiance*: Rolling tumbleweeds (#96), Clear canyon rivers (#97), Circling turkey vultures (#98), Slithering rattlesnakes (#99), Boardwalk desert grit (#100).
+- **B. Animated Textures (Filled Areas #101–125)**:
+  - *Lighting*: Dappled cottonwood sunlight (#101), Boot-hill green moonlight (#102), Saloon puddle window light (#103), Salt flat heat shimmer (#104), Prairie sheet lightning (#105).
+  - *Hazards*: Canyon quicksand pits (#106), Crude oil gushers (#107), Prairie brushfires (#108), Whitewater canyon rapids (#109), Ghost-town cursed ichor (#110).
+  - *Props*: Swaying golden wheat fields (#111), Rippling buffalo grass (#112), Swaying rope bridges (#113), Groaning mine shaft timbers (#114), Churned mud corrals (#115).
+  - *Special Effects*: Ghost-rock radiation (#116), Black-powder gunsmoke haze (#117), Locust swarm blankets (#118), Shifting desert dunes (#119), Battlefield blood mist (#120).
+  - *Ambiance*: Mesa desert winds (#121), Shallow pebble creeks (#122), Heavy prairie rain & muddy ruts (#123), Rocky Mountain snowfalls (#124), Train depot autumn leaves (#125).
+- **C. Single Elements (Focal Props #126–150)**:
+  - *Lighting*: Trail campfires & coffee pots (#126), Swinging porch lanterns (#127), Blacksmith forge coals (#128), Wagon-wheel chandeliers (#129), Railroad crossing signals (#130).
+  - *Hazards*: Fizzing dynamite bundles (#131), Coiled timber rattlesnakes (#132), Steel bear traps (#133), Boiler pressure valves (#134), Gallows trapdoors (#135).
+  - *Props*: Batwing saloon doors (#136), Windmill water pumps (#137), Oil derrick rocker arms (#138), Ghost player pianos (#139), Swaying hangman nooses (#140).
+  - *Special Effects*: Unstable ghost-rock ore (#141), Cursed self-shuffling poker decks (#142), Medium's crystal balls (#143), Spinning Gatling barrels (#144), Geothermal hot geysers (#145).
+  - *Ambiance*: Fluttering wanted posters (#146), Hitching-post mustangs (#147), Spit-roast campfire rabbits (#148), Banging ghost-town shutters (#149), Boot-hill ravens (#150).
+
+---
+
+### 🚀 3. Deep Space & Hard Sci-Fi (75 Elements, #151–225)
+- **A. Linear Motion (Drawn Paths #151–175)**:
+  - *Lighting*: FTL star-streak warps (#151), Docking runway approach lights (#152), Solar flare radiation waves (#153), Tactical sensor sweeps (#154), Evacuation light chevrons (#155).
+  - *Hazards*: Decompression hull breach winds (#156), Superheated plasma conduit arcs (#157), Micrometeoroid showers (#158), Slamming hydraulic bulkheads (#159), Mining lasers (#160).
+  - *Props*: Fuel rod cargo rails (#161), Tracked welding drones (#162), Anti-gravity lift shafts (#163), Orbital space elevators (#164), Steel docking clamps (#165).
+  - *Special Effects*: Blue ion thruster plumes (#166), Holographic sonar pings (#167), Matter transporter beams (#168), Containment forcefield ripples (#169), Liquid nitrogen coolant vents (#170).
+  - *Ambiance*: Tumbling asteroid fields (#171), Derelict satellite debris (#172), Zero-G water droplets (#173), Cosmic nebula clouds (#174), Planetary ice rings (#175).
+- **B. Animated Textures (Filled Areas #176–200)**:
+  - *Lighting*: Cherenkov core radiation (#176), Red-alert klaxon strobes (#177), Bioluminescent xenomoss (#178), Deep-space starfields (#179), Quantum processor floors (#180).
+  - *Hazards*: Radioactive coolant floods (#181), Alien hive biomass (#182), Sub-zero frost decking (#183), Ion storm deck arcs (#184), Acid xenospore quarantine clouds (#185).
+  - *Props*: Hydroponic garden misting (#186), Cryo-sleep honeycomb walls (#187), Drone charging floors (#188), Ore crusher conveyors (#189), Sub-bridge gyroscope bays (#190).
+  - *Special Effects*: Hyperspace wormhole tunnels (#191), Gravitational singularity lenses (#192), Lunar outpost shield domes (#193), Tactical holo star-charts (#194), Zero-G floating debris fields (#195).
+  - *Ambiance*: Air-scrubber sterile mist (#196), Rotating comms dish shadows (#197), Exoplanet jungle spores (#198), Zero-G aquatic xenobiology tanks (#199), Engine manifold heat shimmer (#200).
+- **C. Single Elements (Focal Props #201–225)**:
+  - *Lighting*: Fusion reactor plasma cores (#201), Dangling flickering LED panels (#202), Magnesium distress flares (#203), Holographic quarantine icons (#204), Specimen alien jellyfish (#205).
+  - *Hazards*: Ruptured liquid oxygen sprays (#206), Malfunctioning surgical arms (#207), Pulsing alien egg sacs (#208), High-voltage plasma capacitors (#209), Airlock override switches (#210).
+  - *Props*: 3D planetary holo-globes (#211), Unsealing cryo-pods (#212), Rotating exterior comms dishes (#213), Drydock laser welders (#214), Gimbaled gravity rings (#215).
+  - *Special Effects*: Unstable spatial tears (#216), Ejecting escape pods (#217), Artifact stasis beams (#218), Ship AI holo-avatars (#219), Orbital defense cannon charging (#220).
+  - *Ambiance*: Med-bay vital screens (#221), Hull cleaner droids (#222), Floating zero-G drink pouches (#223), Nav console standby loops (#224), Viewport alien bugs (#225).
+
+---
+
+### 👁️ 4. Cosmic Horror, Noir & Occult Modern (75 Elements, #226–300)
+- **A. Linear Motion (Drawn Paths #226–250)**:
+  - *Lighting*: Lighthouse fog beams (#226), Dying streetlamp chains (#227), Noir sedan headlights (#228), Floating spectral candles (#229), Blood-moon eclipse shadows (#230).
+  - *Hazards*: Oozing cellar ichor (#231), Crawling shadow tendrils (#232), Stairwell roach tides (#233), Inverted blood droplets (#234), Freezing grave-fog walls (#235).
+  - *Props*: Haunted 1920s subway cars (#236), Occult elevator dials (#237), Ghost typewriters (#238), Creaking dumbwaiter lifts (#239), 16mm film projectors (#240).
+  - *Special Effects*: Non-Euclidean floor tiles (#241), Floral wallpaper void tears (#242), Psychic madness ripples (#243), Bookshelf ghost ladies (#244), Ritual violet mist (#245).
+  - *Ambiance*: Rotting pier coastal fog (#246), Gothic stained-glass rain (#247), Cemetery dead leaves (#248), Full-moon murder of crows (#249), Detective cigarette smoke (#250).
+- **B. Animated Textures (Filled Areas #251–275)**:
+  - *Lighting*: Venetian blind office shadows (#251), Indigo harbor moonlight (#252), Green sewer gaslight (#253), Frosted-glass lightning flashes (#254), Ritual chalk candle shadows (#255).
+  - *Hazards*: Harbor abyssal tentacles (#256), Splintering floorboard collapses (#257), Writhing crypt maggot carpets (#258), Whispering cult tar pools (#259), Creeping hoarfrost (#260).
+  - *Props*: Trembling library shelves (#261), Rattling morgue drawers (#262), Breathing padded walls (#263), Cosmic asphalt puddle reflections (#264), Shifting wallpaper eyes (#265).
+  - *Special Effects*: Noir film grain & scratches (#266), Altar chromatic aberration (#267), CRT static ghost faces (#268), Gravity inversion zones (#269), Burning eldritch floor runes (#270).
+  - *Ambiance*: Midnight cobblestone rain (#271), Trembling crypt cobwebs (#272), Chimney hearth smoke (#273), Shadows behind frosted glass (#274), Burned crime scene soot (#275).
+- **C. Single Elements (Focal Props #276–300)**:
+  - *Lighting*: Green banker's desk lamps (#276), London fog gaslamps (#277), Skull tallow candles (#278), Purple flame lanterns (#279), Trembling Zippo lighters (#280).
+  - *Hazards*: Bleeding ritual daggers (#281), Bubbling manhole sewer gas (#282), Creaking iron maidens (#283), Laboratory pit vipers (#284), Thrashing elevator cables (#285).
+  - *Props*: Antique vinyl gramophones (#286), Swinging pendulum clocks (#287), Buzzing rotary telephones (#288), Slow ceiling paddle fans (#289), Autopsy table drain gutters (#290).
+  - *Special Effects*: Oily sweating basalt idols (#291), Smoking occult grimoires (#292), Séance spirit trumpets (#293), Skull green ghost-fire (#294), Rippling liquid mirrors (#295).
+  - *Ambiance*: Dripping wet umbrellas (#296), Dying rose dropping petals (#297), Swinging asylum metronomes (#298), Gargoyle perched pigeons (#299), Curbside leaking wet boxes (#300).
+
+---
+
+### ⚔️ 5. High Fantasy & Sword-and-Sorcery (75 Elements, #301–375)
+- **A. Linear Motion (Drawn Paths #301–325)**:
+  - *Lighting*: Magic missile corkscrews (#301), Flaming arrow volleys (#302), Bobbing will-o'-the-wisps (#303), Cathedral golden sunbeams (#304), Glowing crystal drips (#305).
+  - *Hazards*: Dragon-fire scorch waves (#306), Rolling stone boulders (#307), Surging cavern rivers (#308), Dungeon scarab crawls (#309), Swinging pendulum blades (#310).
+  - *Props*: Watermill churning wheels (#311), Rattling portcullis chains (#312), Dwarven rail minecarts (#313), Royal carriage wheels (#314), Flapping canvas awnings (#315).
+  - *Special Effects*: Forked chain lightning arcs (#316), Prismatic Bifrost bridges (#317), Phantom cavalry charges (#318), Pixie dust leaf vortexes (#319), Cone of cold frost (#320).
+  - *Ambiance*: Wild mountain rivers (#321), High circling dragons (#322), Speckled trout streams (#323), Bounding deer herds (#324), Pasture dandelion seeds (#325).
+- **B. Animated Textures (Filled Areas #326–350)**:
+  - *Lighting*: Cathedral stained-glass god rays (#326), Underdark giant toadstools (#327), Underwater caustic light (#328), Astral plane nebula voids (#329), Twilight forest fireflies (#330).
+  - *Hazards*: Bubbling magma pits (#331), Sizzling emerald acid pools (#332), Cracking lake ice fractures (#333), Blood assassin vines (#334), Bubbling peat bogs (#335).
+  - *Props*: Swaying forest canopies (#336), Underwater kelp & coral reefs (#337), Rippling summer meadows (#338), Rainy cobblestone squares (#339), Glittering gold coin hoards (#340).
+  - *Special Effects*: Arcane summoning circles (#341), Wizard golden forcefield domes (#342), Astral liquid silk voids (#343), Spreading flagstone frost (#344), Magical swirling darkness (#345).
+  - *Ambiance*: Cave water drop ripples (#346), Castle morning courtyard mist (#347), Gentle village snowfalls (#348), Mountain cloud shadows (#349), Golden fairy dust glades (#350).
+- **C. Single Elements (Focal Props #351–375)**:
+  - *Lighting*: Adventurer's campfires (#351), Forged-iron sconce torches (#352), Tavern hearth fireplaces (#353), Spinning pedestal crystals (#354), Wizard desk beeswax candles (#355).
+  - *Hazards*: Spring-loaded spike traps (#356), Dragon-head flame sconces (#357), Snapping mimic chests (#358), Giant snapping flytraps (#359), Trembling limestone stalactites (#360).
+  - *Props*: Bubbling witch's cauldrons (#361), Country hill windmills (#362), Self-flipping spellbooks (#363), Forge bellows & coals (#364), Swinging tavern signs (#365).
+  - *Special Effects*: Amethyst portal archways (#366), Levitating runed greatswords (#367), Azure healing fountains (#368), Floating ectoplasm skulls (#369), Storm scrying crystal balls (#370).
+  - *Ambiance*: Rippling castle banners (#371), Monarch wildflower flutter (#372), Spit-roast boar fires (#373), Draining brass hourglasses (#374), Water-lily pad treefrogs (#375).
 
 ---
 
@@ -212,8 +346,8 @@ AetherTable/
 ├── js/
 │   ├── keystone.js         # 4-corner perspective homography solver & CSS matrix3d engine
 │   ├── grid.js             # Canvas tactical grid & 1-inch miniature calibrator
-│   ├── living-elements.js  # 160 realistic features, fractal geometry engine & synced audio
-│   ├── ai-generator.js     # Gemini 4K prompt studio, 4K upscale/crop pipeline & 4K search popouts
+│   ├── living-elements.js  # 375 deduplicated master features & procedural fractal geometry engine
+│   ├── ai-generator.js     # Gemini 4K prompt studio, 4K upscale/crop pipeline & session history
 │   └── app.js              # Application coordinator, panning engine, freehand draw & hotkeys
 └── README.md               # User guide & documentation
 ```

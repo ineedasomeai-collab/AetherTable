@@ -1,227 +1,472 @@
-window.FEATURE_CATALOG = {
-    // 🌍 UNIVERSAL (60 UNIQUE FEATURES — ZERO REPEATS)
-    // Weather (12)
-    uni_drizzle: { base: 'rain', name: 'Light Rain & Puddle Ripples', variant: 'uni_drizzle', category: 'weather', genre: 'universal', w: 360, h: 260 },
-    uni_downpour: { base: 'rain', name: 'Gale Storm & Sheet Lightning', variant: 'uni_downpour', category: 'weather', genre: 'universal', w: 380, h: 280 },
-    uni_hailstorm: { base: 'rain', name: 'Bouncing Ice Hailstones', variant: 'uni_hailstorm', category: 'weather', genre: 'universal', w: 360, h: 260 },
-    uni_flurry: { base: 'snow', name: 'Crystalline 6-Point Snowflakes', variant: 'uni_flurry', category: 'weather', genre: 'universal', w: 360, h: 260 },
-    uni_blizzard: { base: 'snow', name: 'Howling Whiteout Snow Gale', variant: 'uni_blizzard', category: 'weather', genre: 'universal', w: 380, h: 280 },
-    uni_mist: { base: 'fog', name: 'Low Meadow Ground Mist', variant: 'uni_mist', category: 'weather', genre: 'universal', w: 380, h: 260 },
-    uni_densefog: { base: 'fog', name: 'Dense Swamp & Moor Fog', variant: 'uni_densefog', category: 'weather', genre: 'universal', w: 400, h: 280 },
-    uni_leaves: { base: 'leaves', name: 'Swirling Autumn Maple Leaves', variant: 'uni_leaves', category: 'weather', genre: 'universal', w: 360, h: 260 },
-    uni_petals: { base: 'leaves', name: 'Drifting Pink Sakura Petals', variant: 'uni_petals', category: 'weather', genre: 'universal', w: 360, h: 260 },
-    uni_dandelion: { base: 'dust', name: 'Floating Dandelion Seed Down', variant: 'uni_dandelion', category: 'weather', genre: 'universal', w: 340, h: 240 },
-    uni_sandstorm: { base: 'dust', name: 'Howling Desert Sandstorm Wall', variant: 'uni_sandstorm', category: 'weather', genre: 'universal', w: 380, h: 260 },
-    uni_fireflies: { base: 'fireflies', name: 'Woodland Evening Fireflies', variant: 'uni_fireflies', category: 'weather', genre: 'universal', w: 340, h: 240 },
-    // Hazards (12)
-    uni_wildfire: { base: 'inferno', name: 'Spreading Brush & Timber Blaze', variant: 'uni_wildfire', category: 'hazards', genre: 'universal', w: 260, h: 200 },
-    uni_blacksmoke: { base: 'smoke', name: 'Billowing Black Soot Plume', variant: 'uni_blacksmoke', category: 'hazards', genre: 'universal', w: 260, h: 220 },
-    uni_mudbog: { base: 'mud', name: 'Sucking Swamp Mud Mire', variant: 'uni_mudbog', category: 'hazards', genre: 'universal', w: 260, h: 200 },
-    uni_quicksand: { base: 'mud', name: 'Spiraling Desert Quicksand Pit', variant: 'uni_quicksand', category: 'hazards', genre: 'universal', w: 260, h: 200 },
-    uni_tarpit: { base: 'mud', name: 'Boiling Black Bitumen Tar Pit', variant: 'uni_tarpit', category: 'hazards', genre: 'universal', w: 260, h: 200 },
-    uni_cobwebs: { base: 'webs', name: 'Giant Spiderweb & Cocoons', variant: 'uni_cobwebs', category: 'hazards', genre: 'universal', w: 240, h: 220 },
-    uni_lightning: { base: 'sparks', name: 'Ground Ball-Lightning Zone', variant: 'uni_lightning', category: 'hazards', genre: 'universal', w: 240, h: 200 },
-    uni_steamvent: { base: 'steam', name: 'Scalding Rock Geyser Vent', variant: 'uni_steamvent', category: 'hazards', genre: 'universal', w: 220, h: 220 },
-    uni_lavapool: { base: 'lava_seam', name: 'Molten Volcanic Magma Fissure', variant: 'uni_lavapool', category: 'hazards', genre: 'universal', w: 320, h: 180 },
-    uni_poisonfumes: { base: 'smoke', name: 'Noxious Marsh Gas Fumes', variant: 'uni_poisonfumes', category: 'hazards', genre: 'universal', w: 260, h: 220 },
-    uni_rockpit: { base: 'pit_trap', name: 'Collapsed Sinkhole Chasm', variant: 'uni_rockpit', category: 'hazards', genre: 'universal', w: 220, h: 220 },
-    uni_brambles: { base: 'tentacles', name: 'Razor-Thorn Briar Patch', variant: 'uni_brambles', category: 'hazards', genre: 'universal', w: 260, h: 220 },
-    // Lights (12)
-    uni_campfire: { base: 'campfire', name: 'Campsite Stone-Ring Log Fire', variant: 'uni_campfire', category: 'lights', genre: 'universal', w: 190, h: 190 },
-    uni_hearth: { base: 'campfire', name: 'Stone Wall Hearth & Mantel', variant: 'uni_hearth', category: 'lights', genre: 'universal', w: 220, h: 200 },
-    uni_dyingembers: { base: 'campfire', name: 'Smoldering Ash & Red Coals', variant: 'uni_dyingembers', category: 'lights', genre: 'universal', w: 170, h: 170 },
-    uni_torch: { base: 'torch', name: 'Iron Wall-Bracket Pitch Torch', variant: 'uni_torch', category: 'lights', genre: 'universal', w: 130, h: 130 },
-    uni_lantern: { base: 'lantern', name: 'Brass Hooded Oil Lantern', variant: 'uni_lantern', category: 'lights', genre: 'universal', w: 150, h: 150 },
-    uni_candles: { base: 'torch', name: 'Melted Wax Pillar Candles (7)', variant: 'uni_candles', category: 'lights', genre: 'universal', w: 150, h: 150 },
-    uni_brazier: { base: 'campfire', name: 'Standing Iron Fire Basket', variant: 'uni_brazier', category: 'lights', genre: 'universal', w: 170, h: 170 },
-    uni_sunbeams: { base: 'sunbeams', name: 'Golden Forest Sunbeams', variant: 'golden_sun', category: 'lights', genre: 'universal', w: 340, h: 300 },
-    uni_moonbeams: { base: 'sunbeams', name: 'Silvery Midnight Moonbeams', variant: 'moonbeams', category: 'lights', genre: 'universal', w: 340, h: 300 },
-    uni_caverays: { base: 'sunbeams', name: 'Cavern Ceiling Skylight Shaft', variant: 'emerald_cave', category: 'lights', genre: 'universal', w: 320, h: 280 },
-    uni_biolum: { base: 'crystal', name: 'Glowing Cave Mushroom Ring', variant: 'uni_biolum', category: 'lights', genre: 'universal', w: 220, h: 220 },
-    uni_aurora: { base: 'hyperspace', name: 'Shimmering Polar Aurora', variant: 'astral_aurora', category: 'lights', genre: 'universal', w: 360, h: 260 },
-    // Actors (12)
-    uni_bats: { base: 'bats', name: 'Swooping Cave Bat Colony', variant: 'dungeon_bats', category: 'actors', genre: 'universal', w: 340, h: 260 },
-    uni_crows: { base: 'bats', name: 'Circling Crows & Ravens', variant: 'cemetery_crows', category: 'actors', genre: 'universal', w: 340, h: 260 },
-    uni_vultures: { base: 'bats', name: 'Thermal-Gliding Vultures', variant: 'desert_vultures', category: 'actors', genre: 'universal', w: 340, h: 260 },
-    uni_seagulls: { base: 'bats', name: 'Coastal White Seagulls', variant: 'harbor_gulls', category: 'actors', genre: 'universal', w: 340, h: 260 },
-    uni_rats: { base: 'rats', name: 'Skittering Brown Pack Rats', variant: 'sewer_rats', category: 'actors', genre: 'universal', w: 320, h: 240 },
-    uni_spiders: { base: 'rats', name: 'Scuttling 8-Legged Spiders', variant: 'swarming_spiders', category: 'actors', genre: 'universal', w: 300, h: 240 },
-    uni_scorpions: { base: 'rats', name: 'Stalking Desert Scorpions', variant: 'cave_scorpions', category: 'actors', genre: 'universal', w: 300, h: 220 },
-    uni_beetles: { base: 'rats', name: 'Iridescent Forest Stag Beetles', variant: 'stag_beetles', category: 'actors', genre: 'universal', w: 280, h: 220 },
-    uni_trout: { base: 'fish', name: 'Speckled Brook Trout', variant: 'river_trout', category: 'actors', genre: 'universal', w: 340, h: 260 },
-    uni_koi: { base: 'fish', name: 'Calico Pond Koi Fish', variant: 'koi_pond', category: 'actors', genre: 'universal', w: 320, h: 240 },
-    uni_sharks: { base: 'fish', name: 'Circling Reef Sharks', variant: 'ocean_sharks', category: 'actors', genre: 'universal', w: 380, h: 280 },
-    uni_tumbleweed: { base: 'tumbleweed', name: 'Rolling Desert Tumbleweeds', variant: 'desert_thistle', category: 'actors', genre: 'universal', w: 320, h: 180 },
-    // Environment (12 — Deformable Ponds, Deformable Rivers, Deformable Forests & Waves)
-    uni_pond: { base: 'pond', name: 'Deformable Pond & Lily Pads', variant: 'pond_lily', category: 'environment', genre: 'universal', w: 360, h: 280 },
-    uni_cavernpool: { base: 'pond', name: 'Deformable Crystal Cave Pool', variant: 'cavern_pool', category: 'environment', genre: 'universal', w: 360, h: 280 },
-    uni_river: { base: 'river', name: 'Flowing Stream / River', variant: 'stream', category: 'environment', genre: 'universal', w: 520, h: 220 },
-    uni_rapids: { base: 'river', name: 'Whitewater River Rapids', variant: 'ocean', category: 'environment', genre: 'universal', w: 520, h: 240 },
-    uni_swampwater: { base: 'river', name: 'Murky Bayou & Marsh Water', variant: 'swamp', category: 'environment', genre: 'universal', w: 480, h: 240 },
-    uni_lavariver: { base: 'river', name: 'Flowing Molten Lava River', variant: 'lava', category: 'environment', genre: 'universal', w: 520, h: 220 },
-    uni_waterfall: { base: 'waterfall', name: 'Roaring Cliff Waterfall', variant: 'mountain_falls', category: 'environment', genre: 'universal', w: 240, h: 340 },
-    uni_oakforest: { base: 'forest', name: 'Deformable Oak Forest Tool', variant: 'ancient_oak', category: 'environment', genre: 'universal', w: 440, h: 400 },
-    uni_pineforest: { base: 'forest', name: 'Deformable Pine Forest Tool', variant: 'boreal_pine', category: 'environment', genre: 'universal', w: 440, h: 400 },
-    uni_jungle: { base: 'forest', name: 'Deformable Jungle Palm Tool', variant: 'tropical_jungle', category: 'environment', genre: 'universal', w: 440, h: 400 },
-    uni_autumnforest: { base: 'forest', name: 'Deformable Autumn Woods Tool', variant: 'autumn_maple', category: 'environment', genre: 'universal', w: 440, h: 400 },
-    uni_oceansurf: { base: 'ocean_waves', name: 'Sandy Beach & Reef Surf', variant: 'tropical_reef', category: 'environment', genre: 'universal', w: 480, h: 320 },
+﻿window.FEATURE_CATALOG = {
+    // =========================================================================
+    // 375 DEDUPLICATED MASTER ANIMATED VTT ELEMENTS CATALOG
+    // 5 Genres (75 each) x 3 Geometry Placements (125 each) x 5 Subcategories
+    // =========================================================================
 
-    // ⚔️ HISTORIC (25 UNIQUE FEATURES)
-    hist_feyspores: { base: 'fireflies', name: 'Enchanted Feywild Pixie Dust', variant: 'hist_feyspores', category: 'weather', genre: 'historic', w: 340, h: 240 },
-    hist_battleash: { base: 'dust', name: 'Siege Battlefield Cinders', variant: 'hist_battleash', category: 'weather', genre: 'historic', w: 360, h: 260 },
-    hist_dungeonmist: { base: 'fog', name: 'Ancient Crypt Floor Mist', variant: 'hist_dungeonmist', category: 'weather', genre: 'historic', w: 380, h: 260 },
-    hist_leylinesurge: { base: 'hyperspace', name: 'Swirling Leyline Runes', variant: 'hist_leylinesurge', category: 'weather', genre: 'historic', w: 360, h: 260 },
-    hist_seaspume: { base: 'rain', name: 'Galleon Deck Wave Spray', variant: 'hist_seaspume', category: 'weather', genre: 'historic', w: 360, h: 260 },
-    hist_spikes: { base: 'pit_trap', name: 'Concealed Iron Punji Spike Pit', variant: 'iron_spikes', category: 'hazards', genre: 'historic', w: 220, h: 220 },
-    hist_greekfire: { base: 'inferno', name: 'Alchemical Green Greek Fire', variant: 'alchemical', category: 'hazards', genre: 'historic', w: 260, h: 200 },
-    hist_arcanerift: { base: 'sparks', name: 'Wild-Magic Runic Ground Ward', variant: 'arcane_surge', category: 'hazards', genre: 'historic', w: 240, h: 200 },
-    hist_holyward: { base: 'sparks', name: 'Radiant Celestial Sanctuary Seal', variant: 'golden_holy', category: 'hazards', genre: 'historic', w: 240, h: 200 },
-    hist_pendulum: { base: 'pit_trap', name: 'Swinging Pendulum Scythe Trap', variant: 'hist_pendulum', category: 'hazards', genre: 'historic', w: 280, h: 200 },
-    hist_sconce: { base: 'torch', name: 'Heraldic Twin-Torch Sconce', variant: 'hist_sconce', category: 'lights', genre: 'historic', w: 160, h: 150 },
-    hist_brazier: { base: 'campfire', name: 'Bronze Tripod Temple Brazier', variant: 'hist_brazier', category: 'lights', genre: 'historic', w: 180, h: 180 },
-    hist_candelabra: { base: 'lantern', name: 'Great Hall Iron Chandelier', variant: 'hist_candelabra', category: 'lights', genre: 'historic', w: 210, h: 210 },
-    hist_sunbeams: { base: 'sunbeams', name: 'Stained-Glass Cathedral Rays', variant: 'cathedral_rays', category: 'lights', genre: 'historic', w: 340, h: 300 },
-    hist_witchlight: { base: 'torch', name: 'Orbiting Wizard Magelights (3)', variant: 'hist_witchlight', category: 'lights', genre: 'historic', w: 180, h: 180 },
-    hist_wisp: { base: 'patrol_actor', name: 'Moorland Will-o\'-the-Wisp', variant: 'will_o_wisp', category: 'actors', genre: 'historic', w: 260, h: 260 },
-    hist_pixie: { base: 'patrol_actor', name: 'Fluttering Feywild Sprite', variant: 'fey_sprite', category: 'actors', genre: 'historic', w: 240, h: 240 },
-    hist_scarabs: { base: 'rats', name: 'Pharaonic Golden Scarab Swarm', variant: 'hist_scarabs', category: 'actors', genre: 'historic', w: 300, h: 220 },
-    hist_butterflies: { base: 'bats', name: 'Enchanted Sylvan Butterflies', variant: 'hist_butterflies', category: 'actors', genre: 'historic', w: 320, h: 240 },
-    hist_ravens: { base: 'bats', name: 'Odin\'s Runic Omen Ravens', variant: 'hist_ravens', category: 'actors', genre: 'historic', w: 320, h: 260 },
-    hist_portal: { base: 'teleporter', name: 'Ancient Runic Teleport Circle', variant: 'warp_gate', category: 'environment', genre: 'historic', w: 260, h: 260 },
-    hist_fountain: { base: 'fountain', name: 'Courtyard Marble Fountain', variant: 'crystal_clear', category: 'environment', genre: 'historic', w: 260, h: 260 },
-    hist_cherrygrove: { base: 'forest', name: 'Deformable Sakura Grove Tool', variant: 'cherry_blossom', category: 'environment', genre: 'historic', w: 440, h: 400 },
-    hist_moat: { base: 'river', name: 'Deformable Castle Moat Tool', variant: 'moat_stakes', category: 'environment', genre: 'historic', w: 520, h: 220 },
-    hist_forge: { base: 'campfire', name: 'Dwarven Forge & Bellows', variant: 'hist_forge', category: 'environment', genre: 'historic', w: 280, h: 220 },
+    // -------------------------------------------------------------------------
+    // ⚡ 1. CYBERPUNK & DYSTOPIAN SCI-FI (75 ELEMENTS)
+    // -------------------------------------------------------------------------
+    // A. Linear Motion (Directional / Traveling / Drawn Paths)
+    cp_flying_headlights: { num: 1, base: 'headlights', name: 'Flying Car Headlight Beams', desc: 'Flying car headlight beams sweeping down a rain-slicked highway', variant: 'cp_flying_headlights', category: 'lighting', section: 'drawn', genre: 'cyberpunk', icon: '🚘', w: 360, h: 240 },
+    cp_spinner_lightbar: { num: 2, base: 'spotlight', name: 'Police Spinner Lightbars', desc: 'Police spinner red-and-blue lightbars streaking across skyscraper glass', variant: 'cp_spinner_lightbar', category: 'lighting', section: 'drawn', genre: 'cyberpunk', icon: '🚨', w: 320, h: 220 },
+    cp_fiber_conduit: { num: 3, base: 'lightstrip', name: 'Fiber-Optic Data Conduit', desc: 'Neon data pulses racing through transparent fiber-optic floor conduits', variant: 'cp_fiber_conduit', category: 'lighting', section: 'drawn', genre: 'cyberpunk', icon: '⚡', w: 480, h: 160 },
+    cp_drone_searchlight: { num: 4, base: 'spotlight', name: 'Patrol Drone Searchlight', desc: 'Autonomous drone searchlight cones scanning a dark alleyway', variant: 'cp_drone_searchlight', category: 'lighting', section: 'drawn', genre: 'cyberpunk', icon: '🔦', w: 340, h: 260 },
+    cp_monorail_blur: { num: 5, base: 'lightstrip', name: 'Elevated Monorail Lights', desc: 'Elevated monorail window lights blurring across a night skyline', variant: 'cp_monorail_blur', category: 'lighting', section: 'drawn', genre: 'cyberpunk', icon: '🚝', w: 520, h: 180 },
+    cp_laser_grid: { num: 6, base: 'forcefield', name: 'Security Laser Grid', desc: 'Red security laser grids sweeping rhythmically down a corporate hallway', variant: 'cp_laser_grid', category: 'hazards', section: 'drawn', genre: 'cyberpunk', icon: '🔴', w: 360, h: 200 },
+    cp_maglev_subway: { num: 7, base: 'conveyor', name: 'High-Speed Mag-Lev Subway', desc: 'High-speed mag-lev subway trains hurtling through an underground tunnel', variant: 'cp_maglev_subway', category: 'hazards', section: 'drawn', genre: 'cyberpunk', icon: '🚇', w: 540, h: 200 },
+    cp_chemical_culvert: { num: 8, base: 'river', name: 'Chemical Runoff Culvert', desc: 'Glowing green chemical runoff surging through an open street culvert', variant: 'cp_chemical_culvert', category: 'hazards', section: 'drawn', genre: 'cyberpunk', icon: '🧪', w: 500, h: 220 },
+    cp_smelter_conveyor: { num: 9, base: 'conveyor', name: 'Scrap Smelter Conveyor', desc: 'Industrial conveyor belts carrying scrap metal toward a smelter', variant: 'cp_smelter_conveyor', category: 'hazards', section: 'drawn', genre: 'cyberpunk', icon: '⚙️', w: 480, h: 190 },
+    cp_patrol_track: { num: 10, base: 'patrol_actor', name: 'Armed Patrol Drone Track', desc: 'Armed patrol drones gliding along a fixed perimeter track', variant: 'cp_patrol_track', category: 'hazards', section: 'drawn', genre: 'cyberpunk', icon: '🛸', w: 360, h: 240 },
+    cp_pneumatic_tube: { num: 11, base: 'lightstrip', name: 'Pneumatic Message Canister', desc: 'Pneumatic message canisters shooting through clear ceiling tubes', variant: 'cp_pneumatic_tube', category: 'props', section: 'drawn', genre: 'cyberpunk', icon: '📨', w: 460, h: 140 },
+    cp_delivery_bots: { num: 12, base: 'conveyor', name: 'Warehouse Delivery Bots', desc: 'Wheeled delivery bots rolling along magnetic warehouse floor strips', variant: 'cp_delivery_bots', category: 'props', section: 'drawn', genre: 'cyberpunk', icon: '🤖', w: 460, h: 180 },
+    cp_megamall_escalator: { num: 13, base: 'conveyor', name: 'Mega-Mall Escalators', desc: 'Mega-mall escalators carrying commuters between multi-level atriums', variant: 'cp_megamall_escalator', category: 'props', section: 'drawn', genre: 'cyberpunk', icon: '🏬', w: 440, h: 200 },
+    cp_gantry_welder: { num: 14, base: 'sparks', name: 'Overhead Gantry Welder', desc: 'Robotic welding arms sliding along overhead factory gantry rails', variant: 'cp_gantry_welder', category: 'props', section: 'drawn', genre: 'cyberpunk', icon: '🦾', w: 460, h: 200 },
+    cp_baggage_carousel: { num: 15, base: 'conveyor', name: 'Spaceport Baggage Carousel', desc: 'Spaceport baggage carousels rotating around a chrome claim terminal', variant: 'cp_baggage_carousel', category: 'props', section: 'drawn', genre: 'cyberpunk', icon: '🧳', w: 400, h: 240 },
+    cp_railgun_tracers: { num: 16, base: 'sparks', name: 'Smart-Gun Railgun Tracers', desc: 'Smart-gun tracer rounds and railgun trails zipping across a street shootout', variant: 'cp_railgun_tracers', category: 'sfx', section: 'drawn', genre: 'cyberpunk', icon: '💥', w: 480, h: 180 },
+    cp_emp_shockwave: { num: 17, base: 'plasma_leak', name: 'Expanding EMP Shockwave', desc: 'Blue EMP shockwave rings expanding outward from a detonated charge', variant: 'cp_emp_shockwave', category: 'sfx', section: 'drawn', genre: 'cyberpunk', icon: '⚡', w: 360, h: 360 },
+    cp_riot_barrier_wave: { num: 18, base: 'forcefield', name: 'Holo Riot-Control Barrier', desc: 'Holographic riot-control barrier waves pushing crowd lines backward', variant: 'cp_riot_barrier_wave', category: 'sfx', section: 'drawn', genre: 'cyberpunk', icon: '🛡️', w: 480, h: 200 },
+    cp_netrunner_stream: { num: 19, base: 'cyber_terminal', name: 'Netrunner Code Stream', desc: 'Netrunner ice-breaker code streams shooting between cyberdeck terminals', variant: 'cp_netrunner_stream', category: 'sfx', section: 'drawn', genre: 'cyberpunk', icon: '💻', w: 460, h: 180 },
+    cp_skylight_rivulets: { num: 20, base: 'rain', name: 'Acid Skylight Rivulets', desc: 'Acid rain rivulets streaming diagonally down angled glass skylights', variant: 'cp_skylight_rivulets', category: 'sfx', section: 'drawn', genre: 'cyberpunk', icon: '🌧️', w: 440, h: 260 },
+    cp_skytraffic_lanes: { num: 21, base: 'patrol_actor', name: 'Sky-Traffic Flight Lanes', desc: 'Multi-tiered sky-traffic lanes filled with cruising hover-vehicles', variant: 'cp_skytraffic_lanes', category: 'ambiance', section: 'drawn', genre: 'cyberpunk', icon: '🚗', w: 500, h: 240 },
+    cp_windblown_flyers: { num: 22, base: 'dust', name: 'Windblown Gutter Flyers', desc: 'Wind-blown neon flyers and plastic wrappers skittering down a gutter', variant: 'cp_windblown_flyers', category: 'ambiance', section: 'drawn', genre: 'cyberpunk', icon: '📄', w: 420, h: 180 },
+    cp_steam_pipe_vent: { num: 23, base: 'smoke', name: 'Ruptured Alley Steam Pipe', desc: 'Pressurized steam venting horizontally from ruptured alley pipes', variant: 'cp_steam_pipe_vent', category: 'ambiance', section: 'drawn', genre: 'cyberpunk', icon: '💨', w: 440, h: 200 },
+    cp_cyber_rats_line: { num: 24, base: 'rats', name: 'Platform Cyber-Rats', desc: 'Cybernetic rats scurrying in single file along a subway platform edge', variant: 'cp_cyber_rats_line', category: 'ambiance', section: 'drawn', genre: 'cyberpunk', icon: '🐀', w: 420, h: 160 },
+    cp_highrise_smog: { num: 25, base: 'smoke', name: 'High-Rise Smog Banks', desc: 'Yellowish smog banks drifting steadily past high-rise windows', variant: 'cp_highrise_smog', category: 'ambiance', section: 'drawn', genre: 'cyberpunk', icon: '🏭', w: 480, h: 240 },
+    // B. Animated Textures (Tiling / Area-Fill / Volumes)
+    cp_puddle_reflections: { num: 26, base: 'pond', name: 'Neon Oily Puddle Refraction', desc: 'Multi-colored neon reflections shimmering across oily street puddles', variant: 'cp_puddle_reflections', category: 'lighting', section: 'filled', genre: 'cyberpunk', icon: '🌈', w: 360, h: 260 },
+    cp_algae_vat_glow: { num: 27, base: 'crystal', name: 'Biotech Algae Vat Glow', desc: 'Bioluminescent algae vats glowing softly inside a biotech basement', variant: 'cp_algae_vat_glow', category: 'lighting', section: 'filled', genre: 'cyberpunk', icon: '🧫', w: 340, h: 260 },
+    cp_club_strobe_grid: { num: 28, base: 'spotlight', name: 'Nightclub Strobe Grid', desc: 'Strobe light grids pulsing across a crowded underground nightclub floor', variant: 'cp_club_strobe_grid', category: 'lighting', section: 'filled', genre: 'cyberpunk', icon: '🕺', w: 380, h: 280 },
+    cp_server_led_matrix: { num: 29, base: 'cyber_terminal', name: 'Server-Rack LED Matrix', desc: 'Server-rack LED arrays blinking in synchronized binary patterns', variant: 'cp_server_led_matrix', category: 'lighting', section: 'filled', genre: 'cyberpunk', icon: '🎛️', w: 360, h: 260 },
+    cp_slatted_megarays: { num: 30, base: 'sunbeams', name: 'Slatted Mega-Vent Rays', desc: 'Harsh smog-filtered sunlight slanting through slatted mega-structure vents', variant: 'cp_slatted_megarays', category: 'lighting', section: 'filled', genre: 'cyberpunk', icon: '☀️', w: 380, h: 280 },
+    cp_electrified_deck: { num: 31, base: 'sparks', name: 'Electrified Metal Deck', desc: 'Electrified diamond-plate metal flooring arcing with blue voltage', variant: 'cp_electrified_deck', category: 'hazards', section: 'filled', genre: 'cyberpunk', icon: '⚡', w: 360, h: 260 },
+    cp_solvent_vats: { num: 32, base: 'toxic_spill', name: 'Corrosive Solvent Vat', desc: 'Bubbling vats of corrosive industrial solvent', variant: 'cp_solvent_vats', category: 'hazards', section: 'filled', genre: 'cyberpunk', icon: '🧪', w: 340, h: 260 },
+    cp_sewage_churn: { num: 33, base: 'mud', name: 'Storm-Drain Sewage Churn', desc: 'Deep storm-drain sewage churning with floating plastic refuse', variant: 'cp_sewage_churn', category: 'hazards', section: 'filled', genre: 'cyberpunk', icon: '🌊', w: 380, h: 260 },
+    cp_radioactive_sludge: { num: 34, base: 'toxic_spill', name: 'Radioactive Sludge Pool', desc: 'Radioactive sludge pools glowing with rising toxic vapor bubbles', variant: 'cp_radioactive_sludge', category: 'hazards', section: 'filled', genre: 'cyberpunk', icon: '☢️', w: 360, h: 260 },
+    cp_molten_slag_heap: { num: 35, base: 'lava_seam', name: 'Smoldering Slag Heap', desc: 'Smoldering heaps of molten slag glowing orange in a foundry', variant: 'cp_molten_slag_heap', category: 'hazards', section: 'filled', genre: 'cyberpunk', icon: '🔥', w: 360, h: 240 },
+    cp_crt_telemetry_wall: { num: 36, base: 'cyber_terminal', name: 'CRT Telemetry Bank', desc: 'Wall-to-wall banks of CRT monitors displaying shifting static and telemetry', variant: 'cp_crt_telemetry_wall', category: 'props', section: 'filled', genre: 'cyberpunk', icon: '📺', w: 360, h: 260 },
+    cp_hydroponic_misting: { num: 37, base: 'fog', name: 'Hydroponic Misting Bed', desc: 'Automated hydroponic crop trays misting rows of engineered greens', variant: 'cp_hydroponic_misting', category: 'props', section: 'filled', genre: 'cyberpunk', icon: '🌱', w: 380, h: 260 },
+    cp_ewaste_pile_sparks: { num: 38, base: 'sparks', name: 'Sparking E-Waste Junkyard', desc: 'Piles of discarded e-waste sparking intermittently with dying batteries', variant: 'cp_ewaste_pile_sparks', category: 'props', section: 'filled', genre: 'cyberpunk', icon: '🔋', w: 360, h: 260 },
+    cp_acrylic_coolant_floor: { num: 39, base: 'river', name: 'Server Coolant Sub-Floor', desc: 'Server-farm liquid coolant flowing beneath transparent acrylic floor tiles', variant: 'cp_acrylic_coolant_floor', category: 'props', section: 'filled', genre: 'cyberpunk', icon: '🧊', w: 400, h: 260 },
+    cp_shipping_containers: { num: 40, base: 'conveyor', name: 'Mag-Crane Container Yard', desc: 'Stacked shipping containers vibrating gently near a heavy mag-crane', variant: 'cp_shipping_containers', category: 'props', section: 'filled', genre: 'cyberpunk', icon: '🏗️', w: 400, h: 280 },
+    cp_cyberspace_glitch: { num: 41, base: 'cyber_terminal', name: 'Cyberspace Glitch Grid', desc: 'Digital glitch and pixel-tearing artifacts warping a cyberspace grid floor', variant: 'cp_cyberspace_glitch', category: 'sfx', section: 'filled', genre: 'cyberpunk', icon: '👾', w: 380, h: 280 },
+    cp_hangar_shield: { num: 42, base: 'forcefield', name: 'Hex Hangar Energy Shield', desc: 'Shimmering hexagonal energy shields covering an open hangar bay', variant: 'cp_hangar_shield', category: 'sfx', section: 'filled', genre: 'cyberpunk', icon: '🛡️', w: 380, h: 280 },
+    cp_riot_teargas_cloud: { num: 43, base: 'smoke', name: 'Riot Plaza Tear-Gas Bank', desc: 'Thick clouds of white tear gas rolling across a riot plaza', variant: 'cp_riot_teargas_cloud', category: 'sfx', section: 'filled', genre: 'cyberpunk', icon: '💨', w: 400, h: 280 },
+    cp_thermal_heatmap: { num: 44, base: 'hyperspace', name: 'Thermal Heat-Map Distortion', desc: 'Thermal-vision heat-map distortion rippling over an active engine room', variant: 'cp_thermal_heatmap', category: 'sfx', section: 'filled', genre: 'cyberpunk', icon: '🌡️', w: 360, h: 260 },
+    cp_nanobot_deck_swarm: { num: 45, base: 'dust', name: 'Nanobot Deck Shifting Sand', desc: 'Gray nanobot swarms shifting like metallic sand across deck plating', variant: 'cp_nanobot_deck_swarm', category: 'sfx', section: 'filled', genre: 'cyberpunk', icon: '🤖', w: 360, h: 260 },
+    cp_asphalt_rain: { num: 46, base: 'rain', name: 'Cyberpunk Slanting Rain', desc: 'Diagonal cyberpunk rain with splash rings hitting wet asphalt', variant: 'cp_asphalt_rain', category: 'ambiance', section: 'filled', genre: 'cyberpunk', icon: '🌧️', w: 380, h: 280 },
+    cp_street_grate_vapor: { num: 47, base: 'smoke', name: 'Subway Grate Steam Vapor', desc: 'Dense street-level vapor rising continuously from subway grates', variant: 'cp_street_grate_vapor', category: 'ambiance', section: 'filled', genre: 'cyberpunk', icon: '🌫️', w: 360, h: 260 },
+    cp_slum_soot_fall: { num: 48, base: 'dust', name: 'Burned Slum Soot Fall', desc: 'Falling black soot and ash drifting over a burned-out slum', variant: 'cp_slum_soot_fall', category: 'ambiance', section: 'filled', genre: 'cyberpunk', icon: '⬛', w: 380, h: 280 },
+    cp_plaza_trash_eddy: { num: 49, base: 'dust', name: 'Windy Plaza Trash Eddy', desc: 'Swirling eddies of trash spinning in a windy plaza corner', variant: 'cp_plaza_trash_eddy', category: 'ambiance', section: 'filled', genre: 'cyberpunk', icon: '🌪️', w: 340, h: 260 },
+    cp_skytraffic_shadows: { num: 50, base: 'bats', name: 'Overhead Sky-Traffic Shadows', desc: 'Moving shadows of overhead sky-traffic sweeping across rooftops', variant: 'cp_skytraffic_shadows', category: 'ambiance', section: 'filled', genre: 'cyberpunk', icon: '👥', w: 400, h: 280 },
+    // C. Single Elements (Spot / Focal Objects / Props)
+    cp_flickering_neon: { num: 51, base: 'cyber_terminal', name: 'Broken Neon Storefront Sign', desc: 'Buzzing, half-broken neon storefront sign flickering erratically', variant: 'cp_flickering_neon', category: 'lighting', section: 'single', genre: 'cyberpunk', icon: '🍸', w: 220, h: 180 },
+    cp_holo_billboard: { num: 52, base: 'hologram', name: 'Holo Corporate Billboard', desc: 'Towering holographic corporate billboard cycling through animated ads', variant: 'cp_holo_billboard', category: 'lighting', section: 'single', genre: 'cyberpunk', icon: '🏙️', w: 260, h: 240 },
+    cp_bent_streetlamp: { num: 53, base: 'spotlight', name: 'Bent Sputtering Streetlamp', desc: 'Bent streetlamp sputtering and dying intermittently', variant: 'cp_bent_streetlamp', category: 'lighting', section: 'single', genre: 'cyberpunk', icon: '💡', w: 200, h: 200 },
+    cp_trash_firebarrel: { num: 54, base: 'campfire', name: 'Homeless Camp Fire Barrel', desc: 'Burning trash-can fire barrel warming a homeless encampment', variant: 'cp_trash_firebarrel', category: 'lighting', section: 'single', genre: 'cyberpunk', icon: '🛢️', w: 180, h: 180 },
+    cp_amber_warning_beacon: { num: 55, base: 'spotlight', name: 'Rotary Warning Beacon', desc: 'Rotating amber warning beacon spinning above a blast door', variant: 'cp_amber_warning_beacon', category: 'lighting', section: 'single', genre: 'cyberpunk', icon: '🚨', w: 180, h: 180 },
+    cp_whipping_cable: { num: 56, base: 'sparks', name: 'Thrashing Power Cable', desc: 'Severed high-voltage power cable whipping around and throwing sparks', variant: 'cp_whipping_cable', category: 'hazards', section: 'single', genre: 'cyberpunk', icon: '⚡', w: 240, h: 200 },
+    cp_ceiling_turret: { num: 57, base: 'patrol_actor', name: 'Automated Ceiling Turret', desc: 'Automated ceiling turret unfolding and panning left to right', variant: 'cp_ceiling_turret', category: 'hazards', section: 'single', genre: 'cyberpunk', icon: '🎯', w: 200, h: 200 },
+    cp_laser_tripwire: { num: 58, base: 'forcefield', name: 'Vault Laser Tripwire', desc: 'Blinking laser tripwire spanning across a bank vault entrance', variant: 'cp_laser_tripwire', category: 'hazards', section: 'single', genre: 'cyberpunk', icon: '🔴', w: 260, h: 160 },
+    cp_plasma_generator: { num: 59, base: 'plasma_leak', name: 'Overheating Plasma Core', desc: 'Overheating plasma generator venting white-hot steam bursts', variant: 'cp_plasma_generator', category: 'hazards', section: 'single', genre: 'cyberpunk', icon: '☢️', w: 240, h: 240 },
+    cp_exhaust_fan: { num: 60, base: 'fan', name: 'Industrial Exhaust Fan', desc: 'Exposed industrial exhaust fan spinning with razor-sharp metal blades', variant: 'cp_exhaust_fan', category: 'hazards', section: 'single', genre: 'cyberpunk', icon: '💨', w: 220, h: 220 },
+    cp_holo_city_map: { num: 61, base: 'hologram', name: '3D Holo City Map', desc: 'Floating 3D holographic city map rotating above a war-room table', variant: 'cp_holo_city_map', category: 'props', section: 'single', genre: 'cyberpunk', icon: '🗺️', w: 240, h: 240 },
+    cp_matrix_terminal: { num: 62, base: 'cyber_terminal', name: 'Hacked Matrix Terminal', desc: 'Hacked computer terminal scrolling green matrix-style code', variant: 'cp_matrix_terminal', category: 'props', section: 'single', genre: 'cyberpunk', icon: '💻', w: 200, h: 180 },
+    cp_noodle_stall_steam: { num: 63, base: 'smoke', name: 'Street Noodle Stall Steam', desc: 'Street-food noodle stall releasing clouds of savory cooking steam', variant: 'cp_noodle_stall_steam', category: 'props', section: 'single', genre: 'cyberpunk', icon: '🍜', w: 220, h: 200 },
+    cp_dim_vending_machine: { num: 64, base: 'cyber_terminal', name: 'Fluorescent Vending Machine', desc: 'Flickering vending machine humming with dim interior fluorescent light', variant: 'cp_dim_vending_machine', category: 'props', section: 'single', genre: 'cyberpunk', icon: '🥫', w: 180, h: 200 },
+    cp_ripperdoc_chair: { num: 65, base: 'cyber_terminal', name: 'Ripperdoc Surgical Chair', desc: 'Ripperdoc surgical chair with blinking vital-sign monitors', variant: 'cp_ripperdoc_chair', category: 'props', section: 'single', genre: 'cyberpunk', icon: '💺', w: 220, h: 220 },
+    cp_avatar_spawn_pad: { num: 66, base: 'teleporter', name: 'Avatar Spawn Pad', desc: 'Cyberspace avatar spawn pad materializing a wireframe silhouette', variant: 'cp_avatar_spawn_pad', category: 'sfx', section: 'single', genre: 'cyberpunk', icon: '✨', w: 220, h: 220 },
+    cp_sonic_suppressor: { num: 67, base: 'plasma_leak', name: 'Sonic Riot Suppressor', desc: 'Sonic riot-suppressor dish sending visible concentric air ripples', variant: 'cp_sonic_suppressor', category: 'sfx', section: 'single', genre: 'cyberpunk', icon: '📢', w: 240, h: 220 },
+    cp_holo_decoy: { num: 68, base: 'hologram', name: 'Holo Decoy Projection', desc: 'Holographic decoy projection flickering with horizontal scanlines', variant: 'cp_holo_decoy', category: 'sfx', section: 'single', genre: 'cyberpunk', icon: '👤', w: 200, h: 240 },
+    cp_emp_grenade: { num: 69, base: 'sparks', name: 'Armed EMP Grenade', desc: 'Armed EMP grenade sparking on the floor seconds before detonation', variant: 'cp_emp_grenade', category: 'sfx', section: 'single', genre: 'cyberpunk', icon: '💣', w: 180, h: 180 },
+    cp_cryo_stasis_pod: { num: 70, base: 'smoke', name: 'Cryo-Stasis Unsealing Pod', desc: 'Cryo-stasis pod venting freezing mist as its glass hatch unseals', variant: 'cp_cryo_stasis_pod', category: 'sfx', section: 'single', genre: 'cyberpunk', icon: '❄️', w: 220, h: 240 },
+    cp_security_cam: { num: 71, base: 'patrol_actor', name: 'Pivoting Security Camera', desc: 'Wall-mounted surveillance camera panning back and forth with a red LED', variant: 'cp_security_cam', category: 'ambiance', section: 'single', genre: 'cyberpunk', icon: '📹', w: 160, h: 160 },
+    cp_stray_cybercat: { num: 72, base: 'rats', name: 'Fire Escape Cyber-Cat', desc: 'Stray cyber-cat flicking its metallic tail on a fire escape', variant: 'cp_stray_cybercat', category: 'ambiance', section: 'single', genre: 'cyberpunk', icon: '🐈', w: 180, h: 160 },
+    cp_neon_umbrella: { num: 73, base: 'pond', name: 'Bobbing Neon Umbrella', desc: 'Discarded neon rain-umbrella bobbing gently in a deep puddle', variant: 'cp_neon_umbrella', category: 'ambiance', section: 'single', genre: 'cyberpunk', icon: '☂️', w: 180, h: 180 },
+    cp_window_ac_drips: { num: 74, base: 'fountain', name: 'Dripping Window AC Unit', desc: 'Rusty window AC unit dripping steady condensation onto concrete', variant: 'cp_window_ac_drips', category: 'ambiance', section: 'single', genre: 'cyberpunk', icon: '💧', w: 160, h: 160 },
+    cp_shifting_graffiti: { num: 75, base: 'cyber_terminal', name: 'Chroma-Shift Graffiti', desc: 'Digital spray-paint graffiti shifting colors on a brick wall', variant: 'cp_shifting_graffiti', category: 'ambiance', section: 'single', genre: 'cyberpunk', icon: '🎨', w: 240, h: 180 },
 
-    // 🕵️ MODERN (25 UNIQUE FEATURES)
-    mod_rain: { base: 'rain', name: 'Noir Alleyway Slanting Rain', variant: 'mod_rain', category: 'weather', genre: 'modern', w: 360, h: 260 },
-    mod_smog: { base: 'smoke', name: 'Industrial Chemical Smog Haze', variant: 'mod_smog', category: 'weather', genre: 'modern', w: 360, h: 260 },
-    mod_steam: { base: 'steam', name: 'Cast-Iron Manhole Steam Grate', variant: 'mod_steam', category: 'weather', genre: 'modern', w: 220, h: 220 },
-    mod_dustdevil: { base: 'dust', name: 'Route 66 Swirling Dust Devil', variant: 'mod_dustdevil', category: 'weather', genre: 'modern', w: 300, h: 260 },
-    mod_fallout_sleet: { base: 'snow', name: 'Urban Freezing Sleet & Slush', variant: 'mod_fallout_sleet', category: 'weather', genre: 'modern', w: 360, h: 260 },
-    mod_fire: { base: 'inferno', name: 'Burning Vehicle & Tire Blaze', variant: 'mod_fire', category: 'hazards', genre: 'modern', w: 260, h: 200 },
-    mod_teargas: { base: 'smoke', name: 'Riot Tear-Gas Canister Plume', variant: 'mod_teargas', category: 'hazards', genre: 'modern', w: 280, h: 240 },
-    mod_wire: { base: 'sparks', name: 'Whipping Downed Power Cable', variant: 'mod_wire', category: 'hazards', genre: 'modern', w: 260, h: 190 },
-    mod_oil: { base: 'mud', name: 'Iridescent Garage Oil Slick', variant: 'mod_oil', category: 'hazards', genre: 'modern', w: 260, h: 200 },
-    mod_barbed: { base: 'mud', name: 'Concertina Razorwire Barrier', variant: 'mod_barbed', category: 'hazards', genre: 'modern', w: 300, h: 150 },
-    mod_spotlight: { base: 'spotlight', name: 'Helicopter / Prison Searchlight', variant: 'prison_searchlight', category: 'lights', genre: 'modern', w: 280, h: 380 },
-    mod_swatlight: { base: 'spotlight', name: 'Tactical SWAT Strobe Light', variant: 'tactical_flashlight', category: 'lights', genre: 'modern', w: 260, h: 340 },
-    mod_streetlamp: { base: 'spotlight', name: 'Sodium-Vapor City Streetlamp', variant: 'stage_spotlight', category: 'lights', genre: 'modern', w: 240, h: 240 },
-    mod_headlights: { base: 'headlights', name: 'Twin Automotive Headlights', variant: 'halogen_pair', category: 'lights', genre: 'modern', w: 300, h: 380 },
-    mod_policebar: { base: 'spotlight', name: 'Police Red/Blue Strobe Bar', variant: 'mod_policebar', category: 'lights', genre: 'modern', w: 240, h: 220 },
-    mod_pigeons: { base: 'bats', name: 'City Plaza Pigeon Flock', variant: 'mod_pigeons', category: 'actors', genre: 'modern', w: 300, h: 220 },
-    mod_alleycat: { base: 'rats', name: 'Prowling Black Alley Cat', variant: 'mod_alleycat', category: 'actors', genre: 'modern', w: 240, h: 180 },
-    mod_cockroaches: { base: 'rats', name: 'Scurrying Urban Roach Swarm', variant: 'mod_cockroaches', category: 'actors', genre: 'modern', w: 280, h: 220 },
-    mod_trash: { base: 'dust', name: 'Tumbling Street Newspapers', variant: 'mod_trash', category: 'actors', genre: 'modern', w: 300, h: 220 },
-    mod_traffic_drone: { base: 'patrol_actor', name: 'Pivoting CCTV Security Camera', variant: 'mod_traffic_drone', category: 'actors', genre: 'modern', w: 240, h: 240 },
-    mod_canal: { base: 'river', name: 'Concrete Storm-Drain Canal', variant: 'concrete_canal', category: 'environment', genre: 'modern', w: 520, h: 220 },
-    mod_fountain: { base: 'fountain', name: 'Civic Park Plaza Fountain', variant: 'mod_fountain', category: 'environment', genre: 'modern', w: 260, h: 260 },
-    mod_fan: { base: 'fan', name: 'Rooftop HVAC Exhaust Fan', variant: 'metal_duct', category: 'environment', genre: 'modern', w: 220, h: 220 },
-    mod_neon: { base: 'cyber_terminal', name: 'Buzzing Dive-Bar Neon Sign', variant: 'neon_sign', category: 'environment', genre: 'modern', w: 240, h: 160 },
-    mod_subway_tracks: { base: 'conveyor', name: 'Electrified Subway Tracks', variant: 'mod_subway_tracks', category: 'environment', genre: 'modern', w: 420, h: 180 },
+    // -------------------------------------------------------------------------
+    // 🤠 2. WEIRD WEST & FRONTIER (75 ELEMENTS)
+    // -------------------------------------------------------------------------
+    // A. Linear Motion (Directional / Traveling / Drawn Paths)
+    ww_locomotive_beam: { num: 76, base: 'spotlight', name: 'Locomotive Headlamp Beam', desc: 'Steam locomotive headlamp beam cutting through a pitch-black desert night', variant: 'ww_locomotive_beam', category: 'lighting', section: 'drawn', genre: 'frontier', icon: '🚂', w: 480, h: 220 },
+    ww_stagecoach_lantern: { num: 77, base: 'lantern', name: 'Stagecoach Lantern Sway', desc: 'Oil lantern swaying from the rear rack of a moving stagecoach', variant: 'ww_stagecoach_lantern', category: 'lighting', section: 'drawn', genre: 'frontier', icon: '🏮', w: 320, h: 200 },
+    ww_kerosene_trail: { num: 78, base: 'inferno', name: 'Racing Kerosene Trail', desc: 'Ignited kerosene trail racing across dry wooden saloon floorboards', variant: 'ww_kerosene_trail', category: 'lighting', section: 'drawn', genre: 'frontier', icon: '🔥', w: 460, h: 180 },
+    ww_canyon_sunbeams: { num: 79, base: 'sunbeams', name: 'Canyon Sunbeams Shift', desc: 'Desert sunbeams shifting slowly across a red-rock canyon floor', variant: 'ww_canyon_sunbeams', category: 'lighting', section: 'drawn', genre: 'frontier', icon: '☀️', w: 480, h: 260 },
+    ww_ghost_lights: { num: 80, base: 'fireflies', name: 'Railroad Ghost-Lights', desc: 'Pale blue ghost-lights drifting along abandoned railroad ties', variant: 'ww_ghost_lights', category: 'lighting', section: 'drawn', genre: 'frontier', icon: '👻', w: 440, h: 200 },
+    ww_flash_flood: { num: 81, base: 'river', name: 'Arroyo Flash Flood', desc: 'Wall of muddy flash-flood water surging down a dry desert arroyo', variant: 'ww_flash_flood', category: 'hazards', section: 'drawn', genre: 'frontier', icon: '🌊', w: 520, h: 240 },
+    ww_runaway_orecart: { num: 82, base: 'conveyor', name: 'Runaway Ore Cart', desc: 'Runaway ore cart hurtling down rickety wooden mine tracks', variant: 'ww_runaway_orecart', category: 'hazards', section: 'drawn', genre: 'frontier', icon: '🛒', w: 480, h: 180 },
+    ww_stampede_dust: { num: 83, base: 'dust', name: 'Stampeding Longhorns', desc: 'Stampeding longhorn cattle kicking up a rolling wall of dust', variant: 'ww_stampede_dust', category: 'hazards', section: 'drawn', genre: 'frontier', icon: '🐂', w: 520, h: 260 },
+    ww_flaming_tumbleweed: { num: 84, base: 'tumbleweed', name: 'Flaming Tumbleweeds', desc: 'Flaming tumbleweeds bouncing rapidly across dry prairie scrub', variant: 'ww_flaming_tumbleweed', category: 'hazards', section: 'drawn', genre: 'frontier', icon: '🔥', w: 420, h: 200 },
+    ww_gatling_tracers: { num: 85, base: 'sparks', name: 'Gatling Gun Tracers', desc: 'Hand-cranked Gatling gun tracer rounds ripping down a main street', variant: 'ww_gatling_tracers', category: 'hazards', section: 'drawn', genre: 'frontier', icon: '💥', w: 480, h: 180 },
+    ww_stagecoach_wheels: { num: 86, base: 'dust', name: 'Stagecoach Dust Trail', desc: 'Wooden stagecoach wheels spinning and kicking up dry trail dust', variant: 'ww_stagecoach_wheels', category: 'props', section: 'drawn', genre: 'frontier', icon: '🐎', w: 440, h: 200 },
+    ww_locomotive_smoke: { num: 87, base: 'smoke', name: 'Iron Horse Locomotive', desc: 'Iron steam locomotive chugging thick black smoke along tracks', variant: 'ww_locomotive_smoke', category: 'props', section: 'drawn', genre: 'frontier', icon: '🚂', w: 520, h: 220 },
+    ww_gold_sluice: { num: 88, base: 'river', name: 'Gold Panning Sluice', desc: 'Wooden gold-panning sluice box rushing with muddy creek water', variant: 'ww_gold_sluice', category: 'props', section: 'drawn', genre: 'frontier', icon: '⛏️', w: 460, h: 180 },
+    ww_riverboat_wheel: { num: 89, base: 'ocean_waves', name: 'Riverboat Paddlewheel', desc: 'Sternwheeler riverboat paddlewheel churning muddy Mississippi water', variant: 'ww_riverboat_wheel', category: 'props', section: 'drawn', genre: 'frontier', icon: '🚢', w: 480, h: 220 },
+    ww_telegraph_ticker: { num: 90, base: 'cyber_terminal', name: 'Telegraph Ticker Feed', desc: 'Brass telegraph ticker feeding paper tape steadily from a receiver', variant: 'ww_telegraph_ticker', category: 'props', section: 'drawn', genre: 'frontier', icon: '📠', w: 400, h: 160 },
+    ww_dynamite_fuse: { num: 91, base: 'sparks', name: 'Burning Dynamite Fuse', desc: 'Sputtering dynamite fuse spark burning rapidly toward a powder keg', variant: 'ww_dynamite_fuse', category: 'sfx', section: 'drawn', genre: 'frontier', icon: '🧨', w: 420, h: 160 },
+    ww_ghost_train: { num: 92, base: 'smoke', name: 'Phantom Ghost Train', desc: 'Translucent phantom ghost-train roaring silently along cursed rails', variant: 'ww_ghost_train', category: 'sfx', section: 'drawn', genre: 'frontier', icon: '👻', w: 520, h: 220 },
+    ww_dust_devil: { num: 93, base: 'dust', name: 'Spinning Dust Devil', desc: 'Spinning desert dust devil swirling across a barren alkali flat', variant: 'ww_dust_devil', category: 'sfx', section: 'drawn', genre: 'frontier', icon: '🌪️', w: 380, h: 260 },
+    ww_bullet_sparks: { num: 94, base: 'sparks', name: 'Ricocheting Bullets', desc: 'Ricocheting lead bullet sparks pinging off iron rails and boulders', variant: 'ww_bullet_sparks', category: 'sfx', section: 'drawn', genre: 'frontier', icon: '💥', w: 440, h: 180 },
+    ww_haboob_wall: { num: 95, base: 'dust', name: 'Haboob Sandstorm Wall', desc: 'Towering haboob sandstorm wall advancing across a frontier town', variant: 'ww_haboob_wall', category: 'sfx', section: 'drawn', genre: 'frontier', icon: '🏜️', w: 500, h: 280 },
+    ww_tumbleweed_street: { num: 96, base: 'tumbleweed', name: 'Rolling Tumbleweeds', desc: 'Dry tumbleweeds bouncing lazily down a quiet dirt main street', variant: 'ww_tumbleweed_street', category: 'ambiance', section: 'drawn', genre: 'frontier', icon: '🌾', w: 440, h: 200 },
+    ww_canyon_river: { num: 97, base: 'river', name: 'Flowing Canyon River', desc: 'Clear canyon river flowing steadily past a weathered fishing pier', variant: 'ww_canyon_river', category: 'ambiance', section: 'drawn', genre: 'frontier', icon: '🏞️', w: 520, h: 220 },
+    ww_circling_vultures: { num: 98, base: 'bats', name: 'Circling Vultures', desc: 'Turkey vultures circling slowly overhead, casting ground shadows', variant: 'ww_circling_vultures', category: 'ambiance', section: 'drawn', genre: 'frontier', icon: '🦅', w: 420, h: 260 },
+    ww_slithering_snake: { num: 99, base: 'rats', name: 'Slithering Rattlesnake', desc: 'Diamondback rattlesnake slithering across sun-baked sandstone', variant: 'ww_slithering_snake', category: 'ambiance', section: 'drawn', genre: 'frontier', icon: '🐍', w: 380, h: 180 },
+    ww_boardwalk_grit: { num: 100, base: 'dust', name: 'Boardwalk Desert Grit', desc: 'Fine red desert grit blowing across wooden boardwalk planks', variant: 'ww_boardwalk_grit', category: 'ambiance', section: 'drawn', genre: 'frontier', icon: '🍂', w: 440, h: 200 },
+    // B. Animated Textures (Tiling / Area-Fill / Volumes)
+    ww_cottonwood_sun: { num: 101, base: 'sunbeams', name: 'Dappled Cottonwood Sun', desc: 'Dappled afternoon sunlight filtering through cottonwood leaves by a creek', variant: 'ww_cottonwood_sun', category: 'lighting', section: 'filled', genre: 'frontier', icon: '🌳', w: 380, h: 280 },
+    ww_boothill_moon: { num: 102, base: 'sunbeams', name: 'Cursed Boot-Hill Moon', desc: 'Sickly green moonlight bathing a cursed frontier boot-hill cemetery', variant: 'ww_boothill_moon', category: 'lighting', section: 'filled', genre: 'frontier', icon: '🌕', w: 380, h: 280 },
+    ww_saloon_puddle_light: { num: 103, base: 'pond', name: 'Saloon Puddle Light', desc: 'Warm amber saloon window light rippling across muddy street puddles', variant: 'ww_saloon_puddle_light', category: 'lighting', section: 'filled', genre: 'frontier', icon: '🏮', w: 360, h: 260 },
+    ww_saltflat_shimmer: { num: 104, base: 'hyperspace', name: 'Salt Flat Heat Shimmer', desc: 'Intense heat shimmer distorting the air over white salt flats', variant: 'ww_saltflat_shimmer', category: 'lighting', section: 'filled', genre: 'frontier', icon: '☀️', w: 380, h: 260 },
+    ww_prairie_lightning: { num: 105, base: 'rain', name: 'Prairie Sheet Lightning', desc: 'Sheet lightning flashes illuminating a dark prairie thunderstorm', variant: 'ww_prairie_lightning', category: 'lighting', section: 'filled', genre: 'frontier', icon: '⚡', w: 400, h: 280 },
+    ww_quicksand_wash: { num: 106, base: 'mud', name: 'Canyon Quicksand Pit', desc: 'Churning quicksand pit bubbling slowly in a canyon wash', variant: 'ww_quicksand_wash', category: 'hazards', section: 'filled', genre: 'frontier', icon: '🏜️', w: 360, h: 260 },
+    ww_crude_oil_gusher: { num: 107, base: 'toxic_spill', name: 'Black Crude Gusher', desc: 'Thick black crude oil bubbling up from a ruptured wooden gusher', variant: 'ww_crude_oil_gusher', category: 'hazards', section: 'filled', genre: 'frontier', icon: '🛢️', w: 360, h: 260 },
+    ww_prairie_brushfire: { num: 108, base: 'inferno', name: 'Prairie Brushfire', desc: 'Fast-moving prairie brushfire spreading across dry tumbleweed scrub', variant: 'ww_prairie_brushfire', category: 'hazards', section: 'filled', genre: 'frontier', icon: '🔥', w: 400, h: 260 },
+    ww_canyon_rapids: { num: 109, base: 'ocean_waves', name: 'Whitewater Rapids', desc: 'White-water canyon rapids swirling violently around jagged boulders', variant: 'ww_canyon_rapids', category: 'hazards', section: 'filled', genre: 'frontier', icon: '🌊', w: 400, h: 260 },
+    ww_ghosttown_ichor: { num: 110, base: 'toxic_spill', name: 'Ghost Town Cursed Ichor', desc: 'Cursed black ichor oozing upward between floorboards in a ghost town', variant: 'ww_ghosttown_ichor', category: 'hazards', section: 'filled', genre: 'frontier', icon: '🖤', w: 360, h: 260 },
+    ww_wheat_field: { num: 111, base: 'forest', name: 'Swaying Wheat Field', desc: 'Golden wheat fields swaying in wind-blown waves on a homestead', variant: 'ww_wheat_field', category: 'props', section: 'filled', genre: 'frontier', icon: '🌾', w: 420, h: 300 },
+    ww_buffalo_grass: { num: 112, base: 'forest', name: 'Rippling Buffalo Grass', desc: 'Tall buffalo grass rippling like an ocean across open plains', variant: 'ww_buffalo_grass', category: 'props', section: 'filled', genre: 'frontier', icon: '🌱', w: 420, h: 300 },
+    ww_rope_bridge: { num: 113, base: 'conveyor', name: 'Swaying Rope Bridge', desc: 'Rope-and-plank suspension bridge swaying gently over a deep gorge', variant: 'ww_rope_bridge', category: 'props', section: 'filled', genre: 'frontier', icon: '🌉', w: 440, h: 220 },
+    ww_mineshaft_timbers: { num: 114, base: 'dust', name: 'Groaning Mine Timbers', desc: 'Mine shaft ceiling timbers groaning and dropping steady trickles of dust', variant: 'ww_mineshaft_timbers', category: 'props', section: 'filled', genre: 'frontier', icon: '⛏️', w: 380, h: 260 },
+    ww_muddy_corral: { num: 115, base: 'mud', name: 'Churned Mud Corral', desc: 'Muddy wooden corral churned by restless, pacing horses', variant: 'ww_muddy_corral', category: 'props', section: 'filled', genre: 'frontier', icon: '🐎', w: 380, h: 280 },
+    ww_ghostrock_crater: { num: 116, base: 'crystal', name: 'Ghost-Rock Radiation', desc: 'Glowing blue Ghost-Rock radiation pulsing beneath a meteorite crater', variant: 'ww_ghostrock_crater', category: 'sfx', section: 'filled', genre: 'frontier', icon: '💎', w: 360, h: 260 },
+    ww_gunsmoke_haze: { num: 117, base: 'smoke', name: 'Black-Powder Gunsmoke', desc: 'Thick gray black-powder gunsmoke hanging low after a street duel', variant: 'ww_gunsmoke_haze', category: 'sfx', section: 'filled', genre: 'frontier', icon: '💨', w: 380, h: 260 },
+    ww_locust_swarm: { num: 118, base: 'dust', name: 'Locust Swarm Blanket', desc: 'Swarm of locusts blanketing a frontier cornfield', variant: 'ww_locust_swarm', category: 'sfx', section: 'filled', genre: 'frontier', icon: '🦗', w: 400, h: 280 },
+    ww_shifting_dunes: { num: 119, base: 'dust', name: 'Shifting Desert Dunes', desc: 'Wind-rippled sand patterns shifting continuously across desert dunes', variant: 'ww_shifting_dunes', category: 'sfx', section: 'filled', genre: 'frontier', icon: '🏜️', w: 400, h: 280 },
+    ww_blood_mist: { num: 120, base: 'fog', name: 'Battlefield Blood Mist', desc: 'Blood-red spectral mist rising from an ancient battlefield', variant: 'ww_blood_mist', category: 'sfx', section: 'filled', genre: 'frontier', icon: '🩸', w: 400, h: 280 },
+    ww_mesa_wind: { num: 121, base: 'dust', name: 'Mesa Desert Wind', desc: 'Desert wind gusts blowing fine sand across flat mesa stone', variant: 'ww_mesa_wind', category: 'ambiance', section: 'filled', genre: 'frontier', icon: '💨', w: 380, h: 260 },
+    ww_shallow_creek: { num: 122, base: 'pond', name: 'Shallow Pebble Creek', desc: 'Shallow creek water rippling gently over smooth river pebbles', variant: 'ww_shallow_creek', category: 'ambiance', section: 'filled', genre: 'frontier', icon: '💧', w: 380, h: 260 },
+    ww_prairie_rain: { num: 123, base: 'rain', name: 'Heavy Prairie Rain', desc: 'Heavy prairie rain drumming onto dirt roads, forming muddy ruts', variant: 'ww_prairie_rain', category: 'ambiance', section: 'filled', genre: 'frontier', icon: '🌧️', w: 400, h: 280 },
+    ww_mountain_snow: { num: 124, base: 'snow', name: 'Rocky Mountain Snow', desc: 'Snowflakes drifting silently over a high-altitude Rocky Mountain pass', variant: 'ww_mountain_snow', category: 'ambiance', section: 'filled', genre: 'frontier', icon: '❄️', w: 400, h: 280 },
+    ww_depot_leaves: { num: 125, base: 'leaves', name: 'Depot Autumn Leaves', desc: 'Crisp autumn leaves blowing across a wooden train depot platform', variant: 'ww_depot_leaves', category: 'ambiance', section: 'filled', genre: 'frontier', icon: '🍂', w: 380, h: 260 },
+    // C. Single Elements (Spot / Focal Objects / Props)
+    ww_trail_campfire: { num: 126, base: 'campfire', name: 'Trail Campfire & Coffee', desc: 'Crackling trail campfire with a speckled blue coffee pot boiling over', variant: 'ww_trail_campfire', category: 'lighting', section: 'single', genre: 'frontier', icon: '☕', w: 190, h: 190 },
+    ww_porch_lantern: { num: 127, base: 'lantern', name: 'Swinging Porch Lantern', desc: 'Brass kerosene lantern swinging gently on a porch iron hook', variant: 'ww_porch_lantern', category: 'lighting', section: 'single', genre: 'frontier', icon: '🏮', w: 150, h: 150 },
+    ww_blacksmith_forge: { num: 128, base: 'campfire', name: 'Blacksmith Forge Coals', desc: 'Blacksmith branding iron glowing cherry-red inside forge coals', variant: 'ww_blacksmith_forge', category: 'lighting', section: 'single', genre: 'frontier', icon: '🔨', w: 200, h: 200 },
+    ww_saloon_chandelier: { num: 129, base: 'lantern', name: 'Wagon-Wheel Chandelier', desc: 'Wagon-wheel chandelier of wax candles swaying in a saloon draft', variant: 'ww_saloon_chandelier', category: 'lighting', section: 'single', genre: 'frontier', icon: '🕯️', w: 210, h: 210 },
+    ww_crossing_signal: { num: 130, base: 'spotlight', name: 'Railroad Crossing Signal', desc: 'Mechanical railroad crossing signal lantern blinking red', variant: 'ww_crossing_signal', category: 'lighting', section: 'single', genre: 'frontier', icon: '🚨', w: 160, h: 200 },
+    ww_dynamite_bundle: { num: 131, base: 'sparks', name: 'Fizzing Dynamite Bundle', desc: 'Bundle of red dynamite sticks with a fizzing, sparking fuse', variant: 'ww_dynamite_bundle', category: 'hazards', section: 'single', genre: 'frontier', icon: '🧨', w: 180, h: 180 },
+    ww_coiled_rattler: { num: 132, base: 'rats', name: 'Coiled Timber Rattler', desc: 'Coiled timber rattlesnake shaking its tail behind a desert rock', variant: 'ww_coiled_rattler', category: 'hazards', section: 'single', genre: 'frontier', icon: '🐍', w: 180, h: 180 },
+    ww_beartrap: { num: 133, base: 'pit_trap', name: 'Steel Bear Trap', desc: 'Steel-jawed bear trap snapping shut on a forest trail', variant: 'ww_beartrap', category: 'hazards', section: 'single', genre: 'frontier', icon: '🪤', w: 180, h: 180 },
+    ww_boiler_valve: { num: 134, base: 'smoke', name: 'Boiler Pressure Valve', desc: 'Pressurized locomotive steam boiler valve rattling and venting vapor', variant: 'ww_boiler_valve', category: 'hazards', section: 'single', genre: 'frontier', icon: '💨', w: 190, h: 190 },
+    ww_gallows_trapdoor: { num: 135, base: 'pit_trap', name: 'Gallows Trapdoor', desc: 'Loose wooden gallows trapdoor creaking slightly under tension', variant: 'ww_gallows_trapdoor', category: 'hazards', section: 'single', genre: 'frontier', icon: '🪵', w: 200, h: 200 },
+    ww_saloon_doors: { num: 136, base: 'fan', name: 'Batwing Saloon Doors', desc: 'Batwing wooden saloon doors flapping back and forth', variant: 'ww_saloon_doors', category: 'props', section: 'single', genre: 'frontier', icon: '🚪', w: 180, h: 180 },
+    ww_windmill_pump: { num: 137, base: 'fan', name: 'Windmill Water Pump', desc: 'Tall wooden windmill water pump spinning in the desert breeze', variant: 'ww_windmill_pump', category: 'props', section: 'single', genre: 'frontier', icon: '💨', w: 220, h: 240 },
+    ww_oil_derrick_pump: { num: 138, base: 'conveyor', name: 'Oil Derrick Rocker', desc: 'Iron oil derrick rocker arm pumping rhythmically up and down', variant: 'ww_oil_derrick_pump', category: 'props', section: 'single', genre: 'frontier', icon: '🏗️', w: 240, h: 220 },
+    ww_player_piano: { num: 139, base: 'cyber_terminal', name: 'Ghost Player Piano', desc: 'Upright player piano keys depressing by themselves in an empty saloon', variant: 'ww_player_piano', category: 'props', section: 'single', genre: 'frontier', icon: '🎹', w: 200, h: 180 },
+    ww_hangmans_noose: { num: 140, base: 'tentacles', name: 'Swaying Hangman Noose', desc: 'Hempen hangman\'s noose swaying gently from a timber beam', variant: 'ww_hangmans_noose', category: 'props', section: 'single', genre: 'frontier', icon: '🪢', w: 150, h: 220 },
+    ww_ghostrock_ore: { num: 141, base: 'crystal', name: 'Unstable Ghost-Rock Ore', desc: 'Raw chunk of Ghost-Rock ore pulsing with unstable violet energy', variant: 'ww_ghostrock_ore', category: 'sfx', section: 'single', genre: 'frontier', icon: '🔮', w: 180, h: 180 },
+    ww_cursed_pokerdeck: { num: 142, base: 'teleporter', name: 'Cursed Self-Shuffling Deck', desc: 'Cursed poker deck floating and shuffling itself above a felt table', variant: 'ww_cursed_pokerdeck', category: 'sfx', section: 'single', genre: 'frontier', icon: '🃏', w: 180, h: 180 },
+    ww_medium_crystalball: { num: 143, base: 'crystal', name: 'Medium\'s Crystal Ball', desc: 'Traveling medium\'s crystal ball swirling with smoky desert visions', variant: 'ww_medium_crystalball', category: 'sfx', section: 'single', genre: 'frontier', icon: '🔮', w: 180, h: 180 },
+    ww_gatling_barrels: { num: 144, base: 'sparks', name: 'Spinning Gatling Barrels', desc: 'Brass Gatling gun barrels spinning with bright muzzle flashes', variant: 'ww_gatling_barrels', category: 'sfx', section: 'single', genre: 'frontier', icon: '💥', w: 220, h: 180 },
+    ww_geothermal_geyser: { num: 145, base: 'fountain', name: 'Erupting Hot Geyser', desc: 'Geothermal geyser erupting boiling water out of a desert fissure', variant: 'ww_geothermal_geyser', category: 'sfx', section: 'single', genre: 'frontier', icon: '⛲', w: 200, h: 240 },
+    ww_wanted_posters: { num: 146, base: 'dust', name: 'Fluttering Wanted Posters', desc: 'Paper WANTED posters fluttering on a sheriff\'s office bulletin board', variant: 'ww_wanted_posters', category: 'ambiance', section: 'single', genre: 'frontier', icon: '📜', w: 180, h: 180 },
+    ww_hitching_mustang: { num: 147, base: 'rats', name: 'Hitching-Post Mustang', desc: 'Hitching-post mustang flicking its tail and stomping a hoof', variant: 'ww_hitching_mustang', category: 'ambiance', section: 'single', genre: 'frontier', icon: '🐎', w: 220, h: 200 },
+    ww_spitroast_rabbit: { num: 148, base: 'campfire', name: 'Spit-Roast Campfire', desc: 'Spit-roast rabbit turning slowly over open campfire coals', variant: 'ww_spitroast_rabbit', category: 'ambiance', section: 'single', genre: 'frontier', icon: '🍖', w: 180, h: 180 },
+    ww_creaking_shutter: { num: 149, base: 'fan', name: 'Banging Town Shutter', desc: 'Weathered wooden shutter banging against a ghost-town wall', variant: 'ww_creaking_shutter', category: 'ambiance', section: 'single', genre: 'frontier', icon: '🪟', w: 160, h: 180 },
+    ww_boot_hill_crow: { num: 150, base: 'bats', name: 'Boot-Hill Raven', desc: 'Black crow pecking at the dirt beside a tilted wooden cross', variant: 'ww_boot_hill_crow', category: 'ambiance', section: 'single', genre: 'frontier', icon: '🦅', w: 160, h: 160 },
 
-    // 🚀 FUTURE (25 UNIQUE FEATURES)
-    sci_neonrain: { base: 'rain', name: 'Cyberpunk Acid Neon Rain', variant: 'neon_rain', category: 'weather', genre: 'future', w: 360, h: 260 },
-    sci_hyperspace: { base: 'hyperspace', name: 'Relativistic Warp Starfield', variant: 'warp_stars', category: 'weather', genre: 'future', w: 360, h: 260 },
-    sci_ash: { base: 'dust', name: 'Radioactive Fallout Ash Drift', variant: 'sci_ash', category: 'weather', genre: 'future', w: 360, h: 260 },
-    sci_spores: { base: 'spores', name: 'Bioluminescent Xeno-Spores', variant: 'spore_cloud', category: 'weather', genre: 'future', w: 340, h: 260 },
-    sci_nanites: { base: 'dust', name: 'Hex-Nanite Swarm Cloud', variant: 'sci_nanites', category: 'weather', genre: 'future', w: 340, h: 260 },
-    sci_lasergrid: { base: 'forcefield', name: 'High-Voltage Laser Tripwire Grid', variant: 'laser_grid', category: 'hazards', genre: 'future', w: 320, h: 180 },
-    sci_plasmaleak: { base: 'plasma_leak', name: 'Superheated Fusion Plasma Jet', variant: 'fusion_vent', category: 'hazards', genre: 'future', w: 280, h: 160 },
-    sci_toxicwaste: { base: 'toxic_spill', name: 'Leaking Biohazard Barrel Spill', variant: 'radioactive_sludge', category: 'hazards', genre: 'future', w: 260, h: 200 },
-    sci_cryofreeze: { base: 'toxic_spill', name: 'Sub-Zero Cryo Nitrogen Breach', variant: 'cryo_coolant', category: 'hazards', genre: 'future', w: 280, h: 220 },
-    sci_empfield: { base: 'plasma_leak', name: 'Pulsing EMP Overload Ring', variant: 'warp_overload', category: 'hazards', genre: 'future', w: 280, h: 220 },
-    sci_hologram: { base: 'hologram', name: '3D Tactical Planetary Holo-Table', variant: 'tactical_planet', category: 'lights', genre: 'future', w: 240, h: 240 },
-    sci_holoreticle: { base: 'hologram', name: 'Orbital Strike Target Reticle', variant: 'target_reticle', category: 'lights', genre: 'future', w: 220, h: 220 },
-    sci_scanner: { base: 'spotlight', name: 'Biometric Laser-Line Scanner', variant: 'cyber_spotlight', category: 'lights', genre: 'future', w: 280, h: 360 },
-    sci_beacon: { base: 'spotlight', name: 'Rotating Red Alert Klaxon', variant: 'red_alert_siren', category: 'lights', genre: 'future', w: 220, h: 220 },
-    sci_lightstrip: { base: 'lightstrip', name: 'Floor LED Runway Chevron Strip', variant: 'cyan_chevrons', category: 'lights', genre: 'future', w: 320, h: 120 },
-    sci_drone: { base: 'bats', name: 'Quad-Rotor Sentry Drone Swarm', variant: 'surveillance_drones', category: 'actors', genre: 'future', w: 280, h: 240 },
-    sci_robobugs: { base: 'rats', name: 'Chrome Arachno-Bot Swarm', variant: 'robo_scuttlers', category: 'actors', genre: 'future', w: 300, h: 220 },
-    sci_cleaner: { base: 'patrol_actor', name: 'Autonomous Deck Scrubber Droid', variant: 'sci_cleaner', category: 'actors', genre: 'future', w: 220, h: 220 },
-    sci_holofish: { base: 'fish', name: 'Holographic Wireframe Cyber-Koi', variant: 'drone_minnows', category: 'actors', genre: 'future', w: 320, h: 240 },
-    sci_probe: { base: 'patrol_actor', name: 'Deep-Space Telemetry Probe', variant: 'sci_probe', category: 'actors', genre: 'future', w: 240, h: 240 },
-    sci_forcefield: { base: 'forcefield', name: 'Hexagonal Energy Shield Barrier', variant: 'hex_barrier', category: 'environment', genre: 'future', w: 320, h: 180 },
-    sci_teleporter: { base: 'teleporter', name: 'Quantum Transmat Teleporter', variant: 'transmat_pad', category: 'environment', genre: 'future', w: 260, h: 260 },
-    sci_terminal: { base: 'cyber_terminal', name: 'Tactical Command HUD Console', variant: 'tactical_hud', category: 'environment', genre: 'future', w: 260, h: 200 },
-    sci_conveyor: { base: 'conveyor', name: 'Factory Conveyor Belt Track', variant: 'hazard_track', category: 'environment', genre: 'future', w: 380, h: 160 },
-    sci_pipes: { base: 'river', name: 'Deformable Coolant Conduit', variant: 'acid', category: 'environment', genre: 'future', w: 520, h: 200 },
+    // -------------------------------------------------------------------------
+    // 🚀 3. DEEP SPACE & HARD SCI-FI (75 ELEMENTS)
+    // -------------------------------------------------------------------------
+    // A. Linear Motion (Directional / Traveling / Drawn Paths)
+    ds_ftl_starstreak: { num: 151, base: 'hyperspace', name: 'FTL Star-Streak Warp', desc: 'Distant stars streaking into white lines outside a bridge viewport at FTL', variant: 'ds_ftl_starstreak', category: 'lighting', section: 'drawn', genre: 'scifi', icon: '🌌', w: 520, h: 240 },
+    ds_runway_lights: { num: 152, base: 'lightstrip', name: 'Runway Approach Lights', desc: 'Pulsing amber runway approach lights guiding shuttles into a docking bay', variant: 'ds_runway_lights', category: 'lighting', section: 'drawn', genre: 'scifi', icon: '🛬', w: 480, h: 160 },
+    ds_solar_flare_wave: { num: 153, base: 'sunbeams', name: 'Solar Flare Radiation Wave', desc: 'Golden solar flare radiation wave washing across a planet\'s terminator line', variant: 'ds_solar_flare_wave', category: 'lighting', section: 'drawn', genre: 'scifi', icon: '☀️', w: 520, h: 260 },
+    ds_sensor_sweep: { num: 154, base: 'spotlight', name: 'Tactical Sensor Sweep', desc: 'Green tactical sensor sweep beam scanning across a dark asteroid belt', variant: 'ds_sensor_sweep', category: 'lighting', section: 'drawn', genre: 'scifi', icon: '📡', w: 480, h: 220 },
+    ds_evac_chevrons: { num: 155, base: 'lightstrip', name: 'Evacuation Light Chevrons', desc: 'Emergency evacuation floor strips illuminating in directional chevrons', variant: 'ds_evac_chevrons', category: 'lighting', section: 'drawn', genre: 'scifi', icon: '🚨', w: 480, h: 140 },
+    ds_decompression_wind: { num: 156, base: 'smoke', name: 'Decompression Hull Breach', desc: 'Explosive decompression wind sucking loose tools and sparks toward a hull breach', variant: 'ds_decompression_wind', category: 'hazards', section: 'drawn', genre: 'scifi', icon: '💨', w: 480, h: 240 },
+    ds_plasma_coolant_arc: { num: 157, base: 'plasma_leak', name: 'Plasma Conduit Arc', desc: 'Superheated plasma arcing down a ruptured reactor coolant conduit', variant: 'ds_plasma_coolant_arc', category: 'hazards', section: 'drawn', genre: 'scifi', icon: '⚡', w: 500, h: 200 },
+    ds_micrometeoroid_shower: { num: 158, base: 'sparks', name: 'Micrometeoroid Shower', desc: 'Micrometeoroid shower streaking across an exterior hull catwalk', variant: 'ds_micrometeoroid_shower', category: 'hazards', section: 'drawn', genre: 'scifi', icon: '☄️', w: 480, h: 200 },
+    ds_hydraulic_bulkheads: { num: 159, base: 'conveyor', name: 'Slamming Bulkhead Doors', desc: 'Heavy hydraulic bulkheads slamming shut sequentially down a corridor', variant: 'ds_hydraulic_bulkheads', category: 'hazards', section: 'drawn', genre: 'scifi', icon: '🚪', w: 460, h: 200 },
+    ds_mining_laser: { num: 160, base: 'forcefield', name: 'Industrial Mining Laser', desc: 'Industrial mining laser slicing steadily across an asteroid\'s surface', variant: 'ds_mining_laser', category: 'hazards', section: 'drawn', genre: 'scifi', icon: '🔴', w: 500, h: 180 },
+    ds_fuelrod_rails: { num: 161, base: 'conveyor', name: 'Reactor Fuel Rod Rails', desc: 'Automated cargo rails sliding cylindrical fuel rods into a reactor core', variant: 'ds_fuelrod_rails', category: 'props', section: 'drawn', genre: 'scifi', icon: '🔋', w: 460, h: 180 },
+    ds_tracked_repair_drone: { num: 162, base: 'patrol_actor', name: 'Tracked Welding Drone', desc: 'Tracked repair drone rolling along deck plating welding hull seams', variant: 'ds_tracked_repair_drone', category: 'props', section: 'drawn', genre: 'scifi', icon: '🤖', w: 440, h: 200 },
+    ds_antigrav_lift: { num: 163, base: 'lightstrip', name: 'Anti-Gravity Lift Shaft', desc: 'Vertical anti-gravity lift shaft carrying upward-drifting light motes', variant: 'ds_antigrav_lift', category: 'props', section: 'drawn', genre: 'scifi', icon: '🛗', w: 220, h: 480 },
+    ds_space_elevator: { num: 164, base: 'conveyor', name: 'Orbital Space Elevator', desc: 'Orbital space-elevator car ascending past exterior station viewports', variant: 'ds_space_elevator', category: 'props', section: 'drawn', genre: 'scifi', icon: '🛰️', w: 260, h: 500 },
+    ds_docking_clamps: { num: 165, base: 'fan', name: 'Steel Docking Clamps', desc: 'Heavy steel docking clamps extending and locking onto an incoming hull', variant: 'ds_docking_clamps', category: 'props', section: 'drawn', genre: 'scifi', icon: '🗜️', w: 440, h: 200 },
+    ds_ion_thruster_plume: { num: 166, base: 'plasma_leak', name: 'Ion Thruster Plume', desc: 'Blue ion thruster plumes flaring behind a patrolling starfighter', variant: 'ds_ion_thruster_plume', category: 'sfx', section: 'drawn', genre: 'scifi', icon: '🚀', w: 460, h: 180 },
+    ds_holo_sonar_ping: { num: 167, base: 'hologram', name: 'Holo Sonar Ping', desc: 'Holographic sonar ping expanding outward across a glass command table', variant: 'ds_holo_sonar_ping', category: 'sfx', section: 'drawn', genre: 'scifi', icon: '📡', w: 400, h: 400 },
+    ds_transporter_beam: { num: 168, base: 'teleporter', name: 'Matter Transporter Beam', desc: 'Matter-transporter beam dematerializing golden particles upward', variant: 'ds_transporter_beam', category: 'sfx', section: 'drawn', genre: 'scifi', icon: '✨', w: 320, h: 420 },
+    ds_containment_ripple: { num: 169, base: 'forcefield', name: 'Force-Field Impact Wave', desc: 'Containment force-field energy ripple spreading from an impact point', variant: 'ds_containment_ripple', category: 'sfx', section: 'drawn', genre: 'scifi', icon: '🛡️', w: 440, h: 240 },
+    ds_nitrogen_coolant_vent: { num: 170, base: 'smoke', name: 'Liquid Nitrogen Vent', desc: 'Freezing white nitrogen coolant gas venting rapidly across a lab floor', variant: 'ds_nitrogen_coolant_vent', category: 'sfx', section: 'drawn', genre: 'scifi', icon: '❄️', w: 460, h: 200 },
+    ds_tumbling_asteroids: { num: 171, base: 'dust', name: 'Tumbling Asteroid Field', desc: 'Jagged asteroids tumbling slowly past a station observation window', variant: 'ds_tumbling_asteroids', category: 'ambiance', section: 'drawn', genre: 'scifi', icon: '🪨', w: 480, h: 260 },
+    ds_satellite_debris: { num: 172, base: 'dust', name: 'Derelict Satellite Debris', desc: 'Derelict satellite wreckage and solar panels drifting through orbit', variant: 'ds_satellite_debris', category: 'ambiance', section: 'drawn', genre: 'scifi', icon: '🛰️', w: 480, h: 240 },
+    ds_zerog_water_droplets: { num: 173, base: 'fireflies', name: 'Zero-G Water Droplets', desc: 'Spherical zero-gravity water droplets floating lazily across a cabin', variant: 'ds_zerog_water_droplets', category: 'ambiance', section: 'drawn', genre: 'scifi', icon: '💧', w: 420, h: 240 },
+    ds_nebula_drift: { num: 174, base: 'fog', name: 'Cosmic Nebula Drift', desc: 'Colorful deep-space nebula clouds shifting slowly in the background', variant: 'ds_nebula_drift', category: 'ambiance', section: 'drawn', genre: 'scifi', icon: '🌌', w: 500, h: 280 },
+    ds_planetary_rings: { num: 175, base: 'hyperspace', name: 'Planetary Ice Rings', desc: 'Majestic planetary ice rings rotating outside a starship lounge', variant: 'ds_planetary_rings', category: 'ambiance', section: 'drawn', genre: 'scifi', icon: '🪐', w: 520, h: 260 },
+    // B. Animated Textures (Tiling / Area-Fill / Volumes)
+    ds_cherenkov_radiation: { num: 176, base: 'crystal', name: 'Cherenkov Core Glow', desc: 'Eerie blue Cherenkov radiation glowing beneath a submerged fission core', variant: 'ds_cherenkov_radiation', category: 'lighting', section: 'filled', genre: 'scifi', icon: '☢️', w: 380, h: 280 },
+    ds_redalert_strobes: { num: 177, base: 'spotlight', name: 'Red-Alert Klaxon Wash', desc: 'Red-alert klaxon strobes washing rhythmically over brushed steel decking', variant: 'ds_redalert_strobes', category: 'lighting', section: 'filled', genre: 'scifi', icon: '🚨', w: 400, h: 280 },
+    ds_biolum_moss: { num: 178, base: 'crystal', name: 'Bioluminescent Xenomoss', desc: 'Bioluminescent alien moss pulsing across a terraforming bio-dome floor', variant: 'ds_biolum_moss', category: 'lighting', section: 'filled', genre: 'scifi', icon: '🌿', w: 380, h: 280 },
+    ds_void_starlight: { num: 179, base: 'hyperspace', name: 'Deep-Space Starfield', desc: 'Crisp starlight twinkling steadily across a deep-space void backdrop', variant: 'ds_void_starlight', category: 'lighting', section: 'filled', genre: 'scifi', icon: '✨', w: 420, h: 300 },
+    ds_quantum_proc_grid: { num: 180, base: 'cyber_terminal', name: 'Quantum Processor Floor', desc: 'Sub-floor quantum processor grid pulsing with golden data traffic', variant: 'ds_quantum_proc_grid', category: 'lighting', section: 'filled', genre: 'scifi', icon: '🔲', w: 380, h: 280 },
+    ds_radioactive_coolant_flood: { num: 181, base: 'toxic_spill', name: 'Radioactive Coolant Flood', desc: 'Boiling radioactive reactor coolant flooding a lower engineering bay', variant: 'ds_radioactive_coolant_flood', category: 'hazards', section: 'filled', genre: 'scifi', icon: '☢️', w: 400, h: 280 },
+    ds_alien_biomass: { num: 182, base: 'tentacles', name: 'Alien Hive Creep', desc: 'Pulsing organic alien hive biomass creeping across bulkhead walls', variant: 'ds_alien_biomass', category: 'hazards', section: 'filled', genre: 'scifi', icon: '🦠', w: 380, h: 280 },
+    ds_frost_fractals: { num: 183, base: 'snow', name: 'Sub-Zero Frost Deck', desc: 'Cryo-frozen metal decking cracking with spreading white frost fractals', variant: 'ds_frost_fractals', category: 'hazards', section: 'filled', genre: 'scifi', icon: '❄️', w: 380, h: 280 },
+    ds_ion_storm_deck: { num: 184, base: 'sparks', name: 'Ion Storm Deck Arcs', desc: 'Electrified hull grating arcing wildly during a magnetic ion storm', variant: 'ds_ion_storm_deck', category: 'hazards', section: 'filled', genre: 'scifi', icon: '⚡', w: 380, h: 280 },
+    ds_xenospore_quarantine: { num: 185, base: 'spores', name: 'Acid Xenospore Cloud', desc: 'Yellow acidic alien spore clouds blanketing a quarantine chamber', variant: 'ds_xenospore_quarantine', category: 'hazards', section: 'filled', genre: 'scifi', icon: '☣️', w: 400, h: 280 },
+    ds_hydroponic_beds: { num: 186, base: 'fog', name: 'Hydroponic Garden Misting', desc: 'Tiered hydroponic garden beds misting rows of engineered space-crops', variant: 'ds_hydroponic_beds', category: 'props', section: 'filled', genre: 'scifi', icon: '🌱', w: 400, h: 280 },
+    ds_cryopod_honeycomb: { num: 187, base: 'cyber_terminal', name: 'Cryo-Sleep Honeycomb Wall', desc: 'Honeycomb wall of cryo-sleep pods blinking with steady green vitals', variant: 'ds_cryopod_honeycomb', category: 'props', section: 'filled', genre: 'scifi', icon: '🛌', w: 400, h: 280 },
+    ds_drone_charging_floor: { num: 188, base: 'cyber_terminal', name: 'Drone Charging Floor', desc: 'Automated drone charging floor with dozens of blinking battery LEDs', variant: 'ds_drone_charging_floor', category: 'props', section: 'filled', genre: 'scifi', icon: '🔋', w: 380, h: 280 },
+    ds_ore_conveyor_crusher: { num: 189, base: 'conveyor', name: 'Ore Crusher Conveyor', desc: 'Heavy-duty conveyor grating moving mined asteroid ore into a crusher', variant: 'ds_ore_conveyor_crusher', category: 'props', section: 'filled', genre: 'scifi', icon: '⚙️', w: 420, h: 260 },
+    ds_gyroscope_floor: { num: 190, base: 'fan', name: 'Sub-Bridge Gyroscope Bay', desc: 'Reinforced glass bridge floor revealing spinning gyroscopes below', variant: 'ds_gyroscope_floor', category: 'props', section: 'filled', genre: 'scifi', icon: '🧭', w: 380, h: 280 },
+    ds_wormhole_tunnel: { num: 191, base: 'hyperspace', name: 'Hyperspace Wormhole Tunnel', desc: 'Swirling blue hyperspace wormhole tunnel surrounding a starship', variant: 'ds_wormhole_tunnel', category: 'sfx', section: 'filled', genre: 'scifi', icon: '🌀', w: 420, h: 300 },
+    ds_gravitational_lens: { num: 192, base: 'teleporter', name: 'Gravitational Singularity Lens', desc: 'Gravitational lensing warping starlight around a singularity horizon', variant: 'ds_gravitational_lens', category: 'sfx', section: 'filled', genre: 'scifi', icon: '⚫', w: 400, h: 400 },
+    ds_outpost_shield_dome: { num: 193, base: 'forcefield', name: 'Lunar Shield Dome', desc: 'Translucent energy shield dome shimmering across a lunar outpost', variant: 'ds_outpost_shield_dome', category: 'sfx', section: 'filled', genre: 'scifi', icon: '🛡️', w: 420, h: 300 },
+    ds_fullroom_starchart: { num: 194, base: 'hologram', name: 'Tactical Holo Star-Chart', desc: 'Full-room holographic star-chart projection filling a tactical deck', variant: 'ds_fullroom_starchart', category: 'sfx', section: 'filled', genre: 'scifi', icon: '🌌', w: 400, h: 300 },
+    ds_zerog_debris_field: { num: 195, base: 'dust', name: 'Zero-G Floating Debris', desc: 'Zero-gravity floating clipboards, pens, and dust inside a derelict hull', variant: 'ds_zerog_debris_field', category: 'sfx', section: 'filled', genre: 'scifi', icon: '📎', w: 400, h: 280 },
+    ds_air_scrubber_mist: { num: 196, base: 'fog', name: 'Air-Scrubber Sterile Mist', desc: 'Sterile white air-scrubber mist drifting across clean medical lab tiles', variant: 'ds_air_scrubber_mist', category: 'ambiance', section: 'filled', genre: 'scifi', icon: '💨', w: 380, h: 260 },
+    ds_comms_dish_shadows: { num: 197, base: 'bats', name: 'Rotating Comms Shadows', desc: 'Sweeping shadows of rotating comms dishes passing over lunar regolith', variant: 'ds_comms_dish_shadows', category: 'ambiance', section: 'filled', genre: 'scifi', icon: '📡', w: 400, h: 280 },
+    ds_exoplanet_spores: { num: 198, base: 'spores', name: 'Floating Exoplanet Spores', desc: 'Glowing microscopic spores floating in the air of an exoplanet jungle', variant: 'ds_exoplanet_spores', category: 'ambiance', section: 'filled', genre: 'scifi', icon: '✨', w: 380, h: 260 },
+    ds_xenobio_aquatank: { num: 199, base: 'pond', name: 'Zero-G Xenobiology Tank', desc: 'Gentle water ripples inside a zero-G aquatic xenobiology tank', variant: 'ds_xenobio_aquatank', category: 'ambiance', section: 'filled', genre: 'scifi', icon: '🫧', w: 380, h: 280 },
+    ds_manifold_thermal_shimmer: { num: 200, base: 'hyperspace', name: 'Engine Manifold Heat Shimmer', desc: 'Subtle thermal shimmer rising from a starship\'s main engine manifolds', variant: 'ds_manifold_thermal_shimmer', category: 'ambiance', section: 'filled', genre: 'scifi', icon: '🔥', w: 380, h: 260 },
+    // C. Single Elements (Spot / Focal Objects / Props)
+    ds_fusion_reactor_core: { num: 201, base: 'plasma_leak', name: 'Fusion Core Plasma Pulse', desc: 'Central fusion reactor core pulsing with blinding white-blue plasma', variant: 'ds_fusion_reactor_core', category: 'lighting', section: 'single', genre: 'scifi', icon: '⚛️', w: 240, h: 240 },
+    ds_dangling_led_panel: { num: 202, base: 'cyber_terminal', name: 'Dangling Flickering LED Panel', desc: 'Loose LED ceiling panel dangling by one wire and flickering in a derelict', variant: 'ds_dangling_led_panel', category: 'lighting', section: 'single', genre: 'scifi', icon: '💡', w: 180, h: 180 },
+    ds_magnesium_flare: { num: 203, base: 'sparks', name: 'Magnesium Distress Flare', desc: 'Handheld magnesium distress flare burning bright red on lunar dust', variant: 'ds_magnesium_flare', category: 'lighting', section: 'single', genre: 'scifi', icon: '🔥', w: 180, h: 180 },
+    ds_quarantine_holo_icon: { num: 204, base: 'hologram', name: 'Holo Quarantine Klaxon', desc: 'Rotating holographic QUARANTINE warning icon hovering over a hatch', variant: 'ds_quarantine_holo_icon', category: 'lighting', section: 'single', genre: 'scifi', icon: '☣️', w: 200, h: 200 },
+    ds_specimen_jellyfish: { num: 205, base: 'fish', name: 'Specimen Alien Jellyfish', desc: 'Phosphorescent alien jellyfish pulsing inside a glass specimen cylinder', variant: 'ds_specimen_jellyfish', category: 'lighting', section: 'single', genre: 'scifi', icon: '🪼', w: 180, h: 240 },
+    ds_liquid_oxygen_spray: { num: 206, base: 'smoke', name: 'Liquid Oxygen Spray', desc: 'Ruptured liquid-oxygen pipe spraying freezing vapor clouds', variant: 'ds_liquid_oxygen_spray', category: 'hazards', section: 'single', genre: 'scifi', icon: '❄️', w: 220, h: 200 },
+    ds_sparking_surgical_arm: { num: 207, base: 'sparks', name: 'Malfunctioning Surgical Arm', desc: 'Malfunctioning robotic surgical arm twitching and sparking erratically', variant: 'ds_sparking_surgical_arm', category: 'hazards', section: 'single', genre: 'scifi', icon: '🦾', w: 220, h: 220 },
+    ds_alien_eggsac: { num: 208, base: 'tentacles', name: 'Pulsing Alien Egg Sac', desc: 'Leathery alien egg sac pulsing with visible internal movement', variant: 'ds_alien_eggsac', category: 'hazards', section: 'single', genre: 'scifi', icon: '🥚', w: 180, h: 200 },
+    ds_plasma_capacitor_arc: { num: 209, base: 'sparks', name: 'Plasma Capacitor Coils', desc: 'Exposed high-voltage plasma capacitor arcing between copper coils', variant: 'ds_plasma_capacitor_arc', category: 'hazards', section: 'single', genre: 'scifi', icon: '⚡', w: 220, h: 220 },
+    ds_airlock_override_lever: { num: 210, base: 'sparks', name: 'Airlock Override Switch', desc: 'Airlock manual override lever flashing red with warning sparks', variant: 'ds_airlock_override_lever', category: 'hazards', section: 'single', genre: 'scifi', icon: '🚨', w: 160, h: 180 },
+    ds_holo_planet_globe: { num: 211, base: 'hologram', name: '3D Planetary Holo-Globe', desc: 'Rotating 3D holographic planet projection hovering over a bridge table', variant: 'ds_holo_planet_globe', category: 'props', section: 'single', genre: 'scifi', icon: '🪐', w: 240, h: 240 },
+    ds_cryopod_hatch_open: { num: 212, base: 'smoke', name: 'Unsealing Cryo-Pod', desc: 'Horizontal cryo-pod sliding open with a hiss of escaping frost', variant: 'ds_cryopod_hatch_open', category: 'props', section: 'single', genre: 'scifi', icon: '❄️', w: 240, h: 200 },
+    ds_hull_comms_dish: { num: 213, base: 'fan', name: 'Rotating Comms Dish', desc: 'Dish-shaped deep-space communications array rotating on an exterior hull', variant: 'ds_hull_comms_dish', category: 'props', section: 'single', genre: 'scifi', icon: '📡', w: 240, h: 240 },
+    ds_drydock_welder_arm: { num: 214, base: 'sparks', name: 'Drydock Laser Welder', desc: 'Articulated laser-welding arm assembling a fighter wing in drydock', variant: 'ds_drydock_welder_arm', category: 'props', section: 'single', genre: 'scifi', icon: '🦾', w: 240, h: 220 },
+    ds_antigrav_gimbal_ring: { num: 215, base: 'fan', name: 'Gimbaled Gravity Ring', desc: 'Brass-and-steel artificial gravity ring spinning smoothly on gimbals', variant: 'ds_antigrav_gimbal_ring', category: 'props', section: 'single', genre: 'scifi', icon: '🔄', w: 220, h: 220 },
+    ds_lab_spatial_tear: { num: 216, base: 'teleporter', name: 'Unstable Spatial Tear', desc: 'Unstable spatial tear warping light in mid-air inside a research lab', variant: 'ds_lab_spatial_tear', category: 'sfx', section: 'single', genre: 'scifi', icon: '🌀', w: 220, h: 220 },
+    ds_escape_pod_launch: { num: 217, base: 'plasma_leak', name: 'Ejecting Escape Pod', desc: 'Cylindrical escape pod ejecting from a hull with a bright thruster burst', variant: 'ds_escape_pod_launch', category: 'sfx', section: 'single', genre: 'scifi', icon: '🚀', w: 240, h: 200 },
+    ds_stasis_field_beam: { num: 218, base: 'forcefield', name: 'Artifact Stasis Beam', desc: 'Blue stasis beam holding an alien artifact suspended in mid-air', variant: 'ds_stasis_field_beam', category: 'sfx', section: 'single', genre: 'scifi', icon: '💎', w: 200, h: 260 },
+    ds_holo_ai_avatar: { num: 219, base: 'hologram', name: 'Ship AI Holo-Avatar', desc: 'Holographic AI ship avatar flickering with scanlines on a projector pad', variant: 'ds_holo_ai_avatar', category: 'sfx', section: 'single', genre: 'scifi', icon: '🤖', w: 200, h: 240 },
+    ds_orbital_cannon_charge: { num: 220, base: 'plasma_leak', name: 'Orbital Cannon Charge', desc: 'Orbital defense cannon charging up with converging energy rings', variant: 'ds_orbital_cannon_charge', category: 'sfx', section: 'single', genre: 'scifi', icon: '💥', w: 260, h: 260 },
+    ds_medbay_ecg_screen: { num: 221, base: 'cyber_terminal', name: 'Med-Bay Vital Screen', desc: 'Med-bay telemetry screen scrolling a steady green ECG heartbeat line', variant: 'ds_medbay_ecg_screen', category: 'ambiance', section: 'single', genre: 'scifi', icon: '📈', w: 200, h: 180 },
+    ds_hull_cleaner_droid: { num: 222, base: 'patrol_actor', name: 'Hull Cleaner Bot', desc: 'Small round hull-cleaning bot bumping gently against a bulkhead', variant: 'ds_hull_cleaner_droid', category: 'ambiance', section: 'single', genre: 'scifi', icon: '🧽', w: 160, h: 160 },
+    ds_floating_drink_pouch: { num: 223, base: 'patrol_actor', name: 'Floating Zero-G Drink Pouch', desc: 'Sealed zero-G drink pouch floating and rotating slowly in mid-air', variant: 'ds_floating_drink_pouch', category: 'ambiance', section: 'single', genre: 'scifi', icon: '🧃', w: 140, h: 140 },
+    ds_nav_console_standby: { num: 224, base: 'cyber_terminal', name: 'Nav Console Standby LEDs', desc: 'Navigation console indicator lights blinking in an idle standby loop', variant: 'ds_nav_console_standby', category: 'ambiance', section: 'single', genre: 'scifi', icon: '🎛️', w: 200, h: 180 },
+    ds_viewport_alien_beetle: { num: 225, base: 'rats', name: 'Viewport Alien Bug', desc: 'Six-legged alien beetle skittering across a reinforced viewport', variant: 'ds_viewport_alien_beetle', category: 'ambiance', section: 'single', genre: 'scifi', icon: '🪲', w: 160, h: 160 },
 
-    // 🐙 OTHER (25 UNIQUE FEATURES)
-    oth_bloodrain: { base: 'rain', name: 'Eldritch Crimson Blood Rain', variant: 'acid_rain', category: 'weather', genre: 'other', w: 360, h: 260 },
-    oth_ghostfog: { base: 'fog', name: 'Ectoplasmic Graveyard Mist', variant: 'cemetery_shroud', category: 'weather', genre: 'other', w: 380, h: 260 },
-    oth_voidaurora: { base: 'hyperspace', name: 'Cosmic Void Dimensional Tear', variant: 'void_rift', category: 'weather', genre: 'other', w: 360, h: 260 },
-    oth_ashblizzard: { base: 'snow', name: 'Necropolis Bone-Ash Gale', variant: 'ash_storm', category: 'weather', genre: 'other', w: 360, h: 260 },
-    oth_whispers: { base: 'patrol_actor', name: 'Wailing Banshee Spirit Vortex', variant: 'oth_whispers', category: 'weather', genre: 'other', w: 320, h: 260 },
-    oth_tentacles: { base: 'tentacles', name: 'Writhing Eldritch Void Tentacles', variant: 'abyssal_purple', category: 'hazards', genre: 'other', w: 280, h: 260 },
-    oth_hellfire: { base: 'inferno', name: 'Brimstone Pentagram Hellfire', variant: 'hellfire', category: 'hazards', genre: 'other', w: 260, h: 240 },
-    oth_bloodpool: { base: 'pond', name: 'Deformable Ritual Blood Pool', variant: 'blood_pool', category: 'hazards', genre: 'other', w: 320, h: 260 },
-    oth_miasma: { base: 'smoke', name: 'Pestilence Plague Fly Miasma', variant: 'shadow_miasma', category: 'hazards', genre: 'other', w: 280, h: 240 },
-    oth_ooze: { base: 'mud', name: 'Gelatinous Cube / Dungeon Ooze', variant: 'oth_ooze', category: 'hazards', genre: 'other', w: 240, h: 240 },
-    oth_candlelabra: { base: 'torch', name: 'Horned Skull Occult Candelabra', variant: 'oth_candlelabra', category: 'lights', genre: 'other', w: 180, h: 180 },
-    oth_ghostlight: { base: 'torch', name: 'Spectral Corpse-Candle Cage', variant: 'oth_ghostlight', category: 'lights', genre: 'other', w: 160, h: 160 },
-    oth_crystal: { base: 'crystal', name: 'Floating Amethyst Soul Monolith', variant: 'amethyst_gem', category: 'lights', genre: 'other', w: 200, h: 240 },
-    oth_gaslamp: { base: 'lantern', name: 'Clockwork Steampunk Gaslamp', variant: 'oth_gaslamp', category: 'lights', genre: 'other', w: 180, h: 180 },
-    oth_moonbeams: { base: 'sunbeams', name: 'Blood-Moon Eclipse Shafts', variant: 'oth_moonbeams', category: 'lights', genre: 'other', w: 340, h: 300 },
-    oth_ghost: { base: 'patrol_actor', name: 'Gliding Victorian Phantom Lady', variant: 'gothic_ghost', category: 'actors', genre: 'other', w: 260, h: 260 },
-    oth_eye: { base: 'patrol_actor', name: 'Wandering Eldritch All-Seeing Eye', variant: 'eldritch_eye', category: 'actors', genre: 'other', w: 240, h: 240 },
-    oth_shadow_hands: { base: 'rats', name: 'Grasping Necrotic Shadow Hands', variant: 'oth_shadow_hands', category: 'actors', genre: 'other', w: 300, h: 240 },
-    oth_abyssalfish: { base: 'fish', name: 'Deep-One Bioluminescent Anglers', variant: 'abyssal_biolum', category: 'actors', genre: 'other', w: 340, h: 260 },
-    oth_moths: { base: 'bats', name: 'Death\'s-Head Crypt Lunar Moths', variant: 'oth_moths', category: 'actors', genre: 'other', w: 300, h: 240 },
-    oth_bloodriver: { base: 'river', name: 'Deformable River of Blood', variant: 'blood_river', category: 'environment', genre: 'other', w: 520, h: 220 },
-    oth_bloodfount: { base: 'fountain', name: 'Gargoyle Sanguine Blood Fountain', variant: 'blood_fount', category: 'environment', genre: 'other', w: 260, h: 260 },
-    oth_deadwood: { base: 'forest', name: 'Deformable Deadwood Forest Tool', variant: 'haunted_deadwood', category: 'environment', genre: 'other', w: 440, h: 400 },
-    oth_fungalforest: { base: 'forest', name: 'Deformable Fungal Forest Tool', variant: 'alien_fungal', category: 'environment', genre: 'other', w: 440, h: 400 },
-    oth_rift: { base: 'teleporter', name: 'Shattered Reality Void Rift', variant: 'void_singularity', category: 'environment', genre: 'other', w: 280, h: 280 },
+    // -------------------------------------------------------------------------
+    // 👁️ 4. COSMIC HORROR, NOIR & OCCULT MODERN (75 ELEMENTS)
+    // -------------------------------------------------------------------------
+    // A. Linear Motion (Directional / Traveling / Drawn Paths)
+    ch_lighthouse_beam: { num: 226, base: 'spotlight', name: 'Lighthouse Fog Beam', desc: 'Rotating lighthouse beam cutting through thick coastal harbor fog', variant: 'ch_lighthouse_beam', category: 'lighting', section: 'drawn', genre: 'horror', icon: '🗼', w: 520, h: 260 },
+    ch_flickering_streetlamps: { num: 227, base: 'spotlight', name: 'Dying Streetlamp Chain', desc: 'Iron streetlamps flickering and extinguishing one by one down an alley', variant: 'ch_flickering_streetlamps', category: 'lighting', section: 'drawn', genre: 'horror', icon: '💡', w: 480, h: 200 },
+    ch_sedan_headlights: { num: 228, base: 'headlights', name: 'Noir Sedan Headlights', desc: '1930s sedan headlights slicing across wet cobblestones in a noir pursuit', variant: 'ch_sedan_headlights', category: 'lighting', section: 'drawn', genre: 'horror', icon: '🚗', w: 440, h: 220 },
+    ch_floating_taper: { num: 229, base: 'torch', name: 'Floating Spectral Candle', desc: 'Floating spectral taper candle drifting down an empty mansion corridor', variant: 'ch_floating_taper', category: 'lighting', section: 'drawn', genre: 'horror', icon: '🕯️', w: 360, h: 180 },
+    ch_bloodmoon_shadow: { num: 230, base: 'sunbeams', name: 'Blood-Moon Eclipse Shadow', desc: 'Blood-moon eclipse shadow creeping steadily across a stone courtyard', variant: 'ch_bloodmoon_shadow', category: 'lighting', section: 'drawn', genre: 'horror', icon: '🌘', w: 500, h: 260 },
+    ch_cellar_ichor: { num: 231, base: 'river', name: 'Oozing Cellar Ichor', desc: 'Viscous black ichor oozing rapidly out from beneath a locked cellar door', variant: 'ch_cellar_ichor', category: 'hazards', section: 'drawn', genre: 'horror', icon: '🖤', w: 460, h: 200 },
+    ch_shadow_tendrils: { num: 232, base: 'tentacles', name: 'Crawling Shadow Tendrils', desc: 'Living shadow tendrils slithering across floorboards toward light sources', variant: 'ch_shadow_tendrils', category: 'hazards', section: 'drawn', genre: 'horror', icon: '👥', w: 460, h: 200 },
+    ch_roach_stair_tide: { num: 233, base: 'rats', name: 'Stairwell Roach Tide', desc: 'Tide of brown cockroaches pouring down a wooden stairwell', variant: 'ch_roach_stair_tide', category: 'hazards', section: 'drawn', genre: 'horror', icon: '🪳', w: 440, h: 220 },
+    ch_reverse_blood_drip: { num: 234, base: 'rain', name: 'Inverted Blood Droplets', desc: 'Crimson blood droplets dripping upward from the floor toward the ceiling', variant: 'ch_reverse_blood_drip', category: 'hazards', section: 'drawn', genre: 'horror', icon: '🩸', w: 400, h: 260 },
+    ch_gravefog_wall: { num: 235, base: 'fog', name: 'Freezing Grave-Fog Wall', desc: 'Rolling wall of unnatural, freezing grave-fog advancing down a street', variant: 'ch_gravefog_wall', category: 'hazards', section: 'drawn', genre: 'horror', icon: '🌫️', w: 500, h: 260 },
+    ch_vintage_subway: { num: 236, base: 'conveyor', name: 'Haunted Subway Car', desc: 'Grimy 1920s subway car screeching past an empty underground platform', variant: 'ch_vintage_subway', category: 'props', section: 'drawn', genre: 'horror', icon: '🚇', w: 520, h: 200 },
+    ch_elevator_needle: { num: 237, base: 'cyber_terminal', name: 'Occult Elevator Dial', desc: 'Brass elevator floor needle ticking erratically upward past the top floor', variant: 'ch_elevator_needle', category: 'props', section: 'drawn', genre: 'horror', icon: '🛗', w: 320, h: 160 },
+    ch_ghost_typewriter: { num: 238, base: 'cyber_terminal', name: 'Ghost Typewriter Typing', desc: 'Vintage typewriter carriage sliding back and forth as keys type alone', variant: 'ch_ghost_typewriter', category: 'props', section: 'drawn', genre: 'horror', icon: '⌨️', w: 400, h: 180 },
+    ch_dumbwaiter_lift: { num: 239, base: 'conveyor', name: 'Creaking Dumbwaiter Lift', desc: 'Wooden dumbwaiter lift creaking downward inside a haunted Victorian manor', variant: 'ch_dumbwaiter_lift', category: 'props', section: 'drawn', genre: 'horror', icon: '📦', w: 260, h: 440 },
+    ch_film_projector_beam: { num: 240, base: 'spotlight', name: '16mm Projector Flickering Reel', desc: '16mm film projector casting flickering black-and-white reels onto a wall', variant: 'ch_film_projector_beam', category: 'props', section: 'drawn', genre: 'horror', icon: '📽️', w: 460, h: 220 },
+    ch_noneuclidean_tiles: { num: 241, base: 'hyperspace', name: 'Non-Euclidean Floor Tiles', desc: 'Non-Euclidean geometric patterns shifting across a black-and-white tiled floor', variant: 'ch_noneuclidean_tiles', category: 'sfx', section: 'drawn', genre: 'horror', icon: '🏁', w: 460, h: 240 },
+    ch_wallpaper_void_tear: { num: 242, base: 'teleporter', name: 'Floral Wallpaper Void Tear', desc: 'Reality tear ripping open in floral wallpaper, revealing starry cosmic voids', variant: 'ch_wallpaper_void_tear', category: 'sfx', section: 'drawn', genre: 'horror', icon: '🌌', w: 440, h: 240 },
+    ch_madness_ripples: { num: 243, base: 'plasma_leak', name: 'Psychic Madness Ripples', desc: 'Psychic madness ripples distorting the air around a carved basalt idol', variant: 'ch_madness_ripples', category: 'sfx', section: 'drawn', genre: 'horror', icon: '🌀', w: 420, h: 240 },
+    ch_drifting_apparition: { num: 244, base: 'smoke', name: 'Bookshelf Ghost Lady', desc: 'Translucent Victorian apparition drifting straight through solid bookshelves', variant: 'ch_drifting_apparition', category: 'sfx', section: 'drawn', genre: 'horror', icon: '👻', w: 420, h: 220 },
+    ch_ritual_violet_mist: { num: 245, base: 'fog', name: 'Ritual Baseboard Mist', desc: 'Cursed violet mist curling along the baseboards of an occult ritual room', variant: 'ch_ritual_violet_mist', category: 'sfx', section: 'drawn', genre: 'horror', icon: '🔮', w: 480, h: 200 },
+    ch_pier_coastal_fog: { num: 246, base: 'fog', name: 'Rotting Pier Fog', desc: 'Thick coastal fog rolling relentlessly across a rotting wooden pier', variant: 'ch_pier_coastal_fog', category: 'ambiance', section: 'drawn', genre: 'horror', icon: '🌫️', w: 500, h: 240 },
+    ch_stainedglass_rain: { num: 247, base: 'rain', name: 'Gothic Stained-Glass Rain', desc: 'Rain streaks tapping diagonally against gothic stained-glass windows', variant: 'ch_stainedglass_rain', category: 'ambiance', section: 'drawn', genre: 'horror', icon: '🌧️', w: 440, h: 260 },
+    ch_cemetery_leaves: { num: 248, base: 'leaves', name: 'Cemetery Swirling Leaves', desc: 'Crisp dead leaves swirling across a muddy cemetery path', variant: 'ch_cemetery_leaves', category: 'ambiance', section: 'drawn', genre: 'horror', icon: '🍂', w: 440, h: 200 },
+    ch_crows_fullmoon: { num: 249, base: 'bats', name: 'Full-Moon Murder of Crows', desc: 'Murder of crows flying in a dark flock across a pale full moon', variant: 'ch_crows_fullmoon', category: 'ambiance', section: 'drawn', genre: 'horror', icon: '🦅', w: 460, h: 220 },
+    ch_cigarette_smoke_lamp: { num: 250, base: 'smoke', name: 'Detective Cigarette Smoke', desc: 'Blue cigarette smoke drifting lazily across a detective\'s desk lamp', variant: 'ch_cigarette_smoke_lamp', category: 'ambiance', section: 'drawn', genre: 'horror', icon: '🚬', w: 400, h: 200 },
+    // B. Animated Textures (Tiling / Area-Fill / Volumes)
+    ch_venetian_blind_stripes: { num: 251, base: 'sunbeams', name: 'Venetian Blind Shadows', desc: 'Venetian blind shadow stripes shifting across a smoky office floor', variant: 'ch_venetian_blind_stripes', category: 'lighting', section: 'filled', genre: 'horror', icon: '🪟', w: 380, h: 280 },
+    ch_harbor_indigo_moon: { num: 252, base: 'pond', name: 'Indigo Harbor Moonlight', desc: 'Eerie indigo moonlight rippling across dark, oily harbor water', variant: 'ch_harbor_indigo_moon', category: 'lighting', section: 'filled', genre: 'horror', icon: '🌊', w: 400, h: 280 },
+    ch_sewer_green_gaslight: { num: 253, base: 'spotlight', name: 'Green Sewer Gaslight', desc: 'Sickly green Victorian gaslight illuminating damp brick sewer tunnels', variant: 'ch_sewer_green_gaslight', category: 'lighting', section: 'filled', genre: 'horror', icon: '🏮', w: 380, h: 260 },
+    ch_frosted_lightning_flash: { num: 254, base: 'rain', name: 'Frosted-Glass Lightning', desc: 'Forked lightning flashes revealing brief silhouettes through frosted glass', variant: 'ch_frosted_lightning_flash', category: 'lighting', section: 'filled', genre: 'horror', icon: '⚡', w: 400, h: 280 },
+    ch_ritual_chalk_candles: { num: 255, base: 'torch', name: 'Ritual Chalk Candle Shadows', desc: 'Flickering candle shadows dancing wildly across chalk ritual circles', variant: 'ch_ritual_chalk_candles', category: 'lighting', section: 'filled', genre: 'horror', icon: '🕯️', w: 380, h: 280 },
+    ch_harbor_tentacle_water: { num: 256, base: 'tentacles', name: 'Harbor Abyssal Tentacles', desc: 'Dark harbor water writhing with shadowy tentacles just beneath the surface', variant: 'ch_harbor_tentacle_water', category: 'hazards', section: 'filled', genre: 'horror', icon: '🐙', w: 400, h: 280 },
+    ch_collapsing_floorboards: { num: 257, base: 'pit_trap', name: 'Splintering Floor Collapse', desc: 'Rotting floorboards splintering and collapsing into a pitch-black cellar', variant: 'ch_collapsing_floorboards', category: 'hazards', section: 'filled', genre: 'horror', icon: '🕳️', w: 380, h: 260 },
+    ch_crypt_maggot_carpet: { num: 258, base: 'rats', name: 'Writhing Maggot Carpet', desc: 'Endless carpet of pale maggots writhing across a stone crypt floor', variant: 'ch_crypt_maggot_carpet', category: 'hazards', section: 'filled', genre: 'horror', icon: '🪱', w: 380, h: 260 },
+    ch_whispering_tar_pool: { num: 259, base: 'mud', name: 'Whispering Cult Tar Pool', desc: 'Bubbling pool of black tar whispering silently in a cultist temple', variant: 'ch_whispering_tar_pool', category: 'hazards', section: 'filled', genre: 'horror', icon: '🖤', w: 380, h: 280 },
+    ch_creeping_hoarfrost: { num: 260, base: 'snow', name: 'Creeping Hoarfrost', desc: 'Unnatural hoarfrost creeping rapidly across walls, freezing everything solid', variant: 'ch_creeping_hoarfrost', category: 'hazards', section: 'filled', genre: 'horror', icon: '❄️', w: 400, h: 280 },
+    ch_rattling_bookshelves: { num: 261, base: 'dust', name: 'Trembling Library Shelves', desc: 'Floor-to-ceiling library shelves trembling as leather tomes rattle', variant: 'ch_rattling_bookshelves', category: 'props', section: 'filled', genre: 'horror', icon: '📚', w: 400, h: 280 },
+    ch_morgue_freezer_rattle: { num: 262, base: 'smoke', name: 'Rattling Morgue Drawers', desc: 'Stainless-steel morgue freezer drawers rattling violently from the inside', variant: 'ch_morgue_freezer_rattle', category: 'props', section: 'filled', genre: 'horror', icon: '🧊', w: 380, h: 260 },
+    ch_breathing_padded_walls: { num: 263, base: 'tentacles', name: 'Breathing Padded Walls', desc: 'Asylum padded-cell walls pulsing slightly like breathing lungs', variant: 'ch_breathing_padded_walls', category: 'props', section: 'filled', genre: 'horror', icon: '🩺', w: 380, h: 280 },
+    ch_cosmic_asphalt_puddle: { num: 264, base: 'pond', name: 'Cosmic Puddle Reflections', desc: 'Rain puddles on an asphalt street reflecting a starry alien cosmos', variant: 'ch_cosmic_asphalt_puddle', category: 'props', section: 'filled', genre: 'horror', icon: '🌌', w: 380, h: 260 },
+    ch_wallpaper_blinking_eyes: { num: 265, base: 'crystal', name: 'Shifting Wallpaper Eyes', desc: 'Ornate Victorian wallpaper patterns subtly shifting into blinking eyes', variant: 'ch_wallpaper_blinking_eyes', category: 'props', section: 'filled', genre: 'horror', icon: '👁️', w: 380, h: 280 },
+    ch_noir_filmgrain: { num: 266, base: 'dust', name: 'Noir Film Grain & Scratches', desc: 'Monochrome noir film grain and vertical scratches flickering over a scene', variant: 'ch_noir_filmgrain', category: 'sfx', section: 'filled', genre: 'horror', icon: '🎞️', w: 420, h: 300 },
+    ch_altar_chromatic_aberration: { num: 267, base: 'teleporter', name: 'Altar Chromatic Aberration', desc: 'Reality-warping chromatic aberration pulsing around a summoning altar', variant: 'ch_altar_chromatic_aberration', category: 'sfx', section: 'filled', genre: 'horror', icon: '🌀', w: 400, h: 300 },
+    ch_crttv_ghost_static: { num: 268, base: 'cyber_terminal', name: 'CRT Static Ghost Faces', desc: 'Static snow shifting into ghostly human faces across a wall of CRT TVs', variant: 'ch_crttv_ghost_static', category: 'sfx', section: 'filled', genre: 'horror', icon: '📺', w: 380, h: 280 },
+    ch_gravity_inversion_room: { num: 269, base: 'dust', name: 'Gravity Inversion Zone', desc: 'Localized gravity inversion floating chairs, papers, and dust off the floor', variant: 'ch_gravity_inversion_room', category: 'sfx', section: 'filled', genre: 'horror', icon: '🪑', w: 400, h: 280 },
+    ch_burning_eldritch_runes: { num: 270, base: 'sparks', name: 'Burning Eldritch Floor Runes', desc: 'Glowing eldritch runes burning sequentially into oak floorboards', variant: 'ch_burning_eldritch_runes', category: 'sfx', section: 'filled', genre: 'horror', icon: '🔥', w: 380, h: 280 },
+    ch_midnight_cobblestone_rain: { num: 271, base: 'rain', name: 'Midnight Cobblestone Rain', desc: 'Heavy midnight downpour splashing into cobblestone puddles', variant: 'ch_midnight_cobblestone_rain', category: 'ambiance', section: 'filled', genre: 'horror', icon: '🌧️', w: 400, h: 280 },
+    ch_crypt_ceiling_cobwebs: { num: 272, base: 'webs', name: 'Trembling Crypt Cobwebs', desc: 'Thick cobwebs trembling in an unseen draft across a crypt ceiling', variant: 'ch_crypt_ceiling_cobwebs', category: 'ambiance', section: 'filled', genre: 'horror', icon: '🕸️', w: 380, h: 260 },
+    ch_chimney_woodsmoke: { num: 273, base: 'smoke', name: 'Chimney Hearth Smoke', desc: 'Faint wisp of fireplace smoke curling from a brick chimney', variant: 'ch_chimney_woodsmoke', category: 'ambiance', section: 'filled', genre: 'horror', icon: '💨', w: 360, h: 260 },
+    ch_frosted_pacing_shadows: { num: 274, base: 'bats', name: 'Shadows Behind Frosted Glass', desc: 'Whispering shadow silhouettes pacing behind frosted glass', variant: 'ch_frosted_pacing_shadows', category: 'ambiance', section: 'filled', genre: 'horror', icon: '👥', w: 380, h: 260 },
+    ch_crimescene_soot: { num: 275, base: 'dust', name: 'Burned Crime Scene Soot', desc: 'Floating soot particles drifting over a burned crime scene', variant: 'ch_crimescene_soot', category: 'ambiance', section: 'filled', genre: 'horror', icon: '⬛', w: 380, h: 260 },
+    // C. Single Elements (Spot / Focal Objects / Props)
+    ch_bankers_desklamp: { num: 276, base: 'spotlight', name: 'Green Banker\'s Desk Lamp', desc: 'Green-shaded banker\'s desk lamp buzzing on an investigator\'s desk', variant: 'ch_bankers_desklamp', category: 'lighting', section: 'single', genre: 'horror', icon: '💡', w: 180, h: 180 },
+    ch_london_gaslamp: { num: 277, base: 'spotlight', name: 'London Fog Gaslamp', desc: 'Black-iron streetlamp flickering in a damp London fog', variant: 'ch_london_gaslamp', category: 'lighting', section: 'single', genre: 'horror', icon: '🏮', w: 180, h: 200 },
+    ch_skull_tallow_candles: { num: 278, base: 'torch', name: 'Skull Tallow Candles', desc: 'Cluster of three dripping tallow candles stuck to a human skull', variant: 'ch_skull_tallow_candles', category: 'lighting', section: 'single', genre: 'horror', icon: '💀', w: 180, h: 180 },
+    ch_purple_flame_lantern: { num: 279, base: 'lantern', name: 'Purple Flame Oil Lantern', desc: 'Ornate brass kerosene lantern burning with an eerie purple flame', variant: 'ch_purple_flame_lantern', category: 'lighting', section: 'single', genre: 'horror', icon: '🏮', w: 160, h: 180 },
+    ch_pocket_lighter_flicker: { num: 280, base: 'torch', name: 'Trembling Zippo Lighter', desc: 'Pocket lighter flame snapping open and trembling in a nervous hand', variant: 'ch_pocket_lighter_flicker', category: 'lighting', section: 'single', genre: 'horror', icon: '🔥', w: 140, h: 140 },
+    ch_bleeding_ritual_dagger: { num: 281, base: 'fountain', name: 'Bleeding Ritual Dagger', desc: 'Dark ritual dagger vibrating and bleeding fresh red drops onto floor', variant: 'ch_bleeding_ritual_dagger', category: 'hazards', section: 'single', genre: 'horror', icon: '🗡️', w: 160, h: 180 },
+    ch_manhole_sewer_fumes: { num: 282, base: 'smoke', name: 'Bubbling Manhole Gas', desc: 'Open manhole bubbling with thick, putrid sewer gas', variant: 'ch_manhole_sewer_fumes', category: 'hazards', section: 'single', genre: 'horror', icon: '🕳️', w: 180, h: 180 },
+    ch_iron_maiden_closing: { num: 283, base: 'pit_trap', name: 'Creaking Iron Maiden', desc: 'Iron maiden door slowly creaking shut with blood-stained spikes', variant: 'ch_iron_maiden_closing', category: 'hazards', section: 'single', genre: 'horror', icon: '⚰️', w: 180, h: 220 },
+    ch_lab_pit_viper: { num: 284, base: 'rats', name: 'Hissing Lab Pit Viper', desc: 'Coiled pit viper hissing behind an overturned laboratory beaker', variant: 'ch_lab_pit_viper', category: 'hazards', section: 'single', genre: 'horror', icon: '🐍', w: 160, h: 160 },
+    ch_elevator_cable_whip: { num: 285, base: 'sparks', name: 'Thrashing Elevator Cable', desc: 'Severed elevator cable whipping violently inside an open shaft', variant: 'ch_elevator_cable_whip', category: 'hazards', section: 'single', genre: 'horror', icon: '⚡', w: 200, h: 240 },
+    ch_antique_gramophone: { num: 286, base: 'cyber_terminal', name: 'Antique Vinyl Gramophone', desc: 'Brass gramophone playing a scratched vinyl record as the needle bobs', variant: 'ch_antique_gramophone', category: 'props', section: 'single', genre: 'horror', icon: '📻', w: 200, h: 200 },
+    ch_grandfather_clock: { num: 287, base: 'pit_trap', name: 'Swinging Pendulum Clock', desc: 'Mahogany grandfather clock with a swinging brass pendulum', variant: 'ch_grandfather_clock', category: 'props', section: 'single', genre: 'horror', icon: '🕰️', w: 160, h: 240 },
+    ch_offhook_telephone: { num: 288, base: 'cyber_terminal', name: 'Buzzing Rotary Telephone', desc: 'Distressed rotary telephone with its receiver off the hook and buzzing', variant: 'ch_offhook_telephone', category: 'props', section: 'single', genre: 'horror', icon: '☎️', w: 160, h: 160 },
+    ch_detective_ceiling_fan: { num: 289, base: 'fan', name: 'Slow Ceiling Paddle Fan', desc: 'Ceiling paddle fan turning slowly in a smoky detective agency', variant: 'ch_detective_ceiling_fan', category: 'props', section: 'single', genre: 'horror', icon: '💨', w: 220, h: 220 },
+    ch_autopsy_table_drain: { num: 290, base: 'fountain', name: 'Autopsy Table Drain Gutter', desc: 'Cast-iron morgue autopsy table with blood draining into a rim gutter', variant: 'ch_autopsy_table_drain', category: 'props', section: 'single', genre: 'horror', icon: '🩸', w: 240, h: 180 },
+    ch_sweating_cthulhu_idol: { num: 291, base: 'fountain', name: 'Oily Sweating Basalt Idol', desc: 'Carved basalt Cthulhu idol sweating beads of oily black liquid', variant: 'ch_sweating_cthulhu_idol', category: 'sfx', section: 'single', genre: 'horror', icon: '🗿', w: 180, h: 220 },
+    ch_floating_grimoire: { num: 292, base: 'smoke', name: 'Smoking Occult Grimoire', desc: 'Open occult grimoire floating in mid-air with smoking pages', variant: 'ch_floating_grimoire', category: 'sfx', section: 'single', genre: 'horror', icon: '📖', w: 180, h: 180 },
+    ch_seance_spirit_trumpet: { num: 293, base: 'fog', name: 'Séance Spirit Trumpet', desc: 'Spirit trumpet levitating above a séance table releasing ectoplasm', variant: 'ch_seance_spirit_trumpet', category: 'sfx', section: 'single', genre: 'horror', icon: '🎺', w: 180, h: 180 },
+    ch_skull_ghostfire: { num: 294, base: 'inferno', name: 'Skull Green Ghost-Fire', desc: 'Human skull on a desk with green ghost-fire burning in eye sockets', variant: 'ch_skull_ghostfire', category: 'sfx', section: 'single', genre: 'horror', icon: '💀', w: 160, h: 160 },
+    ch_liquid_mirror_ripple: { num: 295, base: 'pond', name: 'Rippling Liquid Mirror', desc: 'Antique mirror surface rippling like liquid when approached', variant: 'ch_liquid_mirror_ripple', category: 'sfx', section: 'single', genre: 'horror', icon: '🪞', w: 180, h: 220 },
+    ch_dripping_black_umbrella: { num: 296, base: 'fountain', name: 'Dripping Wet Umbrella', desc: 'Black umbrella dripping water onto a dark entryway rug', variant: 'ch_dripping_black_umbrella', category: 'ambiance', section: 'single', genre: 'horror', icon: '☂️', w: 160, h: 180 },
+    ch_dead_rose_vase: { num: 297, base: 'leaves', name: 'Dying Rose Dropping Petals', desc: 'Single dead rose in a crystal vase losing dry petals one by one', variant: 'ch_dead_rose_vase', category: 'ambiance', section: 'single', genre: 'horror', icon: '🥀', w: 140, h: 160 },
+    ch_asylum_metronome: { num: 298, base: 'pit_trap', name: 'Swinging Asylum Metronome', desc: 'Ticking metronome swinging hypnotically on an asylum desk', variant: 'ch_asylum_metronome', category: 'ambiance', section: 'single', genre: 'horror', icon: '⏱️', w: 140, h: 160 },
+    ch_gargoyle_pigeon: { num: 299, base: 'bats', name: 'Gargoyle Perched Pigeon', desc: 'Gray pigeon cooing and bobbing its head on a stone gargoyle ledge', variant: 'ch_gargoyle_pigeon', category: 'ambiance', section: 'single', genre: 'horror', icon: '🐦', w: 160, h: 160 },
+    ch_curbside_wet_box: { num: 300, base: 'fountain', name: 'Curbside Wet Leaking Box', desc: 'Wet cardboard box sitting on a curb leaking dirty rain runoff', variant: 'ch_curbside_wet_box', category: 'ambiance', section: 'single', genre: 'horror', icon: '📦', w: 160, h: 160 },
 
-    // Legacy backward-compatibility aliases (for saved maps)
-    uni_dustmotes: { base: 'dust', name: 'Floating Sunlit Dust Motes', variant: 'dust_motes', category: 'weather', genre: 'universal', w: 340, h: 240 },
-    uni_ashfall: { base: 'dust', name: 'Volcanic Soot & Ash Fall', variant: 'ash_fall', category: 'weather', genre: 'universal', w: 360, h: 260 },
-    uni_grayfogsmoke: { base: 'smoke', name: 'Choking Gray Ash Cloud', variant: 'ash_fog', category: 'hazards', genre: 'universal', w: 260, h: 220 },
-    uni_bonfire: { base: 'campfire', name: 'Roaring Great Bonfire', variant: 'hellfire', category: 'lights', genre: 'universal', w: 240, h: 240 },
-    uni_firepit: { base: 'campfire', name: 'Stone Wall Hearth & Mantel', variant: 'uni_hearth', category: 'lights', genre: 'universal', w: 200, h: 180 },
-    uni_cavefalls: { base: 'waterfall', name: 'Subterranean Cavern Cascade', variant: 'cavern_cascade', category: 'environment', genre: 'universal', w: 240, h: 340 },
-    uni_stormsea: { base: 'ocean_waves', name: 'Tempestuous Deep Ocean Waves', variant: 'stormy_tempest', category: 'environment', genre: 'universal', w: 480, h: 320 },
-    hist_caltrops: { base: 'pit_trap', name: 'Swinging Pendulum Scythe Trap', variant: 'hist_pendulum', category: 'hazards', genre: 'historic', w: 280, h: 200 },
-    hist_torch: { base: 'torch', name: 'Heraldic Twin-Torch Sconce', variant: 'hist_sconce', category: 'lights', genre: 'historic', w: 140, h: 140 },
-    hist_rats: { base: 'rats', name: 'Skittering Brown Pack Rats', variant: 'sewer_rats', category: 'actors', genre: 'historic', w: 320, h: 240 },
-    hist_crows: { base: 'bats', name: 'Odin\'s Runic Omen Ravens', variant: 'hist_ravens', category: 'actors', genre: 'historic', w: 340, h: 260 },
-    hist_leyfissure: { base: 'lava_seam', name: 'Glowing Arcane Leyline Fracture', variant: 'leyline_crack', category: 'environment', genre: 'historic', w: 340, h: 180 },
-    mod_sandstorm: { base: 'dust', name: 'Route 66 Swirling Dust Devil', variant: 'mod_dustdevil', category: 'weather', genre: 'modern', w: 360, h: 260 },
-    mod_blizzard: { base: 'snow', name: 'Urban Freezing Sleet & Slush', variant: 'mod_fallout_sleet', category: 'weather', genre: 'modern', w: 360, h: 260 },
-    mod_barrel: { base: 'spotlight', name: 'Police Red/Blue Strobe Bar', variant: 'mod_policebar', category: 'lights', genre: 'modern', w: 220, h: 220 },
-    mod_sewerrats: { base: 'rats', name: 'Scurrying Urban Roach Swarm', variant: 'mod_cockroaches', category: 'actors', genre: 'modern', w: 300, h: 220 },
-    mod_guardpatrol: { base: 'patrol_actor', name: 'Pivoting CCTV Security Camera', variant: 'mod_traffic_drone', category: 'actors', genre: 'modern', w: 260, h: 260 },
-    mod_ocean: { base: 'conveyor', name: 'Electrified Subway Tracks', variant: 'mod_subway_tracks', category: 'environment', genre: 'modern', w: 420, h: 180 },
-    oth_tarpit: { base: 'mud', name: 'Gelatinous Cube / Dungeon Ooze', variant: 'oth_ooze', category: 'hazards', genre: 'other', w: 240, h: 240 },
-    oth_spiders: { base: 'rats', name: 'Grasping Necrotic Shadow Hands', variant: 'oth_shadow_hands', category: 'actors', genre: 'other', w: 300, h: 240 },
-    hist_rain: { base: 'rain', name: 'Castle Rain & Drizzle', variant: 'uni_drizzle', category: 'weather', genre: 'universal', w: 360, h: 260 },
-    hist_snow: { base: 'snow', name: 'Mountain Snow Flurry', variant: 'uni_flurry', category: 'weather', genre: 'universal', w: 360, h: 260 },
-    hist_fog: { base: 'fog', name: 'Moorland Bog Mist', variant: 'uni_densefog', category: 'weather', genre: 'universal', w: 380, h: 260 },
-    hist_leaves: { base: 'leaves', name: 'Swirling Autumn Leaves', variant: 'uni_leaves', category: 'weather', genre: 'universal', w: 360, h: 260 },
-    hist_fireflies: { base: 'fireflies', name: 'Enchanted Fey Fireflies', variant: 'uni_fireflies', category: 'weather', genre: 'universal', w: 320, h: 240 },
-    hist_inferno: { base: 'inferno', name: 'Timber Blaze / On Fire', variant: 'uni_wildfire', category: 'hazards', genre: 'universal', w: 260, h: 200 },
-    hist_smoke: { base: 'smoke', name: 'Siege Smudge Smoke', variant: 'uni_blacksmoke', category: 'hazards', genre: 'universal', w: 260, h: 220 },
-    hist_mud: { base: 'mud', name: 'Sucking Swamp Mire', variant: 'uni_mudbog', category: 'hazards', genre: 'universal', w: 260, h: 200 },
-    hist_webs: { base: 'webs', name: 'Sticky Dungeon Cobwebs', variant: 'uni_cobwebs', category: 'hazards', genre: 'universal', w: 240, h: 220 },
-    hist_campfire: { base: 'campfire', name: 'Campsite Log Campfire', variant: 'uni_campfire', category: 'lights', genre: 'universal', w: 180, h: 180 },
-    hist_lantern: { base: 'lantern', name: 'Hanging Brass Oil Lantern', variant: 'uni_lantern', category: 'lights', genre: 'universal', w: 140, h: 140 },
-    hist_bats: { base: 'bats', name: 'Dungeon Cave Bats', variant: 'dungeon_bats', category: 'actors', genre: 'universal', w: 340, h: 260 },
-    hist_fish: { base: 'fish', name: 'Brook & Moat Trout', variant: 'river_trout', category: 'actors', genre: 'universal', w: 340, h: 260 },
-    hist_river: { base: 'river', name: 'Babbling Forest Brook', variant: 'stream', category: 'environment', genre: 'universal', w: 520, h: 220 },
-    hist_waterfall: { base: 'waterfall', name: 'Mountain Waterfall', variant: 'mountain_falls', category: 'environment', genre: 'universal', w: 240, h: 340 },
-    hist_forest: { base: 'forest', name: 'Swaying Oak Canopy Grove', variant: 'ancient_oak', category: 'environment', genre: 'universal', w: 440, h: 400 },
-    hist_ocean: { base: 'ocean_waves', name: 'Coastal Surf & Reef Swells', variant: 'tropical_reef', category: 'environment', genre: 'universal', w: 480, h: 320 },
-    mod_tumbleweed: { base: 'tumbleweed', name: 'Rolling Desert Tumbleweed', variant: 'desert_thistle', category: 'actors', genre: 'universal', w: 320, h: 180 },
-    mod_vultures: { base: 'bats', name: 'Circling Desert Vultures', variant: 'desert_vultures', category: 'actors', genre: 'universal', w: 340, h: 260 },
-    mod_trees: { base: 'forest', name: 'City Park Palms & Elms', variant: 'tropical_jungle', category: 'environment', genre: 'universal', w: 440, h: 400 },
-    sci_reactor: { base: 'patrol_actor', name: 'Antimatter Core Glow', variant: 'sci_probe', category: 'lights', genre: 'future', w: 260, h: 260 },
-    sci_airlock: { base: 'forcefield', name: 'Decompression Vent Blast Door', variant: 'plasma_curtain', category: 'environment', genre: 'future', w: 300, h: 180 },
-    oth_apparitions: { base: 'patrol_actor', name: 'Creeping Periphery Shadow Apparitions', variant: 'gothic_ghost', category: 'actors', genre: 'other', w: 300, h: 260 },
-    oth_lavaseam: { base: 'lava_seam', name: 'Brimstone Magma Fault Fissure', variant: 'uni_lavapool', category: 'environment', genre: 'other', w: 340, h: 180 },
-    oth_acidcascade: { base: 'waterfall', name: 'Cavern Acid Waterfall Cascade', variant: 'lava_falls', category: 'environment', genre: 'other', w: 240, h: 340 },
-    oth_abyssalwater: { base: 'ocean_waves', name: 'Abyssal Black Ocean Water', variant: 'abyssal_eldritch', category: 'environment', genre: 'other', w: 480, h: 320 },
+    // -------------------------------------------------------------------------
+    // ⚔️ 5. HIGH FANTASY & SWORD-AND-SORCERY (75 ELEMENTS)
+    // -------------------------------------------------------------------------
+    // A. Linear Motion (Directional / Traveling / Drawn Paths)
+    hf_magic_missiles: { num: 301, base: 'sparks', name: 'Magic Missile Darts', desc: 'Glowing magic-missile arcane darts streaking in corkscrew spirals', variant: 'hf_magic_missiles', category: 'lighting', section: 'drawn', genre: 'fantasy', icon: '✨', w: 460, h: 180 },
+    hf_flaming_arrows: { num: 302, base: 'inferno', name: 'Flaming Arrow Volley', desc: 'Flaming arrow volleys arching high through twilight sky', variant: 'hf_flaming_arrows', category: 'lighting', section: 'drawn', genre: 'fantasy', icon: '🏹', w: 500, h: 220 },
+    hf_will_o_wisp: { num: 303, base: 'fireflies', name: 'Bobbing Will-o\'-the-Wisp', desc: 'Will-o\'-the-wisp bobbing and leading travelers deep into a swamp', variant: 'hf_will_o_wisp', category: 'lighting', section: 'drawn', genre: 'fantasy', icon: '✨', w: 420, h: 200 },
+    hf_cathedral_sunbeams: { num: 304, base: 'sunbeams', name: 'Cathedral Golden Sunbeams', desc: 'Slanting golden sunbeams shifting through cathedral glass', variant: 'hf_cathedral_sunbeams', category: 'lighting', section: 'drawn', genre: 'fantasy', icon: '☀️', w: 480, h: 260 },
+    hf_biolum_stalactite_drips: { num: 305, base: 'fountain', name: 'Glowing Crystal Drips', desc: 'Bioluminescent crystal stalactites dripping glowing drops', variant: 'hf_biolum_stalactite_drips', category: 'lighting', section: 'drawn', genre: 'fantasy', icon: '💎', w: 420, h: 240 },
+    hf_dragonfire_wave: { num: 306, base: 'inferno', name: 'Dragon-Fire Scorch Wave', desc: 'Creeping wall of rolling dragon-fire scorching grass and stone', variant: 'hf_dragonfire_wave', category: 'hazards', section: 'drawn', genre: 'fantasy', icon: '🐉', w: 520, h: 220 },
+    hf_rolling_boulder: { num: 307, base: 'dust', name: 'Rolling Stone Boulder', desc: 'Crushing rolling boulder trap thundering down stone hallway', variant: 'hf_rolling_boulder', category: 'hazards', section: 'drawn', genre: 'fantasy', icon: '🪨', w: 480, h: 200 },
+    hf_cavern_river: { num: 308, base: 'river', name: 'Surging Cavern River', desc: 'Surging underground river rushing through dark cavern tunnel', variant: 'hf_cavern_river', category: 'hazards', section: 'drawn', genre: 'fantasy', icon: '🌊', w: 520, h: 240 },
+    hf_scarab_beetle_swarm: { num: 309, base: 'rats', name: 'Dungeon Scarab Crawl', desc: 'Swarm of biting scarab beetles crawling along dungeon corridor', variant: 'hf_scarab_beetle_swarm', category: 'hazards', section: 'drawn', genre: 'fantasy', icon: '🪲', w: 440, h: 200 },
+    hf_pendulum_blades: { num: 310, base: 'pit_trap', name: 'Swinging Pendulum Blades', desc: 'Sweeping pendulum blades swinging through floor channels', variant: 'hf_pendulum_blades', category: 'hazards', section: 'drawn', genre: 'fantasy', icon: '🪓', w: 480, h: 200 },
+    hf_watermill_wheel: { num: 311, base: 'ocean_waves', name: 'Watermill Churning Wheel', desc: 'Wooden watermill wheel churning river water beside stone mill', variant: 'hf_watermill_wheel', category: 'props', section: 'drawn', genre: 'fantasy', icon: '⚙️', w: 460, h: 220 },
+    hf_portcullis_chains: { num: 312, base: 'conveyor', name: 'Rattling Portcullis Chains', desc: 'Iron drawbridge chain rattling as portcullis lowers', variant: 'hf_portcullis_chains', category: 'props', section: 'drawn', genre: 'fantasy', icon: '🏰', w: 420, h: 220 },
+    hf_dwarven_minecarts: { num: 313, base: 'conveyor', name: 'Dwarven Rail Minecarts', desc: 'Mining carts rolling along wooden rails in dwarven delve', variant: 'hf_dwarven_minecarts', category: 'props', section: 'drawn', genre: 'fantasy', icon: '🛒', w: 480, h: 180 },
+    hf_royal_carriage_wheels: { num: 314, base: 'dust', name: 'Royal Carriage Wheels', desc: 'Horse-drawn royal carriage wheels rolling along cobblestones', variant: 'hf_royal_carriage_wheels', category: 'props', section: 'drawn', genre: 'fantasy', icon: '👑', w: 460, h: 200 },
+    hf_tavern_sail_awning: { num: 315, base: 'fan', name: 'Flapping Canvas Awning', desc: 'Heavy canvas tavern sail awning flapping in sea wind', variant: 'hf_tavern_sail_awning', category: 'props', section: 'drawn', genre: 'fantasy', icon: '🎪', w: 420, h: 200 },
+    hf_chain_lightning_arc: { num: 316, base: 'sparks', name: 'Forked Chain Lightning', desc: 'Forked chain-lightning bolt arcing between multiple armored targets', variant: 'hf_chain_lightning_arc', category: 'sfx', section: 'drawn', genre: 'fantasy', icon: '⚡', w: 480, h: 200 },
+    hf_rainbow_bridge: { num: 317, base: 'lightstrip', name: 'Prismatic Bifrost Bridge', desc: 'Prismatic rainbow bridge extending across mountain chasm', variant: 'hf_rainbow_bridge', category: 'sfx', section: 'drawn', genre: 'fantasy', icon: '🌈', w: 520, h: 220 },
+    hf_phantom_cavalry: { num: 318, base: 'smoke', name: 'Phantom Cavalry Charge', desc: 'Ethereal phantom cavalry charging silently across misty meadow', variant: 'hf_phantom_cavalry', category: 'sfx', section: 'drawn', genre: 'fantasy', icon: '🐎', w: 520, h: 240 },
+    hf_pixiedust_leaf_vortex: { num: 319, base: 'leaves', name: 'Pixie Dust Leaf Vortex', desc: 'Swirling vortex of autumn leaves and pixie dust dancing in circle', variant: 'hf_pixiedust_leaf_vortex', category: 'sfx', section: 'drawn', genre: 'fantasy', icon: '🧚', w: 420, h: 260 },
+    hf_cone_of_cold: { num: 320, base: 'snow', name: 'Cone of Cold Frost', desc: 'Freezing cone of cold white frost creeping across stone floor', variant: 'hf_cone_of_cold', category: 'sfx', section: 'drawn', genre: 'fantasy', icon: '❄️', w: 480, h: 240 },
+    hf_mountain_river: { num: 321, base: 'river', name: 'Wild Mountain River', desc: 'Wild mountain river tumbling over rocks and mossy logs', variant: 'hf_mountain_river', category: 'ambiance', section: 'drawn', genre: 'fantasy', icon: '🏞️', w: 520, h: 240 },
+    hf_circling_dragon: { num: 322, base: 'bats', name: 'High Circling Dragon', desc: 'Dragon circling high in thermals above mountain peaks', variant: 'hf_circling_dragon', category: 'ambiance', section: 'drawn', genre: 'fantasy', icon: '🐉', w: 460, h: 260 },
+    hf_trout_stream: { num: 323, base: 'fish', name: 'Speckled Trout Stream', desc: 'Gentle meadow stream with swimming speckled trout', variant: 'hf_trout_stream', category: 'ambiance', section: 'drawn', genre: 'fantasy', icon: '🐟', w: 480, h: 220 },
+    hf_bounding_deer: { num: 324, base: 'rats', name: 'Bounding Deer Herd', desc: 'Wild deer herd bounding gracefully across distant glade', variant: 'hf_bounding_deer', category: 'ambiance', section: 'drawn', genre: 'fantasy', icon: '🦌', w: 460, h: 220 },
+    hf_dandelion_down: { num: 325, base: 'dust', name: 'Pasture Dandelion Seeds', desc: 'Fluffy white dandelion seeds floating across sunlit pasture', variant: 'hf_dandelion_down', category: 'ambiance', section: 'drawn', genre: 'fantasy', icon: '🌾', w: 420, h: 240 },
+    // B. Animated Textures (Tiling / Area-Fill / Volumes)
+    hf_godrays_stainedglass: { num: 326, base: 'sunbeams', name: 'Cathedral God Rays', desc: 'Colorful god rays streaming through cathedral stained-glass windows', variant: 'hf_godrays_stainedglass', category: 'lighting', section: 'filled', genre: 'fantasy', icon: '✨', w: 400, h: 300 },
+    hf_underdark_toadstools: { num: 327, base: 'crystal', name: 'Underdark Giant Toadstools', desc: 'Bioluminescent giant toadstools pulsing softly in an Underdark cavern', variant: 'hf_underdark_toadstools', category: 'lighting', section: 'filled', genre: 'fantasy', icon: '🍄', w: 380, h: 280 },
+    hf_underwater_caustics: { num: 328, base: 'pond', name: 'Underwater Caustic Light', desc: 'Shimmering underwater caustic light patterns dancing on a sandy seabed', variant: 'hf_underwater_caustics', category: 'lighting', section: 'filled', genre: 'fantasy', icon: '🌊', w: 400, h: 280 },
+    hf_astral_nebula_islands: { num: 329, base: 'hyperspace', name: 'Astral Plane Nebula Void', desc: 'Ethereal astral-plane nebula clouds swirling beneath floating islands', variant: 'hf_astral_nebula_islands', category: 'lighting', section: 'filled', genre: 'fantasy', icon: '🌌', w: 420, h: 300 },
+    hf_twilight_fireflies: { num: 330, base: 'fireflies', name: 'Twilight Forest Fireflies', desc: 'Golden fireflies blinking softly across a twilight forest clearing', variant: 'hf_twilight_fireflies', category: 'lighting', section: 'filled', genre: 'fantasy', icon: '✨', w: 380, h: 260 },
+    hf_crusty_lavapit: { num: 331, base: 'lava_seam', name: 'Bubbling Magma Pit', desc: 'Crusty lava pit bubbling with popping molten magma blisters', variant: 'hf_crusty_lavapit', category: 'hazards', section: 'filled', genre: 'fantasy', icon: '🌋', w: 400, h: 260 },
+    hf_emerald_acid_pool: { num: 332, base: 'toxic_spill', name: 'Sizzling Emerald Acid Pool', desc: 'Oozing emerald acid pool sizzling in an alchemist\'s dungeon', variant: 'hf_emerald_acid_pool', category: 'hazards', section: 'filled', genre: 'fantasy', icon: '🧪', w: 380, h: 260 },
+    hf_cracking_lake_ice: { num: 333, base: 'snow', name: 'Cracking Lake Ice Fractures', desc: 'Thick lake ice cracking with spreading spiderweb fractures', variant: 'hf_cracking_lake_ice', category: 'hazards', section: 'filled', genre: 'fantasy', icon: '❄️', w: 400, h: 280 },
+    hf_assassin_vines: { num: 334, base: 'tentacles', name: 'Blood Assassin Vines', desc: 'Writhing patch of thorny, blood-red assassin vines', variant: 'hf_assassin_vines', category: 'hazards', section: 'filled', genre: 'fantasy', icon: '🥀', w: 380, h: 280 },
+    hf_peat_bog_gas: { num: 335, base: 'mud', name: 'Bubbling Peat Bog', desc: 'Bubbling peat bog releasing periodic bursts of swamp gas', variant: 'hf_peat_bog_gas', category: 'hazards', section: 'filled', genre: 'fantasy', icon: '🫧', w: 380, h: 260 },
+    hf_forest_canopy_wind: { num: 336, base: 'forest', name: 'Swaying Forest Canopy', desc: 'Lush green forest tree canopies swaying gently in the wind', variant: 'hf_forest_canopy_wind', category: 'props', section: 'filled', genre: 'fantasy', icon: '🌳', w: 440, h: 320 },
+    hf_kelp_coral_reef: { num: 337, base: 'pond', name: 'Underwater Kelp & Coral', desc: 'Undulating beds of underwater kelp and colorful coral reefs', variant: 'hf_kelp_coral_reef', category: 'props', section: 'filled', genre: 'fantasy', icon: '🪸', w: 400, h: 280 },
+    hf_meadow_grass_breeze: { num: 338, base: 'forest', name: 'Rippling Summer Meadow', desc: 'Thick meadow grass rippling gently in a summer breeze', variant: 'hf_meadow_grass_breeze', category: 'props', section: 'filled', genre: 'fantasy', icon: '🌱', w: 420, h: 300 },
+    hf_rainy_townsquare: { num: 339, base: 'rain', name: 'Rainy Cobblestone Square', desc: 'Wet cobblestone town square glistening with splashing raindrops', variant: 'hf_rainy_townsquare', category: 'props', section: 'filled', genre: 'fantasy', icon: '🌧️', w: 400, h: 280 },
+    hf_dragon_gold_hoard: { num: 340, base: 'crystal', name: 'Glittering Gold Coin Hoard', desc: 'Dragon\'s gold coin hoard glittering with shifting metallic reflections', variant: 'hf_dragon_gold_hoard', category: 'props', section: 'filled', genre: 'fantasy', icon: '🪙', w: 400, h: 280 },
+    hf_arcane_summoning_circle: { num: 341, base: 'teleporter', name: 'Arcane Summoning Circle', desc: 'Intricate arcane summoning circle pulsing with blue runes on a temple floor', variant: 'hf_arcane_summoning_circle', category: 'sfx', section: 'filled', genre: 'fantasy', icon: '🔮', w: 400, h: 300 },
+    hf_wizard_golden_dome: { num: 342, base: 'forcefield', name: 'Wizard Golden Forcefield Dome', desc: 'Translucent golden forcefield dome shimmering over a wizard\'s tower', variant: 'hf_wizard_golden_dome', category: 'sfx', section: 'filled', genre: 'fantasy', icon: '🛡️', w: 420, h: 300 },
+    hf_astral_void_silk: { num: 343, base: 'hyperspace', name: 'Astral Liquid Silk Void', desc: 'Astral plane starry void rippling like dark liquid silk', variant: 'hf_astral_void_silk', category: 'sfx', section: 'filled', genre: 'fantasy', icon: '🌌', w: 420, h: 300 },
+    hf_flagstone_frost_spread: { num: 344, base: 'snow', name: 'Spreading Flagstone Frost', desc: 'Spreading frost crystals freezing across dungeon flagstones', variant: 'hf_flagstone_frost_spread', category: 'sfx', section: 'filled', genre: 'fantasy', icon: '❄️', w: 400, h: 280 },
+    hf_magical_darkness_swirl: { num: 345, base: 'smoke', name: 'Magical Swirling Darkness', desc: 'Pitch-black magical darkness swirling with shadowy wisps', variant: 'hf_magical_darkness_swirl', category: 'sfx', section: 'filled', genre: 'fantasy', icon: '🌑', w: 400, h: 280 },
+    hf_cave_drip_pond_ripples: { num: 346, base: 'pond', name: 'Cave Water Drop Ripples', desc: 'Concentric pond ripples expanding from falling cave water droplets', variant: 'hf_cave_drip_pond_ripples', category: 'ambiance', section: 'filled', genre: 'fantasy', icon: '💧', w: 380, h: 260 },
+    hf_castle_morning_mist: { num: 347, base: 'fog', name: 'Castle Morning Courtyard Mist', desc: 'Rolling morning mist hugging a medieval castle courtyard', variant: 'hf_castle_morning_mist', category: 'ambiance', section: 'filled', genre: 'fantasy', icon: '🌫️', w: 400, h: 280 },
+    hf_thatched_roof_snowfall: { num: 348, base: 'snow', name: 'Gentle Village Snowfall', desc: 'Soft white snowflakes accumulating gently on thatched village roofs', variant: 'hf_thatched_roof_snowfall', category: 'ambiance', section: 'filled', genre: 'fantasy', icon: '❄️', w: 400, h: 280 },
+    hf_mountain_cloud_shadows: { num: 349, base: 'bats', name: 'Mountain Cloud Shadows', desc: 'Drifting cloud shadows passing slowly over a rugged mountain range', variant: 'hf_mountain_cloud_shadows', category: 'ambiance', section: 'filled', genre: 'fantasy', icon: '☁️', w: 420, h: 280 },
+    hf_fairy_dust_glade: { num: 350, base: 'fireflies', name: 'Golden Fairy Dust Glade', desc: 'Sparkling golden fairy dust floating through an enchanted glade', variant: 'hf_fairy_dust_glade', category: 'ambiance', section: 'filled', genre: 'fantasy', icon: '✨', w: 380, h: 260 },
+    // C. Single Elements (Spot / Focal Objects / Props)
+    hf_adventurer_campfire: { num: 351, base: 'campfire', name: 'Adventurer\'s Campfire', desc: 'Crackling adventurer\'s campfire with rising orange sparks and smoke', variant: 'hf_adventurer_campfire', category: 'lighting', section: 'single', genre: 'fantasy', icon: '🔥', w: 190, h: 190 },
+    hf_iron_sconce_torch: { num: 352, base: 'torch', name: 'Forged-Iron Sconce Torch', desc: 'Forged-iron wall sconce torch casting warm flickering firelight', variant: 'hf_iron_sconce_torch', category: 'lighting', section: 'single', genre: 'fantasy', icon: '🔥', w: 140, h: 140 },
+    hf_tavern_hearth_fireplace: { num: 353, base: 'campfire', name: 'Tavern Hearth Fireplace', desc: 'Roaring stone tavern hearth fireplace warming a common room', variant: 'hf_tavern_hearth_fireplace', category: 'lighting', section: 'single', genre: 'fantasy', icon: '🪵', w: 220, h: 200 },
+    hf_floating_pedestal_crystal: { num: 354, base: 'crystal', name: 'Spinning Pedestal Crystal', desc: 'Faceted enchanted crystal floating and spinning above a marble pedestal', variant: 'hf_floating_pedestal_crystal', category: 'lighting', section: 'single', genre: 'fantasy', icon: '💎', w: 180, h: 220 },
+    hf_desk_beeswax_candles: { num: 355, base: 'torch', name: 'Wizard Desk Beeswax Candles', desc: 'Dripping beeswax candles burning down on a wizard\'s oak desk', variant: 'hf_desk_beeswax_candles', category: 'lighting', section: 'single', genre: 'fantasy', icon: '🕯️', w: 160, h: 160 },
+    hf_iron_spike_floortrap: { num: 356, base: 'pit_trap', name: 'Spring-Loaded Spike Trap', desc: 'Concealed floor trap shooting iron spikes up through stone grates', variant: 'hf_iron_spike_floortrap', category: 'hazards', section: 'single', genre: 'fantasy', icon: '🕳️', w: 180, h: 180 },
+    hf_dragonhead_flame_sconce: { num: 357, base: 'inferno', name: 'Dragon-Head Flame Trap', desc: 'Carved stone dragon-head sconce breathing intermittent jets of flame', variant: 'hf_dragonhead_flame_sconce', category: 'hazards', section: 'single', genre: 'fantasy', icon: '🐉', w: 180, h: 200 },
+    hf_mimic_chest: { num: 358, base: 'pit_trap', name: 'Snapping Mimic Chest', desc: 'Wooden treasure chest rattling its lid and gnashing sharp mimic teeth', variant: 'hf_mimic_chest', category: 'hazards', section: 'single', genre: 'fantasy', icon: '📦', w: 180, h: 180 },
+    hf_flytrap_monster_plant: { num: 359, base: 'tentacles', name: 'Giant Snapping Flytrap', desc: 'Giant Venus-flytrap monster plant snapping its thorny jaws shut', variant: 'hf_flytrap_monster_plant', category: 'hazards', section: 'single', genre: 'fantasy', icon: '🪴', w: 200, h: 200 },
+    hf_falling_stalactite: { num: 360, base: 'pit_trap', name: 'Trembling Limestone Stalactite', desc: 'Heavy limestone stalactite trembling on a cave ceiling before dropping', variant: 'hf_falling_stalactite', category: 'hazards', section: 'single', genre: 'fantasy', icon: '🪨', w: 160, h: 220 },
+    hf_bubbling_witch_cauldron: { num: 361, base: 'fountain', name: 'Bubbling Witch\'s Cauldron', desc: 'Cast-iron witch\'s cauldron bubbling over with green potion foam', variant: 'hf_bubbling_witch_cauldron', category: 'props', section: 'single', genre: 'fantasy', icon: '🧙‍♀️', w: 180, h: 180 },
+    hf_country_windmill: { num: 362, base: 'fan', name: 'Country Hill Windmill', desc: 'Canvas-sailed wooden windmill turning steadily on a countryside hill', variant: 'hf_country_windmill', category: 'props', section: 'single', genre: 'fantasy', icon: '💨', w: 220, h: 240 },
+    hf_self_flipping_spellbook: { num: 363, base: 'cyber_terminal', name: 'Self-Flipping Spellbook', desc: 'Open leather-bound spellbook flipping its own glowing parchment pages', variant: 'hf_self_flipping_spellbook', category: 'props', section: 'single', genre: 'fantasy', icon: '📖', w: 180, h: 180 },
+    hf_forge_bellows: { num: 364, base: 'campfire', name: 'Forge Bellows & Coals', desc: 'Leather blacksmith\'s bellows pumping air into glowing forge coals', variant: 'hf_forge_bellows', category: 'props', section: 'single', genre: 'fantasy', icon: '🔨', w: 200, h: 200 },
+    hf_creaking_tavern_sign: { num: 365, base: 'fan', name: 'Swinging Tavern Sign', desc: 'Painted wooden tavern sign creaking and swinging on iron hinges', variant: 'hf_creaking_tavern_sign', category: 'props', section: 'single', genre: 'fantasy', icon: '🪧', w: 180, h: 180 },
+    hf_amethyst_portal_arch: { num: 366, base: 'teleporter', name: 'Amethyst Portal Archway', desc: 'Swirling amethyst dimensional portal standing inside a stone archway', variant: 'hf_amethyst_portal_arch', category: 'sfx', section: 'single', genre: 'fantasy', icon: '🌀', w: 220, h: 260 },
+    hf_levitating_runed_greatsword: { num: 367, base: 'crystal', name: 'Levitating Runed Greatsword', desc: 'Levitating runed greatsword spinning slowly in a vertical beam of light', variant: 'hf_levitating_runed_greatsword', category: 'sfx', section: 'single', genre: 'fantasy', icon: '⚔️', w: 180, h: 260 },
+    hf_azure_healing_fountain: { num: 368, base: 'fountain', name: 'Azure Healing Fountain', desc: 'Marble fountain overflowing with sparkling, azure healing water', variant: 'hf_azure_healing_fountain', category: 'sfx', section: 'single', genre: 'fantasy', icon: '⛲', w: 220, h: 220 },
+    hf_floating_spectral_skull: { num: 369, base: 'smoke', name: 'Floating Ectoplasm Skull', desc: 'Floating spectral skull trailing wisps of pale blue ectoplasm', variant: 'hf_floating_spectral_skull', category: 'sfx', section: 'single', genre: 'fantasy', icon: '💀', w: 180, h: 180 },
+    hf_storm_scrying_orb: { num: 370, base: 'crystal', name: 'Storm Scrying Crystal Ball', desc: 'Scrying crystal ball swirling with miniature lightning storm clouds', variant: 'hf_storm_scrying_orb', category: 'sfx', section: 'single', genre: 'fantasy', icon: '🔮', w: 180, h: 180 },
+    hf_heraldic_castle_banners: { num: 371, base: 'fan', name: 'Rippling Castle Banners', desc: 'Heraldic castle banners and tournament pennants rippling in the wind', variant: 'hf_heraldic_castle_banners', category: 'ambiance', section: 'single', genre: 'fantasy', icon: '🚩', w: 180, h: 220 },
+    hf_monarch_wildflowers: { num: 372, base: 'bats', name: 'Monarch Wildflower Flutter', desc: 'Monarch butterflies fluttering around a patch of blooming wildflowers', variant: 'hf_monarch_wildflowers', category: 'ambiance', section: 'single', genre: 'fantasy', icon: '🦋', w: 200, h: 180 },
+    hf_roast_boar_spit: { num: 373, base: 'campfire', name: 'Spit-Roast Boar Fire', desc: 'Whole roast boar turning slowly on a spit over a kitchen fire', variant: 'hf_roast_boar_spit', category: 'ambiance', section: 'single', genre: 'fantasy', icon: '🐗', w: 200, h: 180 },
+    hf_alchemist_brass_hourglass: { num: 374, base: 'fountain', name: 'Draining Brass Hourglass', desc: 'Ornate brass hourglass draining golden sand on an alchemist\'s table', variant: 'hf_alchemist_brass_hourglass', category: 'ambiance', section: 'single', genre: 'fantasy', icon: '⏳', w: 140, h: 200 },
+    hf_treefrog_lilypad: { num: 375, base: 'pond', name: 'Water-Lily Pad Treefrog', desc: 'Green tree frog hopping onto a floating water-lily pad', variant: 'hf_treefrog_lilypad', category: 'ambiance', section: 'single', genre: 'fantasy', icon: '🐸', w: 160, h: 160 },
+
+    // =========================================================================
+    // LEGACY BACKWARD-COMPATIBILITY ALIASES (FOR PREVIOUSLY SAVED MAPS)
+    // =========================================================================
+    uni_drizzle: { base: 'rain', name: 'Light Rain & Puddle Ripples', variant: 'uni_drizzle', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 360, h: 260 },
+    uni_downpour: { base: 'rain', name: 'Gale Storm & Sheet Lightning', variant: 'uni_downpour', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 380, h: 280 },
+    uni_hailstorm: { base: 'rain', name: 'Bouncing Ice Hailstones', variant: 'uni_hailstorm', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 360, h: 260 },
+    uni_flurry: { base: 'snow', name: 'Crystalline 6-Point Snowflakes', variant: 'uni_flurry', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 360, h: 260 },
+    uni_blizzard: { base: 'snow', name: 'Howling Whiteout Snow Gale', variant: 'uni_blizzard', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 380, h: 280 },
+    uni_mist: { base: 'fog', name: 'Low Meadow Ground Mist', variant: 'uni_mist', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 380, h: 260 },
+    uni_densefog: { base: 'fog', name: 'Dense Swamp & Moor Fog', variant: 'uni_densefog', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 400, h: 280 },
+    uni_leaves: { base: 'leaves', name: 'Swirling Autumn Maple Leaves', variant: 'uni_leaves', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 360, h: 260 },
+    uni_petals: { base: 'leaves', name: 'Drifting Pink Sakura Petals', variant: 'uni_petals', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 360, h: 260 },
+    uni_dandelion: { base: 'dust', name: 'Floating Dandelion Seed Down', variant: 'uni_dandelion', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 340, h: 240 },
+    uni_sandstorm: { base: 'dust', name: 'Howling Desert Sandstorm Wall', variant: 'uni_sandstorm', category: 'ambiance', section: 'drawn', genre: 'frontier', w: 380, h: 260 },
+    uni_fireflies: { base: 'fireflies', name: 'Woodland Evening Fireflies', variant: 'uni_fireflies', category: 'lighting', section: 'filled', genre: 'fantasy', w: 340, h: 240 },
+    uni_wildfire: { base: 'inferno', name: 'Spreading Brush & Timber Blaze', variant: 'uni_wildfire', category: 'hazards', section: 'drawn', genre: 'frontier', w: 260, h: 200 },
+    uni_blacksmoke: { base: 'smoke', name: 'Billowing Black Soot Plume', variant: 'uni_blacksmoke', category: 'hazards', section: 'drawn', genre: 'frontier', w: 260, h: 220 },
+    uni_mudbog: { base: 'mud', name: 'Sucking Swamp Mud Mire', variant: 'uni_mudbog', category: 'hazards', section: 'filled', genre: 'fantasy', w: 260, h: 200 },
+    uni_quicksand: { base: 'mud', name: 'Spiraling Desert Quicksand Pit', variant: 'uni_quicksand', category: 'hazards', section: 'filled', genre: 'frontier', w: 260, h: 200 },
+    uni_tarpit: { base: 'mud', name: 'Boiling Black Bitumen Tar Pit', variant: 'uni_tarpit', category: 'hazards', section: 'filled', genre: 'horror', w: 260, h: 200 },
+    uni_cobwebs: { base: 'webs', name: 'Giant Spiderweb & Cocoons', variant: 'uni_cobwebs', category: 'ambiance', section: 'filled', genre: 'horror', w: 240, h: 220 },
+    uni_lightning: { base: 'sparks', name: 'Ground Ball-Lightning Zone', variant: 'uni_lightning', category: 'sfx', section: 'filled', genre: 'fantasy', w: 240, h: 200 },
+    uni_steamvent: { base: 'steam', name: 'Scalding Rock Geyser Vent', variant: 'uni_steamvent', category: 'hazards', section: 'single', genre: 'frontier', w: 220, h: 220 },
+    uni_lavapool: { base: 'lava_seam', name: 'Molten Volcanic Magma Fissure', variant: 'uni_lavapool', category: 'hazards', section: 'filled', genre: 'fantasy', w: 320, h: 180 },
+    uni_poisonfumes: { base: 'smoke', name: 'Noxious Marsh Gas Fumes', variant: 'uni_poisonfumes', category: 'hazards', section: 'filled', genre: 'fantasy', w: 260, h: 220 },
+    uni_rockpit: { base: 'pit_trap', name: 'Collapsed Sinkhole Chasm', variant: 'uni_rockpit', category: 'hazards', section: 'filled', genre: 'frontier', w: 220, h: 220 },
+    uni_brambles: { base: 'tentacles', name: 'Razor-Thorn Briar Patch', variant: 'uni_brambles', category: 'hazards', section: 'filled', genre: 'fantasy', w: 260, h: 220 },
+    uni_campfire: { base: 'campfire', name: 'Campsite Stone-Ring Log Fire', variant: 'uni_campfire', category: 'lighting', section: 'single', genre: 'fantasy', w: 190, h: 190 },
+    uni_hearth: { base: 'campfire', name: 'Stone Wall Hearth & Mantel', variant: 'uni_hearth', category: 'lighting', section: 'single', genre: 'fantasy', w: 220, h: 200 },
+    uni_dyingembers: { base: 'campfire', name: 'Smoldering Ash & Red Coals', variant: 'uni_dyingembers', category: 'lighting', section: 'single', genre: 'fantasy', w: 170, h: 170 },
+    uni_torch: { base: 'torch', name: 'Iron Wall-Bracket Pitch Torch', variant: 'uni_torch', category: 'lighting', section: 'single', genre: 'fantasy', w: 130, h: 130 },
+    uni_lantern: { base: 'lantern', name: 'Brass Hooded Oil Lantern', variant: 'uni_lantern', category: 'lighting', section: 'single', genre: 'frontier', w: 150, h: 150 },
+    uni_candles: { base: 'torch', name: 'Melted Wax Pillar Candles', variant: 'uni_candles', category: 'lighting', section: 'single', genre: 'fantasy', w: 150, h: 150 },
+    uni_brazier: { base: 'campfire', name: 'Standing Iron Fire Basket', variant: 'uni_brazier', category: 'lighting', section: 'single', genre: 'fantasy', w: 170, h: 170 },
+    uni_sunbeams: { base: 'sunbeams', name: 'Golden Forest Sunbeams', variant: 'golden_sun', category: 'lighting', section: 'filled', genre: 'fantasy', w: 340, h: 300 },
+    uni_moonbeams: { base: 'sunbeams', name: 'Silvery Midnight Moonbeams', variant: 'moonbeams', category: 'lighting', section: 'filled', genre: 'horror', w: 340, h: 300 },
+    uni_caverays: { base: 'sunbeams', name: 'Cavern Ceiling Skylight Shaft', variant: 'emerald_cave', category: 'lighting', section: 'filled', genre: 'fantasy', w: 320, h: 280 },
+    uni_biolum: { base: 'crystal', name: 'Glowing Cave Mushroom Ring', variant: 'uni_biolum', category: 'lighting', section: 'filled', genre: 'fantasy', w: 220, h: 220 },
+    uni_aurora: { base: 'hyperspace', name: 'Shimmering Polar Aurora', variant: 'astral_aurora', category: 'lighting', section: 'filled', genre: 'fantasy', w: 360, h: 260 },
+    uni_pond: { base: 'pond', name: 'Deformable Pond & Lily Pads', variant: 'pond_lily', category: 'props', section: 'filled', genre: 'fantasy', w: 360, h: 280 },
+    uni_cavernpool: { base: 'pond', name: 'Deformable Crystal Cave Pool', variant: 'cavern_pool', category: 'props', section: 'filled', genre: 'fantasy', w: 360, h: 280 },
+    uni_river: { base: 'river', name: 'Flowing Stream / River', variant: 'stream', category: 'ambiance', section: 'drawn', genre: 'fantasy', w: 520, h: 220 },
+    uni_rapids: { base: 'river', name: 'Whitewater River Rapids', variant: 'ocean', category: 'ambiance', section: 'drawn', genre: 'frontier', w: 520, h: 240 },
+    uni_swampwater: { base: 'river', name: 'Murky Bayou & Marsh Water', variant: 'swamp', category: 'ambiance', section: 'drawn', genre: 'horror', w: 480, h: 240 },
+    uni_lavariver: { base: 'river', name: 'Flowing Molten Lava River', variant: 'lava', category: 'hazards', section: 'drawn', genre: 'fantasy', w: 520, h: 220 },
+    uni_waterfall: { base: 'waterfall', name: 'Roaring Cliff Waterfall', variant: 'mountain_falls', category: 'ambiance', section: 'drawn', genre: 'fantasy', w: 240, h: 340 },
+    uni_oakforest: { base: 'forest', name: 'Deformable Oak Forest Tool', variant: 'ancient_oak', category: 'props', section: 'filled', genre: 'fantasy', w: 440, h: 400 },
+    uni_pineforest: { base: 'forest', name: 'Deformable Pine Forest Tool', variant: 'boreal_pine', category: 'props', section: 'filled', genre: 'fantasy', w: 440, h: 400 },
+    uni_jungle: { base: 'forest', name: 'Deformable Jungle Palm Tool', variant: 'tropical_jungle', category: 'props', section: 'filled', genre: 'fantasy', w: 440, h: 400 },
+    uni_autumnforest: { base: 'forest', name: 'Deformable Autumn Woods Tool', variant: 'autumn_maple', category: 'props', section: 'filled', genre: 'fantasy', w: 440, h: 400 },
+    uni_oceansurf: { base: 'ocean_waves', name: 'Sandy Beach & Reef Surf', variant: 'tropical_reef', category: 'ambiance', section: 'filled', genre: 'fantasy', w: 480, h: 320 },
 };
+
 
 /**
  * Realistic Living Elements & Environmental FX Engine
@@ -573,6 +818,7 @@ class LivingElementsEngine {
             defaultHeight = catDef.h || 220;
             defaultConfig = {
                 variant: catDef.variant || 'default',
+                num: catDef.num,
                 intensity: 1.0,
                 quantity: 1.0,
                 speed: 1.0,
@@ -805,6 +1051,7 @@ class LivingElementsEngine {
         const elObj = {
             id,
             type,
+            num: catDef ? catDef.num : undefined,
             x: x !== undefined ? x : (isDeform ? viewCx : (viewCx - defaultWidth / 2)),
             y: y !== undefined ? y : (isDeform ? viewCy : (viewCy - defaultHeight / 2)),
             width: width || defaultWidth,
@@ -2694,6 +2941,7 @@ class LivingElementsEngine {
         const speed = cfg.speed !== undefined ? cfg.speed : 1.0;
         const rough = Math.max(0, Math.min(2.0, parseFloat(cfg.fractalRoughness !== undefined ? cfg.fractalRoughness : 0.75)));
         const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
+        ctx._fractalRough = rough;
 
         // Sample points along path with step size proportional to stroke width
         const samples = [];
@@ -2716,6 +2964,10 @@ class LivingElementsEngine {
             }
         }
         if (samples.length < 2) samples.push(path[path.length - 1]);
+
+        if (window.VTT_FX_DISPATCHER && window.VTT_FX_DISPATCHER.renderPath(el, ctx, W, H, dt, samples, strokeW, isClosed)) {
+            return true;
+        }
 
         // Draw depending on effect category
         const isFire = (effectiveType === 'inferno' || effectiveType === 'campfire' || effectiveType === 'torch' || effectiveType === 'lava_seam' || effectiveType === 'plasma_leak');
@@ -2899,6 +3151,8 @@ class LivingElementsEngine {
         el._shapeIdx = 1;
         const cfg = el.config || {};
         const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
+        const rough = cfg.fractalRoughness !== undefined ? parseFloat(cfg.fractalRoughness) : 0.75;
+        ctx._fractalRough = rough;
 
         const catDef = (typeof window !== 'undefined' && window.FEATURE_CATALOG && window.FEATURE_CATALOG[el.type]);
         const effectiveType = catDef ? catDef.base : el.type;
@@ -2971,6 +3225,27 @@ class LivingElementsEngine {
             ctx.translate(W * 0.5, H * 0.5);
             ctx.scale(elScale, elScale);
             ctx.translate(-W * 0.5, -H * 0.5);
+        }
+
+        if (window.VTT_FX_DISPATCHER && window.VTT_FX_DISPATCHER.render(el, ctx, W, H, dt)) {
+            if (applyMotifScale) ctx.restore();
+            if (hasDrawClip) {
+                ctx.restore();
+                if (this.selectedElementId === el.id && !this.isElementLocked(el)) {
+                    ctx.save();
+                    ctx.beginPath();
+                    const poly = el.config.drawPolygon;
+                    ctx.moveTo(poly[0].x, poly[0].y);
+                    for (let p = 1; p < poly.length; p++) ctx.lineTo(poly[p].x, poly[p].y);
+                    ctx.closePath();
+                    ctx.strokeStyle = 'rgba(0, 255, 200, 0.85)';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([6, 4]);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+            return;
         }
 
         if (this.drawBespokeFeature && this.drawBespokeFeature(el, ctx, W, H, dt)) {
@@ -3083,7 +3358,7 @@ class LivingElementsEngine {
                 this.drawRealisticLocalHyperspace(el, ctx, W, H, dt);
                 break;
             case 'lantern':
-                this.drawRealisticTorch(el, ctx, W, H, dt);
+                this.drawRealisticLantern(el, ctx, W, H, dt);
                 break;
             case 'steam':
             case 'spores':
@@ -3096,7 +3371,7 @@ class LivingElementsEngine {
                 this.drawRealisticLocalDust(el, ctx, W, H, dt);
                 break;
             case 'fireflies':
-                this.drawRealisticPatrolActor(el, ctx, W, H, dt);
+                this.drawRealisticFireflies(el, ctx, W, H, dt);
                 break;
             case 'tentacles':
                 this.drawRealisticTentacles(el, ctx, W, H, dt);
@@ -3151,7 +3426,7 @@ class LivingElementsEngine {
     }
 
     getFirePalette(variant = 'wildfire') {
-        if (variant === 'hellfire') {
+        if (variant === 'hellfire' || variant === 'oth_hellfire') {
             return {
                 glowInner: '255, 110, 30',
                 glowMid: '200, 25, 10',
@@ -3162,7 +3437,7 @@ class LivingElementsEngine {
                 emberHot: '255, 190, 120',
                 emberCool: '220, 30, 10'
             };
-        } else if (variant === 'alchemical') {
+        } else if (variant === 'alchemical' || variant === 'hist_greekfire') {
             return {
                 glowInner: '140, 255, 90',
                 glowMid: '35, 200, 65',
@@ -3183,6 +3458,18 @@ class LivingElementsEngine {
                 flameOuter: '95, 35, 210',
                 emberHot: '200, 240, 255',
                 emberCool: '110, 80, 255'
+            };
+        } else if (variant === 'mod_fire') {
+            return {
+                glowInner: '255, 140, 30',
+                glowMid: '215, 75, 10',
+                glowOuter: '120, 25, 5',
+                coreHot: '255, 240, 180',
+                flameMid: '245, 100, 15',
+                flameOuter: '160, 35, 5',
+                emberHot: '255, 180, 100',
+                emberCool: '180, 40, 10',
+                isTireFire: true
             };
         }
         // Default 'wildfire' (Natural Blazing Orange/Gold)
@@ -3465,23 +3752,43 @@ class LivingElementsEngine {
         const ry = H * 0.38;
         const time = el.stateTime;
         const intensity = el.config.intensity || 1.0;
+        const speed = el.config.speed || 1.0;
         const pal = this.getFirePalette(el.config.variant || 'wildfire');
         const avgDim = Math.sqrt(W * H);
+        const rough = ctx._fractalRough !== undefined ? ctx._fractalRough : (el.config.fractalRoughness !== undefined ? parseFloat(el.config.fractalRoughness) : 0.75);
 
-        // 1. Top-Down Scorched Earth Boundary & Radiant Ambient Heat
+        // 1. Top-Down Scorched Earth Boundary & Radiant Ambient Heat (Fractal Erosion)
         ctx.save();
         ctx.translate(cx, cy);
         ctx.scale(1, ry / Math.max(1, rx));
 
         const groundGlow = ctx.createRadialGradient(0, 0, rx * 0.1, 0, 0, rx * 1.18);
-        groundGlow.addColorStop(0, `rgba(18, 12, 8, 0.68)`);
-        groundGlow.addColorStop(0.55, `rgba(${pal.glowOuter}, 0.35)`);
-        groundGlow.addColorStop(0.85, `rgba(${pal.glowMid}, 0.14)`);
+        groundGlow.addColorStop(0, `rgba(18, 12, 8, 0.72)`);
+        groundGlow.addColorStop(0.55, `rgba(${pal.glowOuter}, 0.38)`);
+        groundGlow.addColorStop(0.85, `rgba(${pal.glowMid}, 0.15)`);
         groundGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = groundGlow;
-        ctx.beginPath();
-        ctx.arc(0, 0, rx * 1.18, 0, Math.PI * 2);
-        ctx.fill();
+
+        if (rough > 0.05) {
+            // Jagged fractal scorched earth bite marks
+            ctx.beginPath();
+            const scorchedSteps = 24;
+            for (let s = 0; s < scorchedSteps; s++) {
+                const sAngle = (s / scorchedSteps) * Math.PI * 2;
+                const fbm = Math.sin(s * 3.2 + 1.2) * 0.45 + Math.cos(s * 5.4 - 0.7) * 0.28 + Math.sin(s * 8.1 + 2.1) * 0.16;
+                const sDist = rx * (1.05 + rough * 0.22 * fbm);
+                const sx = Math.cos(sAngle) * sDist;
+                const sy = Math.sin(sAngle) * sDist;
+                if (s === 0) ctx.moveTo(sx, sy);
+                else ctx.lineTo(sx, sy);
+            }
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            ctx.beginPath();
+            ctx.arc(0, 0, rx * 1.18, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.restore();
 
         // 2. 360° Radiating Subterranean Magma Cracks across the burnt ground
@@ -3490,15 +3797,16 @@ class LivingElementsEngine {
         const crackCount = 10;
         for (let c = 0; c < crackCount; c++) {
             const angle = (c / crackCount) * Math.PI * 2 + 0.3;
-            const pulse = 0.50 + 0.35 * Math.sin(time * 4.2 + c * 1.7);
+            const pulse = 0.50 + 0.35 * Math.sin(time * 4.2 * speed + c * 1.7);
             const r1 = 0.10 + (c % 3) * 0.12;
             const r2 = 0.55 + ((c * 7) % 4) * 0.09;
             const x1 = cx + Math.cos(angle) * rx * r1;
             const y1 = cy + Math.sin(angle) * ry * r1;
-            const xm = cx + Math.cos(angle + 0.18) * rx * ((r1 + r2) * 0.5);
-            const ym = cy + Math.sin(angle - 0.15) * ry * ((r1 + r2) * 0.5);
-            const x2 = cx + Math.cos(angle + 0.05) * rx * r2;
-            const y2 = cy + Math.sin(angle + 0.05) * ry * r2;
+            const dev = rough * (Math.sin(c * 2.5 + time) * 0.15);
+            const xm = cx + Math.cos(angle + 0.18 + dev) * rx * ((r1 + r2) * 0.5);
+            const ym = cy + Math.sin(angle - 0.15 + dev) * ry * ((r1 + r2) * 0.5);
+            const x2 = cx + Math.cos(angle + 0.05 + dev * 0.5) * rx * r2;
+            const y2 = cy + Math.sin(angle + 0.05 + dev * 0.5) * ry * r2;
 
             ctx.strokeStyle = `rgba(${pal.flameMid}, ${pulse * 0.75})`;
             ctx.lineWidth = Math.max(1.8, avgDim * 0.015);
@@ -3522,7 +3830,9 @@ class LivingElementsEngine {
             const spawnY = cy + Math.sin(theta) * ry * rFrac;
 
             const roll = Math.random();
-            const pType = roll < 0.24 ? 'ember' : (roll < 0.36 ? 'soot' : 'flame');
+            const pType = pal.isTireFire
+                ? (roll < 0.20 ? 'ember' : (roll < 0.68 ? 'soot' : 'flame'))
+                : (roll < 0.24 ? 'ember' : (roll < 0.36 ? 'soot' : 'flame'));
             const radAngle = Math.random() * Math.PI * 2;
             const speed = (pType === 'ember' ? (20 + Math.random() * 32) : (12 + Math.random() * 24)) * (avgDim / 200);
 
@@ -3533,10 +3843,10 @@ class LivingElementsEngine {
                 speed: speed,
                 spin: (Math.random() - 0.5) * 1.8,
                 life: Math.random(),
-                decay: pType === 'ember' ? (0.65 + Math.random() * 0.55) : (pType === 'soot' ? (0.55 + Math.random() * 0.35) : (1.2 + Math.random() * 0.8)),
+                decay: pType === 'ember' ? (0.65 + Math.random() * 0.55) : (pType === 'soot' ? (0.45 + Math.random() * 0.35) : (1.2 + Math.random() * 0.8)),
                 size: pType === 'ember'
                     ? Math.max(1.5, avgDim * (0.008 + Math.random() * 0.009))
-                    : (pType === 'soot' ? avgDim * (0.09 + Math.random() * 0.08) : avgDim * (0.065 + Math.random() * 0.085)),
+                    : (pType === 'soot' ? avgDim * (pal.isTireFire ? 0.16 : 0.09 + Math.random() * 0.08) : avgDim * (0.065 + Math.random() * 0.085)),
                 pType,
                 turbSeed: Math.random() * 100
             });
@@ -3549,10 +3859,10 @@ class LivingElementsEngine {
             const p = el.particles[i];
             if (p.pType !== 'soot') continue;
             const rad = p.size * (1.2 - p.life * 0.3);
-            const alpha = Math.sin(p.life * Math.PI) * 0.30;
+            const alpha = Math.sin(p.life * Math.PI) * (pal.isTireFire ? 0.58 : 0.30);
             const sGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad);
-            sGrad.addColorStop(0, `rgba(22, 18, 16, ${alpha})`);
-            sGrad.addColorStop(1, 'rgba(22, 18, 16, 0)');
+            sGrad.addColorStop(0, pal.isTireFire ? `rgba(10, 8, 8, ${alpha})` : `rgba(22, 18, 16, ${alpha})`);
+            sGrad.addColorStop(1, 'rgba(10, 8, 8, 0)');
             ctx.fillStyle = sGrad;
             ctx.beginPath();
             ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
@@ -3615,49 +3925,112 @@ class LivingElementsEngine {
     // ========================================================================
     // 2C. BILLOWING SMOKE / TOXIC GAS CLOUD ('smoke')
     // ========================================================================
-    getSmokePalette(variant = 'black_smoke') {
-        if (variant === 'ash_fog') {
+    getSmokePalette(variant = 'uni_blacksmoke') {
+        if (variant === 'uni_poisonfumes' || variant === 'poison_gas') {
             return {
-                baseRgb: '140, 152, 165',
-                puffDark: '105, 118, 130',
-                puffLight: '195, 208, 220',
-                moteRgb: null
+                type: 'poison',
+                baseRgb: '72, 130, 20',
+                puffDark: '45, 92, 14',
+                puffLight: '145, 215, 45',
+                moteRgb: '185, 255, 60',
+                glowRgb: '130, 210, 35',
+                glowAlpha: 0.35,
+                moteType: 'spore',
+                hasBubbles: true
             };
-        } else if (variant === 'poison_gas') {
+        } else if (variant === 'mod_smog') {
             return {
-                baseRgb: '85, 145, 25',
-                puffDark: '55, 105, 15',
-                puffLight: '155, 220, 50',
-                moteRgb: '195, 255, 85'
+                type: 'smog',
+                baseRgb: '115, 100, 72',
+                puffDark: '80, 70, 48',
+                puffLight: '165, 148, 110',
+                moteRgb: '180, 160, 120',
+                glowRgb: '145, 125, 80',
+                glowAlpha: 0.20,
+                moteType: 'particulate',
+                hasStratification: true
+            };
+        } else if (variant === 'mod_teargas') {
+            return {
+                type: 'teargas',
+                baseRgb: '228, 232, 238',
+                puffDark: '175, 182, 192',
+                puffLight: '252, 253, 255',
+                moteRgb: '255, 255, 255',
+                glowRgb: '210, 220, 230',
+                glowAlpha: 0.45,
+                moteType: 'powder',
+                hasCanister: true
+            };
+        } else if (variant === 'uni_steamvent' || variant === 'mod_steam' || variant === 'steam') {
+            return {
+                type: 'steam',
+                baseRgb: '225, 235, 245',
+                puffDark: '170, 185, 202',
+                puffLight: '250, 252, 255',
+                moteRgb: '210, 235, 255',
+                glowRgb: '190, 220, 250',
+                glowAlpha: 0.30,
+                moteType: 'droplet',
+                isVent: variant === 'uni_steamvent',
+                isGrate: variant === 'mod_steam'
+            };
+        } else if (variant === 'sci_spores' || variant === 'spores' || variant === 'spore_cloud') {
+            return {
+                type: 'alien_spores',
+                baseRgb: '95, 28, 110',
+                puffDark: '55, 12, 70',
+                puffLight: '175, 65, 205',
+                moteRgb: '34, 211, 238', // Neon cyan bioluminescent spores
+                glowRgb: '192, 38, 211',
+                glowAlpha: 0.40,
+                moteType: 'biolum_spores'
+            };
+        } else if (variant === 'oth_miasma' || variant === 'shadow_miasma') {
+            return {
+                type: 'necromiasma',
+                baseRgb: '36, 18, 52',
+                puffDark: '18, 8, 28',
+                puffLight: '82, 42, 118',
+                moteRgb: '20, 15, 25', // Swarming black flies
+                glowRgb: '107, 33, 168',
+                glowAlpha: 0.32,
+                moteType: 'flies'
+            };
+        } else if (variant === 'uni_grayfogsmoke' || variant === 'ash_fog') {
+            return {
+                type: 'ash_smoke',
+                baseRgb: '135, 142, 152',
+                puffDark: '95, 102, 112',
+                puffLight: '185, 194, 205',
+                moteRgb: '165, 172, 182',
+                glowRgb: '115, 122, 132',
+                glowAlpha: 0.18,
+                moteType: 'ash'
             };
         } else if (variant === 'acid_fumes') {
             return {
-                baseRgb: '35, 165, 95',
-                puffDark: '20, 110, 60',
-                puffLight: '95, 245, 150',
-                moteRgb: '160, 255, 195'
-            };
-        } else if (variant === 'spore_cloud') {
-            return {
-                baseRgb: '155, 95, 40',
-                puffDark: '110, 55, 25',
-                puffLight: '215, 145, 65',
-                moteRgb: '255, 210, 110'
-            };
-        } else if (variant === 'shadow_miasma') {
-            return {
-                baseRgb: '35, 18, 55',
-                puffDark: '14, 6, 24',
-                puffLight: '85, 42, 125',
-                moteRgb: '165, 95, 235'
+                type: 'acid',
+                baseRgb: '32, 148, 85',
+                puffDark: '18, 92, 52',
+                puffLight: '88, 225, 142',
+                moteRgb: '150, 255, 190',
+                glowRgb: '34, 197, 94',
+                glowAlpha: 0.35,
+                moteType: 'acid_spores'
             };
         }
-        // Default 'black_smoke' (Thick Dark Soot & Fire Smoke)
+        // Default: 'uni_blacksmoke', 'hist_smoke', 'black_smoke' (Pitch-Black Carbon Soot Plume)
         return {
-            baseRgb: '32, 29, 28',
-            puffDark: '16, 14, 14',
-            puffLight: '68, 62, 58',
-            moteRgb: '255, 120, 35'
+            type: 'black_soot',
+            baseRgb: '18, 16, 15',
+            puffDark: '10, 8, 8',
+            puffLight: '54, 48, 44',
+            moteRgb: '255, 110, 25', // Intense fiery orange cinders
+            glowRgb: '255, 65, 10',
+            glowAlpha: 0.40,
+            moteType: 'fire_ember',
+            hasFireCore: true
         };
     }
 
@@ -3668,26 +4041,160 @@ class LivingElementsEngine {
         const ry = H * 0.38;
         const time = el.stateTime;
         const intensity = el.config.intensity || 1.0;
-        const pal = this.getSmokePalette(el.config.variant || 'black_smoke');
+        const speed = el.config.speed || 1.0;
+        const variant = el.config.variant || 'uni_blacksmoke';
+        const pal = this.getSmokePalette(variant);
         const avgDim = Math.sqrt(W * H);
+        const rough = ctx._fractalRough !== undefined ? ctx._fractalRough : (el.config.fractalRoughness !== undefined ? parseFloat(el.config.fractalRoughness) : 0.75);
 
-        // 1. Soft Ground Veil / Obscuration Base
+        // ====================================================================
+        // 1. BESPOKE GROUND ANCHOR / VEIL / SPECIALIZED ORIGIN MECHANICS
+        // ====================================================================
         ctx.save();
+
+        if (pal.hasFireCore) {
+            // Intense glowing coal bed beneath soot plume (shows real fire source!)
+            const coreGlow = ctx.createRadialGradient(cx, cy, 2, cx, cy, rx * 0.48);
+            const flick = Math.sin(time * 7 * speed) * 0.08 + Math.cos(time * 11 * speed) * 0.05;
+            coreGlow.addColorStop(0, `rgba(${pal.glowRgb}, ${(0.75 + flick) * intensity})`);
+            coreGlow.addColorStop(0.35, `rgba(235, 90, 15, ${(0.45 + flick) * intensity})`);
+            coreGlow.addColorStop(0.70, `rgba(140, 25, 5, ${(0.18 + flick) * intensity})`);
+            coreGlow.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = coreGlow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, rx * 0.48, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Charred ground scorched footprint
+            ctx.fillStyle = 'rgba(12, 10, 9, 0.78)';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rx * 0.38, ry * 0.32, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (pal.hasBubbles) {
+            // Sucking marsh mud mire with bursting iridescent methane gas bubbles!
+            ctx.fillStyle = 'rgba(28, 42, 14, 0.82)';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rx * 0.55, ry * 0.46, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 4 pulsing bubbling mud vents that pop green gas rings
+            for (let b = 0; b < 4; b++) {
+                const bPhase = (time * 1.4 * speed + b * 0.28) % 1.0;
+                const bAngle = b * 1.57 + 0.4;
+                const bx = cx + Math.cos(bAngle) * rx * 0.28;
+                const by = cy + Math.sin(bAngle) * ry * 0.24;
+                const br = 4 + bPhase * 16;
+                ctx.strokeStyle = `rgba(163, 230, 53, ${(1 - bPhase) * 0.75 * intensity})`;
+                ctx.lineWidth = 2.0;
+                ctx.beginPath();
+                ctx.arc(bx, by, br, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        } else if (pal.hasStratification) {
+            // Stratified horizontal petrochemical smog bands
+            for (let s = 0; s < 4; s++) {
+                const sy = cy - ry * 0.35 + s * (ry * 0.24);
+                const sOffset = Math.sin(time * 0.6 * speed + s * 1.4) * (W * 0.08);
+                const sGrad = ctx.createLinearGradient(0, sy - 14, 0, sy + 14);
+                sGrad.addColorStop(0, 'rgba(115, 100, 72, 0)');
+                sGrad.addColorStop(0.5, `rgba(145, 125, 80, ${0.32 * intensity})`);
+                sGrad.addColorStop(1, 'rgba(115, 100, 72, 0)');
+                ctx.fillStyle = sGrad;
+                ctx.fillRect(cx - rx + sOffset, sy - 14, rx * 2, 28);
+            }
+        } else if (pal.isVent) {
+            // Jagged volcanic rock fissure throat with craggy edges
+            ctx.fillStyle = '#1e2124';
+            ctx.strokeStyle = '#0f1113';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            const rockPoints = 8;
+            for (let rp = 0; rp < rockPoints; rp++) {
+                const ra = (rp / rockPoints) * Math.PI * 2;
+                const rdist = (rx * 0.28) * (0.8 + 0.2 * Math.sin(rp * 3));
+                const rpx = cx + Math.cos(ra) * rdist;
+                const rpy = cy + Math.sin(ra) * (rdist * 0.65);
+                if (rp === 0) ctx.moveTo(rpx, rpy);
+                else ctx.lineTo(rpx, rpy);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Boiling hydrothermal fissure throat
+            const throatGlow = ctx.createRadialGradient(cx, cy, 1, cx, cy, rx * 0.22);
+            throatGlow.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+            throatGlow.addColorStop(0.6, 'rgba(186, 230, 253, 0.75)');
+            throatGlow.addColorStop(1, 'rgba(14, 165, 233, 0)');
+            ctx.fillStyle = throatGlow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, rx * 0.22, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (pal.isGrate) {
+            // City cast-iron round manhole grate with steam whistling through slots
+            ctx.fillStyle = '#1e232a';
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy, rx * 0.32, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Grate ventilation slots
+            ctx.strokeStyle = '#090b0e';
+            ctx.lineWidth = 3.5;
+            ctx.lineCap = 'round';
+            for (let g = -3; g <= 3; g++) {
+                const gy = cy + g * 7;
+                const halfW = Math.sqrt(Math.max(0, Math.pow(rx * 0.25, 2) - Math.pow(g * 7, 2)));
+                if (halfW > 3) {
+                    ctx.beginPath();
+                    ctx.moveTo(cx - halfW, gy);
+                    ctx.lineTo(cx + halfW, gy);
+                    ctx.stroke();
+                }
+            }
+        } else if (pal.hasCanister) {
+            // Spinning metal CS tear-gas canister on the ground
+            const canSpin = time * 4 * speed;
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(canSpin);
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(-12, -6, 24, 12);
+            ctx.fillStyle = '#eab308'; // Safety yellow chemical band
+            ctx.fillRect(-4, -6, 8, 12);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(-12, -6, 24, 12);
+            ctx.restore();
+
+            // Expanding powdery white chemical ring on the floor
+            ctx.strokeStyle = 'rgba(241, 245, 249, 0.45)';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy, rx * 0.42, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Ambient ground obscuration veil
         ctx.translate(cx, cy);
         ctx.scale(1, ry / Math.max(1, rx));
-        const veilGrad = ctx.createRadialGradient(0, 0, rx * 0.1, 0, 0, rx * 1.12);
-        veilGrad.addColorStop(0, `rgba(${pal.baseRgb}, ${0.42 * Math.min(1.3, intensity)})`);
-        veilGrad.addColorStop(0.65, `rgba(${pal.baseRgb}, ${0.22 * Math.min(1.3, intensity)})`);
+        const veilGrad = ctx.createRadialGradient(0, 0, rx * 0.08, 0, 0, rx * 1.15);
+        veilGrad.addColorStop(0, `rgba(${pal.baseRgb}, ${0.52 * Math.min(1.4, intensity)})`);
+        veilGrad.addColorStop(0.55, `rgba(${pal.baseRgb}, ${0.28 * Math.min(1.4, intensity)})`);
         veilGrad.addColorStop(1, `rgba(${pal.baseRgb}, 0)`);
         ctx.fillStyle = veilGrad;
         ctx.beginPath();
-        ctx.arc(0, 0, rx * 1.12, 0, Math.PI * 2);
+        ctx.arc(0, 0, rx * 1.15, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
-        // 2. Volumetric Rolling Smoke / Gas Puffs
+        // ====================================================================
+        // 2. VOLUMETRIC MULTI-LOBED BILLOWING SMOKE / GAS PUFFS (FRACTAL DRIVEN)
+        // ====================================================================
         if (!el.particles) el.particles = [];
-        const targetPuffs = Math.max(8, Math.floor(42 * intensity * (el.config.quantity || 1.0)));
+        const targetPuffs = Math.max(10, Math.floor(48 * intensity * (el.config.quantity || 1.0)));
         if (el.particles.length > targetPuffs) el.particles.length = targetPuffs;
 
         while (el.particles.length < targetPuffs) {
@@ -3696,11 +4203,11 @@ class LivingElementsEngine {
             el.particles.push({
                 x: cx + Math.cos(theta) * rx * rFrac,
                 y: cy + Math.sin(theta) * ry * rFrac,
-                vx: (8 + Math.random() * 14) * (W / 240),
-                vy: (Math.random() - 0.55) * 12 * (H / 240),
-                baseRadius: avgDim * (0.13 + Math.random() * 0.13),
+                vx: (pal.isVent ? 0 : (8 + Math.random() * 16)) * (W / 240),
+                vy: (pal.isVent ? -(20 + Math.random() * 24) : (Math.random() - 0.55) * 14) * (H / 240),
+                baseRadius: avgDim * (0.12 + Math.random() * 0.14),
                 life: Math.random(),
-                decay: 0.18 + Math.random() * 0.16,
+                decay: 0.16 + Math.random() * 0.16,
                 isLight: Math.random() < 0.45,
                 seed: Math.random() * 100
             });
@@ -3709,50 +4216,142 @@ class LivingElementsEngine {
         ctx.save();
         for (let i = 0; i < el.particles.length; i++) {
             const p = el.particles[i];
-            p.life -= p.decay * dt;
+            p.life -= p.decay * dt * speed;
 
-            // Curl-like organic eddy drift
-            const swirlX = Math.cos(time * 1.1 + p.seed) * 14 * dt;
-            const swirlY = Math.sin(time * 1.3 + p.seed) * 14 * dt;
-            p.x += p.vx * dt + swirlX;
-            p.y += p.vy * dt + swirlY;
+            // Fractal vortex turbulence & curl drift
+            const turbFreq = 1.2 + rough * 1.8;
+            const turbAmp = (14 + rough * 26) * dt * speed;
+            const swirlX = Math.cos(time * turbFreq + p.seed) * turbAmp;
+            const swirlY = Math.sin(time * (turbFreq * 1.2) + p.seed) * turbAmp;
+            p.x += p.vx * dt * speed + swirlX;
+            p.y += p.vy * dt * speed + swirlY;
 
             if (p.life <= 0) {
                 const theta = Math.random() * Math.PI * 2;
-                const rFrac = Math.sqrt(Math.random()) * 0.68;
-                p.x = cx - rx * 0.15 + Math.cos(theta) * rx * rFrac;
+                const rFrac = Math.sqrt(Math.random()) * 0.65;
+                p.x = cx - rx * 0.12 + Math.cos(theta) * rx * rFrac;
                 p.y = cy + Math.sin(theta) * ry * rFrac;
                 p.life = 1.0;
             }
 
-            // Smooth bell-curve fade so puffs never pop in or out
+            // Smooth bell-curve envelope for natural appearance and fade
             const env = Math.sin(p.life * Math.PI);
-            const curR = p.baseRadius * (0.85 + (1 - p.life) * 0.45);
+            const curR = p.baseRadius * (0.85 + (1 - p.life) * 0.55);
             if (curR <= 1) continue;
 
             const rgb = p.isLight ? pal.puffLight : pal.puffDark;
-            const alpha = env * (p.isLight ? 0.28 : 0.38) * Math.min(1.4, intensity);
+            const alpha = env * (p.isLight ? 0.32 : 0.44) * Math.min(1.5, intensity);
 
+            // Primary Core Smoke Puff
             const pGrad = ctx.createRadialGradient(p.x, p.y, curR * 0.08, p.x, p.y, curR);
             pGrad.addColorStop(0, `rgba(${rgb}, ${alpha})`);
-            pGrad.addColorStop(0.55, `rgba(${rgb}, ${alpha * 0.55})`);
+            pGrad.addColorStop(0.55, `rgba(${rgb}, ${alpha * 0.60})`);
             pGrad.addColorStop(1, `rgba(${rgb}, 0)`);
-
             ctx.fillStyle = pGrad;
             ctx.beginPath();
             ctx.arc(p.x, p.y, curR, 0, Math.PI * 2);
             ctx.fill();
-        }
 
-        // 3. Subtle Floating Spores / Toxic Droplets / Soot Cinders
-        if (pal.moteRgb) {
-            const moteCount = Math.floor(14 * intensity);
+            // Multi-Lobed Fractal Billow Satellites (modulates cauliflower volume with fractal roughness slider!)
+            if (rough > 0.05) {
+                const lobes = 4;
+                for (let l = 0; l < lobes; l++) {
+                    const lAngle = (l / lobes) * Math.PI * 2 + p.seed + time * (0.6 + l * 0.2);
+                    const lDist = curR * (0.32 + 0.28 * rough) * (0.75 + 0.25 * Math.sin(p.seed * 3 + l));
+                    const lx = p.x + Math.cos(lAngle) * lDist;
+                    const ly = p.y + Math.sin(lAngle) * lDist;
+                    const lr = curR * (0.50 + 0.25 * rough) * (0.8 + 0.2 * Math.cos(p.seed * 5 + l));
+
+                    const lGrad = ctx.createRadialGradient(lx, ly, lr * 0.08, lx, ly, lr);
+                    lGrad.addColorStop(0, `rgba(${rgb}, ${alpha * 0.75})`);
+                    lGrad.addColorStop(0.6, `rgba(${rgb}, ${alpha * 0.35})`);
+                    lGrad.addColorStop(1, `rgba(${rgb}, 0)`);
+                    ctx.fillStyle = lGrad;
+                    ctx.beginPath();
+                    ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+        ctx.restore();
+
+        // ====================================================================
+        // 3. BESPOKE MOTES: FIERY EMBERS, TOXIC SPORES, BUZZING FLIES, CS POWDER
+        // ====================================================================
+        ctx.save();
+        if (pal.moteType === 'fire_ember') {
+            // Rising fiery cinders shooting up from hot firebed, tumbling and burning out!
+            const emberCount = Math.floor(18 * intensity);
+            for (let m = 0; m < emberCount; m++) {
+                const mSeed = m * 17.3;
+                const mProg = ((time * 0.7 * speed + m * 0.15) % 1.0);
+                const mx = cx + (Math.sin(time * 2.5 + mSeed) * 0.35 + (m % 5 - 2) * 0.18) * rx;
+                const my = cy + ry * 0.25 - mProg * (ry * 1.35) + Math.cos(time * 3.1 + m) * 8;
+                const mAlpha = Math.sin(mProg * Math.PI) * intensity;
+                const isHot = mProg < 0.55;
+
+                ctx.fillStyle = isHot ? 'rgba(255, 180, 50, 0.95)' : 'rgba(255, 60, 15, 0.85)';
+                ctx.beginPath();
+                ctx.arc(mx, my, isHot ? 2.5 : 1.8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Burning core corona
+                if (isHot) {
+                    ctx.fillStyle = `rgba(255, 230, 140, ${mAlpha * 0.85})`;
+                    ctx.beginPath();
+                    ctx.arc(mx, my, 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        } else if (pal.moteType === 'flies') {
+            // 25+ Animated buzzing black plague flies darting in erratic 3D patterns!
+            const flyCount = Math.floor(26 * intensity);
+            for (let f = 0; f < flyCount; f++) {
+                const fSeed = f * 13.7;
+                const fx = cx + Math.sin(time * 6.5 * speed + fSeed) * (rx * 0.65) + Math.cos(time * 9.2 + f) * 14;
+                const fy = cy + Math.cos(time * 5.8 * speed + fSeed * 1.3) * (ry * 0.58) + Math.sin(time * 8.4 + f) * 12;
+
+                // Tiny black fly body
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.ellipse(fx, fy, 2.2, 1.3, time * 12 + f, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Vibrating translucent fly wings
+                const wingVibe = Math.sin(time * 45 + f) * 2.2;
+                ctx.strokeStyle = 'rgba(226, 232, 240, 0.75)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(fx, fy);
+                ctx.lineTo(fx - 2, fy - 3 + wingVibe);
+                ctx.moveTo(fx, fy);
+                ctx.lineTo(fx + 2, fy - 3 - wingVibe);
+                ctx.stroke();
+            }
+        } else if (pal.moteType === 'biolum_spores') {
+            // Bioluminescent neon cyan and electric violet floating spores
+            const sporeCount = Math.floor(22 * intensity);
+            for (let s = 0; s < sporeCount; s++) {
+                const sAngle = (s / sporeCount) * Math.PI * 2 + time * 0.35 * speed;
+                const sDist = (((s * 23) % 10) / 10) * 0.82;
+                const sx = cx + Math.cos(sAngle + Math.sin(time * 1.5 + s) * 0.4) * rx * sDist;
+                const sy = cy + Math.sin(sAngle * 1.1 + Math.cos(time * 1.2 + s) * 0.4) * ry * sDist;
+                const sPulse = Math.sin(time * 4.2 + s * 2.1) * 0.5 + 0.5;
+
+                ctx.fillStyle = s % 2 === 0 ? `rgba(34, 211, 238, ${0.45 + sPulse * 0.55})` : `rgba(217, 70, 239, ${0.45 + sPulse * 0.55})`;
+                ctx.beginPath();
+                ctx.arc(sx, sy, 2.0 + sPulse * 1.4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (pal.moteRgb) {
+            // Generic droplets, CS powder, or volcanic ash flecks
+            const moteCount = Math.floor(16 * intensity);
             for (let m = 0; m < moteCount; m++) {
-                const mAngle = (m / moteCount) * Math.PI * 2 + time * 0.4;
-                const mDist = ((m * 19) % 10) / 10 * 0.78;
+                const mAngle = (m / moteCount) * Math.PI * 2 + time * 0.45 * speed;
+                const mDist = (((m * 19) % 10) / 10) * 0.78;
                 const mx = cx + Math.cos(mAngle + Math.sin(time + m) * 0.3) * rx * mDist;
                 const my = cy + Math.sin(mAngle * 1.2 + Math.cos(time * 0.8 + m) * 0.3) * ry * mDist;
-                const mAlpha = 0.25 + 0.25 * Math.sin(time * 3 + m * 2.1);
+                const mAlpha = 0.30 + 0.35 * Math.sin(time * 3.5 + m * 2.1);
                 ctx.fillStyle = `rgba(${pal.moteRgb}, ${mAlpha})`;
                 ctx.beginPath();
                 ctx.arc(mx, my, 1.8 + (m % 2), 0, Math.PI * 2);
@@ -3763,10 +4362,164 @@ class LivingElementsEngine {
     }
 
     // ========================================================================
+    // 2C-1. REALISTIC DANCING WOODLAND FIREFLIES ('fireflies')
+    // ========================================================================
+    drawRealisticFireflies(el, ctx, W, H, dt) {
+        const time = el.stateTime;
+        const cfg = el.config || {};
+        const intensity = cfg.intensity || 1.0;
+        const speed = cfg.speed || 1.0;
+        const variant = cfg.variant || 'uni_fireflies';
+        const isFey = variant === 'fey_spores';
+
+        const baseCount = cfg.quantity !== undefined ? Math.round(36 * cfg.quantity) : 36;
+        const count = Math.max(12, Math.min(60, baseCount));
+
+        if (!el.particles || el.particles.length !== count) {
+            el.particles = [];
+            for (let i = 0; i < count; i++) {
+                el.particles.push({
+                    x: Math.random() * W,
+                    y: Math.random() * H,
+                    vx: (Math.random() - 0.5) * 22,
+                    vy: (Math.random() - 0.5) * 18,
+                    flashFreq: 1.8 + Math.random() * 2.4,
+                    flashPhase: Math.random() * Math.PI * 2,
+                    colorIdx: Math.floor(Math.random() * 3)
+                });
+            }
+        }
+
+        ctx.save();
+        for (let i = 0; i < el.particles.length; i++) {
+            const p = el.particles[i];
+
+            // Gentle wandering Brownian drift
+            p.vx += Math.sin(time * 1.7 + i * 2.1) * 14 * dt * speed;
+            p.vy += Math.cos(time * 1.5 + i * 1.8) * 12 * dt * speed;
+
+            // Speed clamp
+            const spd = Math.hypot(p.vx, p.vy);
+            if (spd > 32 * speed) {
+                p.vx = (p.vx / spd) * 32 * speed;
+                p.vy = (p.vy / spd) * 32 * speed;
+            }
+
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+
+            // Screen wrap
+            if (p.x < 0) p.x = W;
+            if (p.x > W) p.x = 0;
+            if (p.y < 0) p.y = H;
+            if (p.y > H) p.y = 0;
+
+            // Asynchronous natural flash cycle
+            const flash = Math.sin(time * p.flashFreq * speed + p.flashPhase);
+            if (flash <= 0.1) continue; // firefly lamp is off
+
+            const flashAlpha = Math.pow(flash, 2) * intensity;
+            const glowR = 8 + flash * 12;
+
+            let coreRgb = '250, 255, 180';
+            let haloRgb = '190, 242, 100';
+            if (isFey) {
+                if (p.colorIdx === 0) { coreRgb = '220, 255, 255'; haloRgb = '56, 189, 248'; }
+                else if (p.colorIdx === 1) { coreRgb = '255, 230, 255'; haloRgb = '217, 70, 239'; }
+                else { coreRgb = '255, 250, 190'; haloRgb = '250, 204, 21'; }
+            }
+
+            // Soft radiant bioluminescent glow
+            const g = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, glowR);
+            g.addColorStop(0, `rgba(${coreRgb}, ${flashAlpha})`);
+            g.addColorStop(0.35, `rgba(${haloRgb}, ${flashAlpha * 0.65})`);
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tiny insect body
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // ========================================================================
+    // 2C-2. REALISTIC HOODED BRASS OIL LANTERN ('lantern')
+    // ========================================================================
+    drawRealisticLantern(el, ctx, W, H, dt) {
+        const cx = W / 2;
+        const cy = H / 2;
+        const time = el.stateTime;
+        const intensity = el.config.intensity || 1.0;
+        const speed = el.config.speed || 1.0;
+        const flicker = (Math.sin(time * 6.5 * speed) * 0.05 + Math.cos(time * 11.2 * speed) * 0.03) * intensity;
+        const r = (Math.min(W, H) * 0.48) * (1 + flicker);
+
+        ctx.save();
+        // 1. Warm 360° Omnidirectional Radiant Oil Lamp Glow
+        const grad = ctx.createRadialGradient(cx, cy, 3, cx, cy, r);
+        grad.addColorStop(0, `rgba(255, 230, 140, ${0.72 * intensity})`);
+        grad.addColorStop(0.35, `rgba(245, 158, 11, ${0.32 * intensity})`);
+        grad.addColorStop(0.75, `rgba(180, 83, 9, ${0.09 * intensity})`);
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Hanging brass top ring
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 14, 6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 3. Domed brass hood & octagonal frame
+        ctx.fillStyle = '#78350f';
+        ctx.beginPath();
+        ctx.arc(cx, cy - 6, 12, Math.PI, 0);
+        ctx.fill();
+
+        // Glass housing & brass struts
+        ctx.fillStyle = 'rgba(254, 243, 199, 0.45)';
+        ctx.fillRect(cx - 10, cy - 6, 20, 16);
+
+        ctx.strokeStyle = '#92400e';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx - 10, cy - 6, 20, 16);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 6);
+        ctx.lineTo(cx, cy + 10);
+        ctx.stroke();
+
+        // Brass base
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(cx - 12, cy + 10, 24, 5);
+
+        // 4. Glowing burning flame wick inside glass
+        ctx.globalCompositeOperation = 'lighter';
+        const flameGrad = ctx.createRadialGradient(cx, cy + 2, 0, cx, cy + 2, 7);
+        flameGrad.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
+        flameGrad.addColorStop(0.5, 'rgba(251, 191, 36, 0.85)');
+        flameGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+        ctx.fillStyle = flameGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy + 2, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // ========================================================================
     // 2D. BUBBLING MUD / STICKY TAR PIT / QUICKSAND / WEBS ('mud')
     // ========================================================================
-    getMudPalette(variant = 'mud_bog') {
-        if (variant === 'tar_pit') {
+    getMudPalette(variant = 'uni_mudbog') {
+        if (variant === 'tar_pit' || variant === 'uni_tarpit' || variant === 'oth_tarpit') {
             return {
                 outerBog: '22, 20, 22',
                 midBog: '12, 11, 14',
@@ -3775,7 +4528,7 @@ class LivingElementsEngine {
                 specular: '200, 215, 235',
                 specAlpha: 0.48
             };
-        } else if (variant === 'quicksand') {
+        } else if (variant === 'quicksand' || variant === 'uni_quicksand') {
             return {
                 outerBog: '165, 130, 82',
                 midBog: '140, 105, 62',
@@ -3784,7 +4537,7 @@ class LivingElementsEngine {
                 specular: '245, 225, 185',
                 specAlpha: 0.32
             };
-        } else if (variant === 'acid_sludge') {
+        } else if (variant === 'acid_sludge' || variant === 'sci_toxicwaste') {
             return {
                 outerBog: '45, 95, 28',
                 midBog: '32, 72, 18',
@@ -3793,7 +4546,7 @@ class LivingElementsEngine {
                 specular: '210, 255, 130',
                 specAlpha: 0.55
             };
-        } else if (variant === 'sticky_webs') {
+        } else if (variant === 'sticky_webs' || variant === 'uni_cobwebs' || variant === 'hist_webs') {
             return {
                 outerBog: '65, 68, 62',
                 midBog: '48, 52, 46',
@@ -3802,8 +4555,17 @@ class LivingElementsEngine {
                 specular: '240, 248, 240',
                 specAlpha: 0.50
             };
+        } else if (variant === 'mod_oil') {
+            return {
+                outerBog: '18, 16, 20',
+                midBog: '10, 9, 12',
+                innerCore: '5, 4, 6',
+                bubbleRim: '60, 50, 75',
+                specular: '236, 72, 153',
+                specAlpha: 0.65
+            };
         }
-        // Default 'mud_bog' (Thick Brown Swampy Mud & Sucking Mire)
+        // Default 'uni_mudbog' / 'hist_mud' / 'mud_bog' (Thick Brown Swampy Mud & Sucking Mire)
         return {
             outerBog: '76, 52, 34',
             midBog: '56, 38, 24',
@@ -3814,15 +4576,16 @@ class LivingElementsEngine {
         };
     }
 
-    traceOrganicBogPath(ctx, cx, cy, rx, ry, scale = 1.0, time = 0) {
-        const lobes = 16;
+    traceOrganicBogPath(ctx, cx, cy, rx, ry, scale = 1.0, time = 0, rough = 0.75) {
+        const lobes = rough > 0.04 ? 24 : 16;
         const pts = [];
         for (let i = 0; i < lobes; i++) {
             const a = (i / lobes) * Math.PI * 2;
-            const organicWobble = 0.88
-                + 0.08 * Math.sin(i * 3.0 + 1.2)
-                + 0.05 * Math.cos(i * 5.0 - 0.7)
-                + 0.015 * Math.sin(time * 1.4 + i * 2.0);
+            const fbm = Math.sin(i * 3.0 + 1.2) * 0.48
+                + Math.cos(i * 5.0 - 0.7) * 0.28
+                + Math.sin(i * 9.0 + 2.1) * 0.16
+                + (1.0 - 2.0 * Math.abs(Math.sin(i * 13.0 + 0.4))) * 0.08;
+            const organicWobble = Math.max(0.35, 1.0 + (0.10 + rough * 0.32) * fbm + 0.015 * Math.sin(time * 1.4 + i * 2.0));
             pts.push({
                 x: cx + Math.cos(a) * rx * scale * organicWobble,
                 y: cy + Math.sin(a) * ry * scale * organicWobble
@@ -3851,23 +4614,24 @@ class LivingElementsEngine {
         const variant = el.config.variant || 'mud_bog';
         const pal = this.getMudPalette(variant);
         const avgDim = Math.sqrt(W * H);
+        const rough = ctx._fractalRough !== undefined ? ctx._fractalRough : (el.config.fractalRoughness !== undefined ? parseFloat(el.config.fractalRoughness) : 0.75);
 
         // 1. Multi-Pass Organic Feathered Bog / Tar / Mire Footprint
         ctx.save();
-        this.traceOrganicBogPath(ctx, cx, cy, rx, ry, 1.02, time);
+        this.traceOrganicBogPath(ctx, cx, cy, rx, ry, 1.02, time, rough);
         ctx.fillStyle = `rgba(${pal.outerBog}, 0.42)`;
         ctx.fill();
 
-        this.traceOrganicBogPath(ctx, cx, cy, rx, ry, 0.90, time);
+        this.traceOrganicBogPath(ctx, cx, cy, rx, ry, 0.90, time, rough);
         ctx.fillStyle = `rgba(${pal.midBog}, 0.68)`;
         ctx.fill();
 
-        this.traceOrganicBogPath(ctx, cx, cy, rx, ry, 0.74, time);
+        this.traceOrganicBogPath(ctx, cx, cy, rx, ry, 0.74, time, rough);
         ctx.fillStyle = `rgba(${pal.innerCore}, 0.76)`;
         ctx.fill();
 
         // Clip inside the mire for surface viscosity rings, webs, and bubbles
-        this.traceOrganicBogPath(ctx, cx, cy, rx, ry, 0.94, time);
+        this.traceOrganicBogPath(ctx, cx, cy, rx, ry, 0.94, time, rough);
         ctx.clip();
 
         // 2. Slow-Churning Viscosity Contours (or Quicksand Spiral / Sticky Webs)
@@ -4099,6 +4863,10 @@ class LivingElementsEngine {
         const nodes = el.config.nodes || [];
         if (nodes.length < 2) return;
 
+        const rough = el.config.fractalRoughness !== undefined ? parseFloat(el.config.fractalRoughness) : 0.75;
+        ctx._fractalRough = rough;
+        if (el.ctx) el.ctx._fractalRough = rough;
+
         ctx.save();
         // Translate so (0,0) in ctx matches (el.x, el.y)
         ctx.translate(-el.bbox.minX, -el.bbox.minY);
@@ -4172,15 +4940,15 @@ class LivingElementsEngine {
         const rough = ctx._fractalRough !== undefined ? ctx._fractalRough : 0;
         ctx.beginPath();
 
-        // Left bank forward (0 -> N) with multi-octave fractal bank crags
+        // Left bank forward (0 -> N) with pronounced multi-octave fractal bank crags
         for (let i = 0; i < samples.length; i++) {
             const s = samples[i];
+            const fbm = Math.sin(i * 0.95 + 1.3) * 0.45
+                + Math.cos(i * 2.2 - 0.6) * 0.28
+                + Math.sin(i * 4.4 + 2.1) * 0.17
+                + (1.0 - 2.0 * Math.abs(Math.sin(i * 7.1 + 0.4))) * 0.10;
             const bankMod = rough > 0.02
-                ? Math.max(0.55, 1.0 + rough * 0.14 * (
-                    Math.sin(i * 0.85 + 1.1) * 0.50 +
-                    Math.cos(i * 2.15 - 0.7) * 0.30 +
-                    (1.0 - 2.0 * Math.abs(Math.sin(i * 3.8 + 0.4))) * 0.20
-                ))
+                ? Math.max(0.35, 1.0 + rough * 0.48 * fbm)
                 : 1.0;
             const hw = (s.w * widthMultiplier * bankMod) / 2;
             const lx = s.x - s.nx * hw;
@@ -4195,15 +4963,15 @@ class LivingElementsEngine {
         const endAngle = Math.atan2(last.ny, last.nx);
         ctx.arc(last.x, last.y, lastHW, endAngle + Math.PI, endAngle, true);
 
-        // Right bank backward (N -> 0) with multi-octave fractal bank crags
+        // Right bank backward (N -> 0) with non-symmetrical multi-octave fractal bank crags
         for (let i = samples.length - 1; i >= 0; i--) {
             const s = samples[i];
+            const fbm = Math.cos(i * 0.88 + 2.5) * 0.45
+                + Math.sin(i * 2.4 + 1.1) * 0.28
+                + Math.cos(i * 4.7 - 1.8) * 0.17
+                + (1.0 - 2.0 * Math.abs(Math.cos(i * 7.4 - 0.9))) * 0.10;
             const bankMod = rough > 0.02
-                ? Math.max(0.55, 1.0 + rough * 0.14 * (
-                    Math.cos(i * 0.92 + 2.3) * 0.50 +
-                    Math.sin(i * 2.35 + 1.2) * 0.30 +
-                    (1.0 - 2.0 * Math.abs(Math.cos(i * 4.1 - 0.9))) * 0.20
-                ))
+                ? Math.max(0.35, 1.0 + rough * 0.48 * fbm)
                 : 1.0;
             const hw = (s.w * widthMultiplier * bankMod) / 2;
             const rx = s.x + s.nx * hw;
@@ -4276,186 +5044,40 @@ class LivingElementsEngine {
         const time = el.stateTime;
         const style = el.config.variant || el.config.waterStyle || 'stream';
         const opacity = el.config.opacity !== undefined ? el.config.opacity : 0.72;
-        const { waterRgb, deepRgb, causticRgb, foamRgb } = this.getWaterPalette(style);
-
-        // 0. Style-Specific Outer Bank Structures (Concrete Canal Walls or Moat Stakes)
-        if (style === 'concrete_canal') {
-            this.traceSplineRibbonPath(ctx, samples, 1.14);
-            ctx.fillStyle = `rgba(95, 102, 110, ${opacity * 0.88})`;
-            ctx.fill();
-            this.traceSplineRibbonPath(ctx, samples, 1.04);
-            ctx.fillStyle = `rgba(55, 60, 66, ${opacity * 0.92})`;
-            ctx.fill();
-        }
-
-        // 1. Multi-Pass Feathered Water Body (Soft shoreline banks -> deep channel core)
-        this.traceSplineRibbonPath(ctx, samples, 1.0);
-        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.65})`;
-        ctx.fill();
-
-        this.traceSplineRibbonPath(ctx, samples, 0.88);
-        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.80})`;
-        ctx.fill();
-
-        this.traceSplineRibbonPath(ctx, samples, 0.70);
-        ctx.fillStyle = `rgba(${deepRgb}, ${opacity * 0.88})`;
-        ctx.fill();
-
-        // 2. Clip to River Ribbon for Curved Flowing Caustics & Specular Filaments
-        ctx.save();
-        this.traceSplineRibbonPath(ctx, samples, 0.96);
-        ctx.clip();
-
-        // A. Sunlit Caustic Network Moving Downstream Along the Curve
         const intensity = el.config.intensity !== undefined ? el.config.intensity : (el.config.caustics || 1.0);
         const qty = el.config.quantity !== undefined ? el.config.quantity : 1.0;
-        const causticAlpha = Math.min(0.95, 0.24 * intensity);
-        ctx.strokeStyle = `rgba(${causticRgb}, ${causticAlpha})`;
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
 
-        const lanes = [-0.32, -0.16, 0, 0.16, 0.32];
-        const totalSamples = samples.length;
+        if (window.VTT_FX_DISPATCHER && window.VTT_FX_DISPATCHER.renderSpline(el, ctx, samples, time, opacity, intensity, qty)) return;
 
-        lanes.forEach((vLane, lIdx) => {
-            const speedShift = time * (8 + (lIdx % 2) * 2.5);
-            for (let baseK = 0; baseK < totalSamples - 4; baseK += 4) {
-                const k = Math.floor((baseK + speedShift) % (totalSamples - 3));
-                const s1 = samples[k];
-                const s2 = samples[k + 2];
-                if (!s1 || !s2) continue;
-
-                const wave1 = Math.sin(baseK * 0.6 + time * 2.4 + lIdx) * 0.08;
-                const wave2 = Math.cos(baseK * 0.6 + time * 2.1 + lIdx) * 0.08;
-
-                const x1 = s1.x + s1.nx * ((vLane + wave1) * s1.w);
-                const y1 = s1.y + s1.ny * ((vLane + wave1) * s1.w);
-                const x2 = s2.x + s2.nx * ((vLane + wave2) * s2.w);
-                const y2 = s2.y + s2.ny * ((vLane + wave2) * s2.w);
-
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-            }
-        });
-        ctx.stroke();
-
-        // B. Specular Surface Flow Filaments & Foam Following the Curve
-        ctx.strokeStyle = `rgba(${foamRgb}, ${Math.min(0.95, 0.38 * intensity)})`;
-        ctx.lineWidth = 1.3;
-        ctx.beginPath();
-
-        const filamentCount = Math.max(4, Math.round(24 * qty));
-        for (let f = 0; f < filamentCount; f++) {
-            const vOffset = ((f / Math.max(1, filamentCount - 1)) - 0.5) * 0.78;
-            const speed = 12 + (f % 4) * 3.5;
-            const lenSteps = 4 + (f % 3) * 2;
-            const startStep = Math.floor((time * speed + f * 9.7) % (totalSamples - lenSteps - 1));
-
-            for (let step = 0; step <= lenSteps; step++) {
-                const s = samples[startStep + step];
-                if (!s) continue;
-                const ripple = Math.sin((startStep + step) * 0.35 + time * 3 + f) * 0.035;
-                const px = s.x + s.nx * ((vOffset + ripple) * s.w);
-                const py = s.y + s.ny * ((vOffset + ripple) * s.w);
-                if (step === 0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-            }
-        }
-        ctx.stroke();
-
-        // C. Style-Specific Channel Embellishments (Boulders, Basalt Plates, Duckweed, Coolant Ribs, Blood Foam)
-        if (style === 'ocean') {
-            // Whitewater River Rapids: Mid-stream boulders with V-shaped foam wakes
-            for (let b = 8; b < totalSamples - 8; b += 12) {
-                const s = samples[b];
-                const bOffset = ((b % 3) - 1) * 0.22 * s.w;
-                const bx = s.x + s.nx * bOffset;
-                const by = s.y + s.ny * bOffset;
-                const br = Math.max(6, s.w * 0.11);
-                ctx.fillStyle = 'rgba(72, 82, 92, 0.92)';
-                ctx.beginPath();
-                ctx.ellipse(bx, by, br * 1.2, br * 0.85, Math.atan2(s.ty, s.tx), 0, Math.PI * 2);
-                ctx.fill();
-                // Whitewater foam wake downstream
-                ctx.strokeStyle = 'rgba(245, 252, 255, 0.82)';
-                ctx.lineWidth = 2.2;
-                ctx.beginPath();
-                ctx.arc(bx, by, br * 1.35, Math.atan2(s.ty, s.tx) - 1.1, Math.atan2(s.ty, s.tx) + 1.1);
-                ctx.stroke();
-            }
-        } else if (style === 'lava') {
-            // Molten Lava River: Drifting dark cooled basalt crust plates
-            for (let c = 0; c < 10; c++) {
-                const k = Math.floor((time * 6 + c * 6.3) % (totalSamples - 2));
-                const s = samples[k];
-                if (!s) continue;
-                const off = Math.sin(c * 2.7) * 0.26 * s.w;
-                const cx = s.x + s.nx * off;
-                const cy = s.y + s.ny * off;
-                ctx.fillStyle = 'rgba(28, 16, 12, 0.88)';
-                ctx.strokeStyle = 'rgba(255, 200, 40, 0.85)';
-                ctx.lineWidth = 1.2;
-                ctx.beginPath();
-                ctx.ellipse(cx, cy, 11 + (c % 3) * 4, 6 + (c % 2) * 3, Math.atan2(s.ty, s.tx), 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-            }
-        } else if (style === 'swamp') {
-            // Murky Bayou: Floating green duckweed mats along the edges
-            ctx.fillStyle = 'rgba(95, 148, 52, 0.72)';
-            for (let d = 4; d < totalSamples - 4; d += 5) {
-                const s = samples[d];
-                const side = (d % 2 === 0 ? 1 : -1) * (0.34 * s.w);
-                ctx.beginPath();
-                ctx.arc(s.x + s.nx * side, s.y + s.ny * side, 6 + (d % 4) * 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        } else if (style === 'acid') {
-            // Bio-Mutagen Coolant Conduit: Rising neon bubbles & containment rings
-            ctx.fillStyle = 'rgba(210, 255, 120, 0.85)';
-            for (let b = 0; b < 14; b++) {
-                const k = Math.floor((time * 10 + b * 4.5) % (totalSamples - 1));
-                const s = samples[k];
-                if (!s) continue;
-                const off = Math.cos(b * 3.1 + time) * 0.28 * s.w;
-                ctx.beginPath();
-                ctx.arc(s.x + s.nx * off, s.y + s.ny * off, 2.5 + (b % 3), 0, Math.PI * 2);
-                ctx.fill();
-            }
-        } else if (style === 'blood_river') {
-            // Sanguine River of Blood: Clotting crimson eddies
-            ctx.strokeStyle = 'rgba(255, 120, 135, 0.65)';
-            ctx.lineWidth = 1.6;
-            for (let e = 6; e < totalSamples - 6; e += 10) {
-                const s = samples[e];
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, 8 + Math.sin(time * 2 + e) * 3, 0, Math.PI * 1.5);
-                ctx.stroke();
-            }
+        // Dedicated procedural renderers for unique waterway physics & fluid dynamics
+        switch (style) {
+            case 'blood_river':
+                this.drawSplineBloodRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'lava':
+                this.drawSplineLavaRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'ocean':
+                this.drawSplineRapidsRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'swamp':
+                this.drawSplineSwampRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'concrete_canal':
+                this.drawSplineCanalRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'acid':
+                this.drawSplineCoolantConduit(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'moat_stakes':
+                this.drawSplineMoatRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            default:
+                this.drawSplineAlpineStream(el, ctx, samples, time, opacity, intensity, qty);
+                break;
         }
 
-        ctx.restore();
-
-        // Outer Bank Palisade Stakes for Castle Moat
-        if (style === 'moat_stakes') {
-            ctx.fillStyle = 'rgba(78, 52, 32, 0.92)';
-            ctx.strokeStyle = 'rgba(28, 18, 10, 0.9)';
-            ctx.lineWidth = 1.2;
-            for (let i = 3; i < totalSamples - 3; i += 4) {
-                const s = samples[i];
-                const hw = s.w * 0.48;
-                [-1, 1].forEach(dir => {
-                    const sx = s.x + s.nx * hw * dir;
-                    const sy = s.y + s.ny * hw * dir;
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, 4.2, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
-                });
-            }
-        }
-
-        // 3. When Selected: Draw Subtle Skeleton Guide & Flow Direction Chevrons
+        // Selection Guide & Skeleton Overlay
         if (el.id === this.selectedElementId && !this.isLocked) {
             ctx.save();
             this.traceSplineRibbonPath(ctx, samples, 1.0);
@@ -4488,6 +5110,769 @@ class LivingElementsEngine {
         }
     }
 
+    // ------------------------------------------------------------------------
+    // BESPOKE WATERWAY RENDERERS
+    // ------------------------------------------------------------------------
+
+    drawSplineBloodRiver(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Dried, clotted, congealed outer banks (liver-maroon to black gore)
+        this.traceSplineRibbonPath(ctx, samples, 1.08);
+        ctx.fillStyle = `rgba(38, 4, 8, ${opacity * 0.95})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.98);
+        ctx.fillStyle = `rgba(74, 8, 14, ${opacity * 0.92})`;
+        ctx.fill();
+
+        // 2. Viscous arterial blood core flow
+        this.traceSplineRibbonPath(ctx, samples, 0.82);
+        ctx.fillStyle = `rgba(132, 10, 20, ${opacity * 0.95})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.58);
+        ctx.fillStyle = `rgba(178, 16, 28, ${opacity * 0.98})`;
+        ctx.fill();
+
+        // 3. Branching capillary tendrils reaching out from the banks onto the terrain
+        ctx.save();
+        ctx.strokeStyle = `rgba(140, 12, 22, ${opacity * 0.75})`;
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = 'round';
+        for (let i = 4; i < totalSamples - 4; i += 6) {
+            const s = samples[i];
+            const side = (i % 2 === 0 ? 1 : -1);
+            const hw = (s.w * 0.52);
+            const bx = s.x + s.nx * hw * side;
+            const by = s.y + s.ny * hw * side;
+            const branchLen = 14 + (i % 5) * 5;
+            const bAng = Math.atan2(s.ny * side, s.nx * side) + Math.sin(i * 1.7) * 0.45;
+            const midX = bx + Math.cos(bAng) * (branchLen * 0.55);
+            const midY = by + Math.sin(bAng) * (branchLen * 0.55);
+            const endX = bx + Math.cos(bAng + 0.3) * branchLen;
+            const endY = by + Math.sin(bAng + 0.3) * branchLen;
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.quadraticCurveTo(midX, midY, endX, endY);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // 4. Clip to River Channel for Internal Dynamics (Clots, Floating Skulls, Froth)
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.95);
+        ctx.clip();
+
+        // A. Viscous dark coagulated blood clots and scabs tumbling downstream
+        const clotCount = Math.max(12, Math.round(26 * qty));
+        for (let c = 0; c < clotCount; c++) {
+            const speed = 7 + (c % 5) * 2.8;
+            const k = Math.floor((time * speed + c * 11.7) % (totalSamples - 2));
+            const s = samples[k];
+            if (!s) continue;
+            const vOff = Math.sin(c * 2.3 + time * 0.4) * 0.32 * s.w;
+            const cx = s.x + s.nx * vOff;
+            const cy = s.y + s.ny * vOff;
+            const cr = 4 + (c % 4) * 2.2;
+            const clotAng = time * (1.5 + (c % 3)) + c;
+
+            // Clot body
+            ctx.fillStyle = 'rgba(28, 4, 8, 0.95)';
+            ctx.strokeStyle = 'rgba(88, 12, 18, 0.85)';
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, cr * 1.3, cr * 0.8, clotAng, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Wet glistening specular highlight
+            ctx.fillStyle = 'rgba(255, 180, 190, 0.70)';
+            ctx.beginPath();
+            ctx.arc(cx - cr * 0.3, cy - cr * 0.3, cr * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // B. Bobbing Bleached Human Skulls & Rib Bones Floating Downstream
+        const skullCount = Math.max(2, Math.round(5 * qty));
+        for (let sk = 0; sk < skullCount; sk++) {
+            const speed = 5.5 + (sk % 3) * 1.8;
+            const k = Math.floor((time * speed + sk * 19.3) % (totalSamples - 3));
+            const s = samples[k];
+            if (!s) continue;
+            const bob = Math.sin(time * 2.2 + sk * 1.9) * 2.5;
+            const vOff = Math.sin(sk * 3.1) * 0.22 * s.w;
+            const skX = s.x + s.nx * vOff;
+            const skY = s.y + s.ny * vOff + bob;
+            const skRot = Math.atan2(s.ty, s.tx) + Math.sin(time * 1.5 + sk) * 0.25;
+
+            ctx.save();
+            ctx.translate(skX, skY);
+            ctx.rotate(skRot);
+
+            // Bleached ivory skull cranium
+            ctx.fillStyle = '#e2e8f0';
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.arc(0, -2, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Maxilla & teeth
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(-3, 3, 6, 4);
+            ctx.strokeRect(-3, 3, 6, 4);
+
+            // Dark eye sockets & nasal cavity
+            ctx.fillStyle = '#1e1b4b';
+            ctx.beginPath();
+            ctx.ellipse(-2.5, -1, 1.8, 2.2, -0.2, 0, Math.PI * 2);
+            ctx.ellipse(2.5, -1, 1.8, 2.2, 0.2, 0, Math.PI * 2);
+            ctx.arc(0, 2, 1.0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Wet gore wash across top of skull
+            ctx.fillStyle = 'rgba(165, 16, 28, 0.45)';
+            ctx.beginPath();
+            ctx.arc(0, -3, 6, Math.PI * 0.8, Math.PI * 2.2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Accompanying curved ivory rib bone nearby
+            const ribS = samples[Math.max(0, k - 2)];
+            if (ribS) {
+                const ribX = ribS.x + ribS.nx * (vOff + 10);
+                const ribY = ribS.y + ribS.ny * (vOff + 10);
+                ctx.strokeStyle = '#f1f5f9';
+                ctx.lineWidth = 1.8;
+                ctx.beginPath();
+                ctx.arc(ribX, ribY, 9, skRot, skRot + Math.PI * 0.7);
+                ctx.stroke();
+            }
+        }
+
+        // C. Frothy Crimson Bubble Clusters & Viscous Surface Foam
+        ctx.strokeStyle = `rgba(255, 145, 160, ${0.45 * intensity})`;
+        ctx.fillStyle = `rgba(255, 110, 130, ${0.35 * intensity})`;
+        ctx.lineWidth = 1.2;
+        for (let f = 0; f < 18; f++) {
+            const k = Math.floor((time * 9 + f * 5.7) % (totalSamples - 2));
+            const s = samples[k];
+            if (!s) continue;
+            const side = Math.sin(f * 2.8) * 0.38 * s.w;
+            const fx = s.x + s.nx * side;
+            const fy = s.y + s.ny * side;
+            const fr = 2.5 + (f % 3) * 1.5;
+            ctx.beginPath();
+            ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    drawSplineLavaRiver(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Scorched Black Basalt Banks with Glowing Thermal Stress Cracks
+        this.traceSplineRibbonPath(ctx, samples, 1.12);
+        ctx.fillStyle = 'rgba(20, 14, 12, 0.98)';
+        ctx.fill();
+
+        // Bank thermal fracture lines glowing red-hot
+        ctx.save();
+        for (let i = 2; i < totalSamples - 2; i += 4) {
+            const s = samples[i];
+            [-1, 1].forEach(side => {
+                const hw = s.w * 0.54 * side;
+                const bx = s.x + s.nx * hw;
+                const by = s.y + s.ny * hw;
+                const pulse = 0.5 + 0.5 * Math.sin(time * 3 + i);
+                ctx.strokeStyle = `rgba(255, ${Math.round(80 + pulse * 60)}, 10, ${0.75 * pulse})`;
+                ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                ctx.moveTo(bx, by);
+                ctx.lineTo(bx + s.nx * (12 * side), by + s.ny * (12 * side));
+                ctx.stroke();
+            });
+        }
+        ctx.restore();
+
+        // 2. Multi-Pass Molten Magma Core
+        this.traceSplineRibbonPath(ctx, samples, 0.96);
+        ctx.fillStyle = `rgba(185, 30, 0, ${opacity * 0.95})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.80);
+        ctx.fillStyle = `rgba(245, 95, 0, ${opacity * 0.98})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.55);
+        ctx.fillStyle = 'rgba(255, 215, 45, 0.98)';
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.28);
+        ctx.fillStyle = 'rgba(255, 252, 210, 1.0)';
+        ctx.fill();
+
+        // 3. Clip to Lava Ribbon for Drifting Crust Plates & Bursting Magma Domes
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.94);
+        ctx.clip();
+
+        // A. Segmented Dark Basalt Crust Plates Drifting Downstream
+        const plateCount = Math.max(8, Math.round(18 * qty));
+        for (let p = 0; p < plateCount; p++) {
+            const speed = 4.5 + (p % 4) * 1.8;
+            const k = Math.floor((time * speed + p * 8.7) % (totalSamples - 2));
+            const s = samples[k];
+            if (!s) continue;
+            const off = Math.sin(p * 2.7) * 0.28 * s.w;
+            const px = s.x + s.nx * off;
+            const py = s.y + s.ny * off;
+            const pRot = Math.atan2(s.ty, s.tx);
+            const pr = 10 + (p % 4) * 5;
+
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(pRot);
+
+            // Dark polygonal crust plate
+            ctx.fillStyle = 'rgba(28, 18, 14, 0.94)';
+            ctx.strokeStyle = 'rgba(255, 140, 20, 0.85)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            const sides = 5 + (p % 3);
+            for (let sd = 0; sd < sides; sd++) {
+                const sa = (sd / sides) * Math.PI * 2;
+                const rRand = pr * (0.8 + 0.3 * Math.sin(sd * 2 + p));
+                const sx = Math.cos(sa) * rRand;
+                const sy = Math.sin(sa) * (rRand * 0.65);
+                if (sd === 0) ctx.moveTo(sx, sy);
+                else ctx.lineTo(sx, sy);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Plate internal cooling stress fissures
+            ctx.strokeStyle = 'rgba(255, 100, 10, 0.70)';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(-pr * 0.4, 0);
+            ctx.lineTo(pr * 0.4, 0);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // B. Bursting Magma Domes & Ballistic Sparks
+        const sparkCount = Math.max(8, Math.round(22 * qty));
+        for (let sp = 0; sp < sparkCount; sp++) {
+            const speed = 14 + (sp % 4) * 6;
+            const k = Math.floor((time * speed + sp * 6.1) % (totalSamples - 2));
+            const s = samples[k];
+            if (!s) continue;
+            const jitterX = Math.sin(time * 8 + sp) * 6;
+            const jitterY = Math.cos(time * 9 + sp) * 6;
+            const vOff = Math.sin(sp * 1.9) * 0.35 * s.w;
+            const spX = s.x + s.nx * vOff + jitterX;
+            const spY = s.y + s.ny * vOff + jitterY;
+            const spR = 1.5 + (sp % 3) * 0.8;
+
+            ctx.fillStyle = (sp % 2 === 0) ? '#fffbeb' : '#f97316';
+            ctx.beginPath();
+            ctx.arc(spX, spY, spR, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    drawSplineRapidsRiver(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Deep Teal-Slate Glacial Torrent
+        this.traceSplineRibbonPath(ctx, samples, 1.0);
+        ctx.fillStyle = `rgba(24, 76, 102, ${opacity * 0.82})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.85);
+        ctx.fillStyle = `rgba(18, 98, 138, ${opacity * 0.88})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.65);
+        ctx.fillStyle = `rgba(12, 54, 86, ${opacity * 0.94})`;
+        ctx.fill();
+
+        // 2. Clip for Rapids Cavitation Lines & Mid-Stream Boulders with V-Wakes
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.96);
+        ctx.clip();
+
+        // High-velocity churning whitewater surface streamlines
+        ctx.strokeStyle = `rgba(240, 252, 255, ${0.48 * intensity})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        const lanes = [-0.35, -0.18, 0, 0.18, 0.35];
+        lanes.forEach((lane, lIdx) => {
+            const laneSpeed = 22 + (lIdx % 2) * 6;
+            for (let b = 0; b < totalSamples - 4; b += 3) {
+                const k = Math.floor((b + time * laneSpeed) % (totalSamples - 3));
+                const s1 = samples[k];
+                const s2 = samples[k + 2];
+                if (!s1 || !s2) continue;
+                const wave1 = Math.sin(b * 0.8 + time * 6 + lIdx) * 0.06;
+                const wave2 = Math.cos(b * 0.8 + time * 6 + lIdx) * 0.06;
+                ctx.moveTo(s1.x + s1.nx * (lane + wave1) * s1.w, s1.y + s1.ny * (lane + wave1) * s1.w);
+                ctx.lineTo(s2.x + s2.nx * (lane + wave2) * s2.w, s2.y + s2.ny * (lane + wave2) * s2.w);
+            }
+        });
+        ctx.stroke();
+
+        // Wet Granite Boulders with violent V-shaped rooster-tail standing waves downstream
+        for (let b = 6; b < totalSamples - 6; b += 10) {
+            const s = samples[b];
+            const bOffset = ((b % 3) - 1) * 0.24 * s.w;
+            const bx = s.x + s.nx * bOffset;
+            const by = s.y + s.ny * bOffset;
+            const br = Math.max(7, s.w * 0.12);
+            const flowAng = Math.atan2(s.ty, s.tx);
+
+            // Submerged base shadow
+            ctx.fillStyle = 'rgba(8, 24, 36, 0.85)';
+            ctx.beginPath();
+            ctx.arc(bx + 2, by + 2, br * 1.15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Granite boulder
+            ctx.fillStyle = '#475569';
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.ellipse(bx, by, br * 1.25, br * 0.85, flowAng, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Upstream stagnation point crest
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.lineWidth = 2.4;
+            ctx.beginPath();
+            ctx.arc(bx, by, br * 1.1, flowAng + Math.PI * 0.65, flowAng + Math.PI * 1.35);
+            ctx.stroke();
+
+            // Downstream V-shaped rooster-tail standing wave foam plume
+            ctx.fillStyle = 'rgba(240, 250, 255, 0.88)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            const vLen = br * 2.8;
+            const vSpread = br * 1.4;
+            ctx.moveTo(bx + Math.cos(flowAng + 0.6) * br, by + Math.sin(flowAng + 0.6) * br);
+            ctx.lineTo(bx + Math.cos(flowAng) * vLen + Math.cos(flowAng + Math.PI * 0.5) * vSpread, by + Math.sin(flowAng) * vLen + Math.sin(flowAng + Math.PI * 0.5) * vSpread);
+            ctx.lineTo(bx + Math.cos(flowAng) * (vLen * 0.85), by + Math.sin(flowAng) * (vLen * 0.85));
+            ctx.lineTo(bx + Math.cos(flowAng) * vLen - Math.cos(flowAng + Math.PI * 0.5) * vSpread, by + Math.sin(flowAng) * vLen - Math.sin(flowAng + Math.PI * 0.5) * vSpread);
+            ctx.lineTo(bx + Math.cos(flowAng - 0.6) * br, by + Math.sin(flowAng - 0.6) * br);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    drawSplineSwampRiver(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Muddy Swamp Banks & Peat Shorelines
+        this.traceSplineRibbonPath(ctx, samples, 1.05);
+        ctx.fillStyle = `rgba(32, 28, 16, ${opacity * 0.92})`;
+        ctx.fill();
+
+        // 2. Murky Stagnant Olive Peat Water
+        this.traceSplineRibbonPath(ctx, samples, 0.98);
+        ctx.fillStyle = `rgba(45, 58, 28, ${opacity * 0.85})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.75);
+        ctx.fillStyle = `rgba(26, 36, 18, ${opacity * 0.92})`;
+        ctx.fill();
+
+        // 3. Sunken Cypress Root Knees & Deadfall Logs
+        ctx.save();
+        ctx.fillStyle = '#271c14';
+        ctx.strokeStyle = '#18120d';
+        ctx.lineWidth = 1.2;
+        for (let i = 4; i < totalSamples - 4; i += 7) {
+            const s = samples[i];
+            const side = (i % 2 === 0 ? 1 : -1);
+            const kx = s.x + s.nx * (s.w * 0.42 * side);
+            const ky = s.y + s.ny * (s.w * 0.42 * side);
+            ctx.beginPath();
+            ctx.ellipse(kx, ky, 8, 4.5, Math.atan2(s.ty, s.tx) + 0.6 * side, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // 4. Clip for Floating Duckweed & Iridescent Oil Sheen Bands
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.94);
+        ctx.clip();
+
+        // Floating Green Duckweed Pod Clusters
+        ctx.fillStyle = 'rgba(102, 162, 54, 0.88)';
+        ctx.strokeStyle = 'rgba(64, 112, 32, 0.85)';
+        ctx.lineWidth = 0.8;
+        for (let d = 3; d < totalSamples - 3; d += 4) {
+            const s = samples[d];
+            const side = (Math.sin(d * 3.1) > 0 ? 1 : -1) * (0.32 * s.w);
+            const bob = Math.sin(time * 1.4 + d) * 2;
+            const dx = s.x + s.nx * side + bob;
+            const dy = s.y + s.ny * side;
+            for (let pod = 0; pod < 4; pod++) {
+                const px = dx + Math.cos(pod * 1.5) * 5;
+                const py = dy + Math.sin(pod * 1.5) * 4;
+                ctx.beginPath();
+                ctx.arc(px, py, 2.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        // Swelling Methane Marsh Gas Bubbles
+        for (let b = 0; b < 10; b++) {
+            const p = ((time * 0.35 + b * 0.23) % 1);
+            const k = Math.floor((b * 5.7) % (totalSamples - 2));
+            const s = samples[k];
+            if (!s) continue;
+            const bx = s.x + s.nx * (Math.sin(b * 2.1) * 0.28 * s.w);
+            const by = s.y + s.ny * (Math.sin(b * 2.1) * 0.28 * s.w);
+            const br = 3 + p * 8;
+            const alpha = (1 - p) * 0.75;
+            ctx.strokeStyle = `rgba(180, 220, 140, ${alpha})`;
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(bx, by, br, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    drawSplineCanalRiver(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Reinforced Stepped Concrete Canal Retaining Walls
+        this.traceSplineRibbonPath(ctx, samples, 1.20);
+        ctx.fillStyle = 'rgba(75, 85, 99, 0.95)';
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 1.08);
+        ctx.fillStyle = 'rgba(107, 114, 128, 0.95)';
+        ctx.fill();
+
+        // Concrete wall expansion joints & drain weep holes
+        ctx.save();
+        ctx.strokeStyle = 'rgba(31, 41, 55, 0.85)';
+        ctx.lineWidth = 1.8;
+        for (let i = 2; i < totalSamples - 2; i += 6) {
+            const s = samples[i];
+            [-1, 1].forEach(side => {
+                const w1 = s.w * 0.54 * side;
+                const w2 = s.w * 0.60 * side;
+                ctx.beginPath();
+                ctx.moveTo(s.x + s.nx * w1, s.y + s.ny * w1);
+                ctx.lineTo(s.x + s.nx * w2, s.y + s.ny * w2);
+                ctx.stroke();
+            });
+        }
+        ctx.restore();
+
+        // 2. High-Velocity Turbid Urban Stormwater
+        this.traceSplineRibbonPath(ctx, samples, 0.96);
+        ctx.fillStyle = `rgba(45, 68, 78, ${opacity * 0.88})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.75);
+        ctx.fillStyle = `rgba(28, 48, 58, ${opacity * 0.92})`;
+        ctx.fill();
+
+        // 3. Clip for Longitudinal Hydraulic Jump Standing Waves & Floating Flotsam
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.92);
+        ctx.clip();
+
+        // Diamond-patterned hydraulic standing waves
+        ctx.strokeStyle = 'rgba(186, 230, 253, 0.42)';
+        ctx.lineWidth = 1.5;
+        const waveSpeed = 24 * (el.config.speed || 1.0);
+        for (let lane of [-0.25, 0, 0.25]) {
+            ctx.beginPath();
+            for (let i = 0; i < totalSamples - 2; i += 2) {
+                const k = Math.floor((i + time * waveSpeed) % (totalSamples - 1));
+                const s = samples[k];
+                if (!s) continue;
+                const waveY = Math.sin(i * 0.6 + time * 6) * 4;
+                const wx = s.x + s.nx * (lane * s.w + waveY);
+                const wy = s.y + s.ny * (lane * s.w + waveY);
+                if (i === 0) ctx.moveTo(wx, wy);
+                else ctx.lineTo(wx, wy);
+            }
+            ctx.stroke();
+        }
+
+        // Floating urban litter (soda can, crumpled paper)
+        for (let lit = 0; lit < 4; lit++) {
+            const lk = Math.floor((time * 18 + lit * 14.3) % (totalSamples - 2));
+            const ls = samples[lk];
+            if (!ls) continue;
+            const lx = ls.x + ls.nx * (Math.sin(lit * 2.2) * 0.22 * ls.w);
+            const ly = ls.y + ls.ny * (Math.sin(lit * 2.2) * 0.22 * ls.w);
+            ctx.fillStyle = (lit % 2 === 0) ? '#ef4444' : '#f59e0b';
+            ctx.fillRect(lx - 3, ly - 2, 6, 4);
+        }
+
+        ctx.restore();
+    }
+
+    drawSplineCoolantConduit(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Armored Gunmetal Conduit Housing with Bulkhead Rings
+        this.traceSplineRibbonPath(ctx, samples, 1.18);
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.98)';
+        ctx.fill();
+
+        // Armored bulkhead clamps & yellow/black hazard chevrons
+        ctx.save();
+        for (let i = 3; i < totalSamples - 3; i += 8) {
+            const s = samples[i];
+            const pRot = Math.atan2(s.ty, s.tx);
+            ctx.save();
+            ctx.translate(s.x, s.y);
+            ctx.rotate(pRot);
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(-4, -s.w * 0.58, 8, s.w * 1.16);
+            ctx.fillStyle = '#0f172a';
+            for (let ch = -3; ch <= 3; ch++) {
+                ctx.fillRect(-3, ch * (s.w * 0.16), 6, 6);
+            }
+            ctx.restore();
+        }
+        ctx.restore();
+
+        // 2. High-Pressure Cherenkov / Bio-Mutagen Coolant Fluid
+        this.traceSplineRibbonPath(ctx, samples, 0.92);
+        ctx.fillStyle = `rgba(16, 185, 129, ${opacity * 0.92})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.65);
+        ctx.fillStyle = 'rgba(52, 211, 153, 0.98)';
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.32);
+        ctx.fillStyle = 'rgba(209, 250, 229, 1.0)';
+        ctx.fill();
+
+        // 3. Clip for High-Pressure Cavitation Shockwave Rings & Ionization Arcs
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.88);
+        ctx.clip();
+
+        // Cavitation pressure shockwave rings racing downstream
+        const ringCount = Math.max(4, Math.round(12 * qty));
+        for (let r = 0; r < ringCount; r++) {
+            const speed = 28 * (el.config.speed || 1.0);
+            const k = Math.floor((time * speed + r * 7.5) % (totalSamples - 2));
+            const s = samples[k];
+            if (!s) continue;
+            const pRot = Math.atan2(s.ty, s.tx);
+            ctx.save();
+            ctx.translate(s.x, s.y);
+            ctx.rotate(pRot);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.lineWidth = 2.0;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 5, s.w * 0.42, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Crackling blue-white ionization electrical arcs
+        if (Math.sin(time * 12) > 0.4) {
+            const arcK = Math.floor((time * 15) % (totalSamples - 4));
+            const s1 = samples[arcK];
+            const s2 = samples[arcK + 3];
+            if (s1 && s2) {
+                ctx.strokeStyle = '#67e8f9';
+                ctx.lineWidth = 1.6;
+                ctx.beginPath();
+                ctx.moveTo(s1.x - s1.nx * (s1.w * 0.35), s1.y - s1.ny * (s1.w * 0.35));
+                const midX = (s1.x + s2.x) * 0.5 + (Math.random() - 0.5) * 12;
+                const midY = (s1.y + s2.y) * 0.5 + (Math.random() - 0.5) * 12;
+                ctx.lineTo(midX, midY);
+                ctx.lineTo(s2.x + s2.nx * (s2.w * 0.35), s2.y + s2.ny * (s2.w * 0.35));
+                ctx.stroke();
+            }
+        }
+
+        ctx.restore();
+    }
+
+    drawSplineMoatRiver(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Muddy Silt Banks
+        this.traceSplineRibbonPath(ctx, samples, 1.08);
+        ctx.fillStyle = `rgba(45, 36, 24, ${opacity * 0.95})`;
+        ctx.fill();
+
+        // 2. Stagnant Muddy Castle Moat Water
+        this.traceSplineRibbonPath(ctx, samples, 0.98);
+        ctx.fillStyle = `rgba(38, 52, 34, ${opacity * 0.88})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.72);
+        ctx.fillStyle = `rgba(22, 32, 20, ${opacity * 0.92})`;
+        ctx.fill();
+
+        // 3. Outer & Inner Bank Double-Staggered Sharpened Defensive Palisade Stakes
+        ctx.save();
+        ctx.fillStyle = '#451a03';
+        ctx.strokeStyle = '#1c1917';
+        ctx.lineWidth = 1.3;
+        for (let i = 2; i < totalSamples - 2; i += 3) {
+            const s = samples[i];
+            [-1, 1].forEach(side => {
+                const hw = s.w * 0.48 * side;
+                const sx = s.x + s.nx * hw;
+                const sy = s.y + s.ny * hw;
+                const stakeR = 4.2;
+
+                // Palisade stake with chisel point
+                ctx.beginPath();
+                ctx.arc(sx, sy, stakeR, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Chisel cut shadow
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 1.0;
+                ctx.beginPath();
+                ctx.moveTo(sx - stakeR * 0.6, sy - stakeR * 0.6);
+                ctx.lineTo(sx + stakeR * 0.6, sy + stakeR * 0.6);
+                ctx.stroke();
+            });
+        }
+        ctx.restore();
+
+        // 4. Clip for Floating Arrow Shafts & Slow Silt Whirlpools
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.88);
+        ctx.clip();
+
+        // Floating broken wooden arrow shafts
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 2.0;
+        for (let a = 0; a < 6; a++) {
+            const ak = Math.floor((time * 2 + a * 9.3) % (totalSamples - 2));
+            const as = samples[ak];
+            if (!as) continue;
+            const ax = as.x + as.nx * (Math.sin(a * 2.4) * 0.25 * as.w);
+            const ay = as.y + as.ny * (Math.sin(a * 2.4) * 0.25 * as.w);
+            const aRot = Math.atan2(as.ty, as.tx) + 0.4;
+            ctx.beginPath();
+            ctx.moveTo(ax - Math.cos(aRot) * 9, ay - Math.sin(aRot) * 9);
+            ctx.lineTo(ax + Math.cos(aRot) * 9, ay + Math.sin(aRot) * 9);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    drawSplineAlpineStream(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Feathered Natural Stream Bed
+        this.traceSplineRibbonPath(ctx, samples, 1.0);
+        ctx.fillStyle = `rgba(24, 82, 118, ${opacity * 0.68})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.86);
+        ctx.fillStyle = `rgba(16, 68, 104, ${opacity * 0.82})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.68);
+        ctx.fillStyle = `rgba(10, 48, 78, ${opacity * 0.90})`;
+        ctx.fill();
+
+        // 2. Clip for Submerged Multi-Colored River Pebbles & Cellular Sunlit Caustics
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.94);
+        ctx.clip();
+
+        // Submerged smooth river pebbles on the stream bed
+        const pebbleColors = ['#94a3b8', '#64748b', '#b91c1c', '#d97706', '#475569', '#cbd5e1'];
+        for (let p = 2; p < totalSamples - 2; p += 3) {
+            const s = samples[p];
+            const pSeed = p * 7.31;
+            const pOff = Math.sin(pSeed) * 0.35 * s.w;
+            const px = s.x + s.nx * pOff;
+            const py = s.y + s.ny * pOff;
+            const pr = 3.5 + (p % 4) * 1.5;
+            ctx.fillStyle = pebbleColors[p % pebbleColors.length];
+            ctx.beginPath();
+            ctx.ellipse(px, py, pr * 1.2, pr * 0.8, pSeed, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Interlocking Sunlit Caustic Network Moving Downstream
+        const causticAlpha = Math.min(0.95, 0.28 * intensity);
+        ctx.strokeStyle = `rgba(200, 245, 255, ${causticAlpha})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        const lanes = [-0.32, -0.16, 0, 0.16, 0.32];
+        lanes.forEach((vLane, lIdx) => {
+            const speedShift = time * (10 + (lIdx % 2) * 3);
+            for (let baseK = 0; baseK < totalSamples - 4; baseK += 4) {
+                const k = Math.floor((baseK + speedShift) % (totalSamples - 3));
+                const s1 = samples[k];
+                const s2 = samples[k + 2];
+                if (!s1 || !s2) continue;
+                const wave1 = Math.sin(baseK * 0.6 + time * 2.8 + lIdx) * 0.08;
+                const wave2 = Math.cos(baseK * 0.6 + time * 2.5 + lIdx) * 0.08;
+                ctx.moveTo(s1.x + s1.nx * ((vLane + wave1) * s1.w), s1.y + s1.ny * ((vLane + wave1) * s1.w));
+                ctx.lineTo(s2.x + s2.nx * ((vLane + wave2) * s2.w), s2.y + s2.ny * ((vLane + wave2) * s2.w));
+            }
+        });
+        ctx.stroke();
+
+        // Floating Autumn Leaves
+        const leafColors = ['#dc2626', '#ea580c', '#f59e0b', '#84cc16'];
+        for (let lf = 0; lf < 6; lf++) {
+            const lk = Math.floor((time * 12 + lf * 11.2) % (totalSamples - 2));
+            const ls = samples[lk];
+            if (!ls) continue;
+            const lx = ls.x + ls.nx * (Math.sin(lf * 2.3 + time * 0.5) * 0.28 * ls.w);
+            const ly = ls.y + ls.ny * (Math.sin(lf * 2.3 + time * 0.5) * 0.28 * ls.w);
+            const lRot = time * 2 + lf;
+            ctx.save();
+            ctx.translate(lx, ly);
+            ctx.rotate(lRot);
+            ctx.fillStyle = leafColors[lf % leafColors.length];
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 6, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        ctx.restore();
+    }
+
     /**
      * Renders a Custom Pond / Pool / Lake / Flooded Room using Perimeter Handles.
      * Uses a closed Catmull-Rom spline that interpolates smoothly through all node vertices
@@ -4509,7 +5894,7 @@ class LivingElementsEngine {
         }));
 
         ctx.beginPath();
-        const subSteps = rough > 0.02 ? 10 : 8;
+        const subSteps = rough > 0.02 ? 14 : 8;
 
         for (let i = 0; i < n; i++) {
             const p0 = pts[(i - 1 + n) % n];
@@ -4545,11 +5930,12 @@ class LivingElementsEngine {
 
                     const windowEnv = Math.sin(t * Math.PI);
                     const phase = (i * subSteps + s) * 0.78;
-                    const fbm = Math.sin(phase * 1.7 + i * 2.1) * 0.50
-                        + Math.cos(phase * 3.9 - i * 1.3) * 0.30
-                        + (1.0 - 2.0 * Math.abs(Math.sin(phase * 6.3 + i))) * 0.20;
+                    const fbm = Math.sin(phase * 1.7 + i * 2.1) * 0.44
+                        + Math.cos(phase * 3.9 - i * 1.3) * 0.28
+                        + Math.sin(phase * 7.5 + i * 3.4) * 0.16
+                        + (1.0 - 2.0 * Math.abs(Math.sin(phase * 12.3 + i))) * 0.12;
                     const spanLen = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
-                    const disp = rough * Math.min(26, spanLen * 0.16) * windowEnv * fbm;
+                    const disp = rough * Math.min(65, spanLen * 0.42) * windowEnv * fbm;
                     x += nx * disp;
                     y += ny * disp;
                 }
@@ -4603,183 +5989,27 @@ class LivingElementsEngine {
         const opacity = el.config.opacity !== undefined ? el.config.opacity : 0.82;
         const intensity = el.config.intensity !== undefined ? el.config.intensity : 1.0;
         const qty = el.config.quantity !== undefined ? el.config.quantity : 1.0;
-        const { waterRgb, deepRgb, causticRgb, foamRgb } = this.getWaterPalette(style);
 
-        // 0. Soft Shoreline Bank / Shallow Rim
-        this.traceSmoothClosedPolygon(ctx, nodes, 1.05);
-        ctx.fillStyle = style === 'blood_pool'
-            ? `rgba(55, 8, 14, ${opacity * 0.45})`
-            : `rgba(180, 165, 130, ${opacity * 0.28})`;
-        ctx.fill();
+        if (window.VTT_FX_DISPATCHER && window.VTT_FX_DISPATCHER.renderPolygon(el, ctx, nodes, time, opacity, intensity, qty)) return;
 
-        // 1. Feathered Multi-Layer Pond / Pool Body (Shallow shelf -> Mid water -> Deep basin)
-        this.traceSmoothClosedPolygon(ctx, nodes, 1.0);
-        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.72})`;
-        ctx.fill();
-
-        this.traceSmoothClosedPolygon(ctx, nodes, 0.94);
-        ctx.fillStyle = `rgba(${waterRgb}, ${opacity * 0.85})`;
-        ctx.fill();
-
-        this.traceSmoothClosedPolygon(ctx, nodes, 0.82);
-        ctx.fillStyle = `rgba(${deepRgb}, ${opacity * 0.90})`;
-        ctx.fill();
-
-        // 2. Clip to Pond Polygon for Caustics, Concentric Ripples & Lily Pads / Crystals / Runes
-        ctx.save();
-        this.traceSmoothClosedPolygon(ctx, nodes, 0.98);
-        ctx.clip();
-
-        const { minX, minY, width, height } = el.bbox;
-        const polyPts = this.sampleSmoothClosedPolygon(nodes, 5);
-        const causticAlpha = Math.min(0.95, 0.24 * intensity);
-        ctx.strokeStyle = `rgba(${causticRgb}, ${causticAlpha})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-
-        for (let y = minY + 20; y < minY + height - 20; y += 28) {
-            for (let x = minX + 20; x < minX + width - 20; x += 34) {
-                const wx = Math.sin(x * 0.03 + time * 1.8 + y * 0.02) * 7;
-                const wy = Math.cos(y * 0.03 + time * 1.5 + x * 0.02) * 5;
-                ctx.moveTo(x + wx, y + wy);
-                ctx.lineTo(x + wx + 16, y + wy + 3);
-            }
-        }
-        ctx.stroke();
-
-        // Concentric Expanding Pond Surface Ripple Rings
-        const rippleCenters = Math.max(3, Math.min(18, Math.round(6 * qty)));
-        for (let r = 0; r < rippleCenters; r++) {
-            const seed = (r + 1) * 4177;
-            const rx = minX + width * (0.2 + ((seed % 600) / 1000));
-            const ry = minY + height * (0.2 + (((seed * 7) % 600) / 1000));
-            const phase = (time * 0.45 + r * 0.37) % 1.0;
-            const maxR = 26 + (r % 3) * 12;
-            const curR = phase * maxR;
-            const alpha = (1 - phase) * 0.55 * intensity;
-
-            ctx.strokeStyle = `rgba(${foamRgb}, ${alpha})`;
-            ctx.lineWidth = 1.3;
-            ctx.beginPath();
-            ctx.arc(rx, ry, curR, 0, Math.PI * 2);
-            ctx.stroke();
+        // Dedicated procedural renderers for unique pool types
+        switch (style) {
+            case 'blood_pool':
+                this.drawPolygonBloodPool(el, ctx, nodes, time, opacity, intensity, qty);
+                break;
+            case 'cavern_pool':
+                this.drawPolygonCavernPool(el, ctx, nodes, time, opacity, intensity, qty);
+                break;
+            case 'ocean':
+            case 'tropical_reef':
+                this.drawPolygonOceanSurf(el, ctx, nodes, time, opacity, intensity, qty);
+                break;
+            default:
+                this.drawPolygonLilyPond(el, ctx, nodes, time, opacity, intensity, qty);
+                break;
         }
 
-        // Style-Specific Pond Details (Lily Pads & Lotus Flowers, Cavern Crystals, or Sacrificial Runes)
-        if (style === 'pond_lily' || style === 'stream' || style === 'swamp') {
-            const padSpacing = Math.max(36, Math.round(74 / Math.sqrt(qty)));
-            for (let py = minY + 32; py < minY + height - 32; py += padSpacing) {
-                for (let px = minX + 32; px < minX + width - 32; px += padSpacing) {
-                    const hash = Math.abs(Math.sin(px * 12.9898 + py * 78.233) * 43758.5453);
-                    const jx = px + ((hash % 1) - 0.5) * (padSpacing * 0.65);
-                    const jy = py + (((hash * 17) % 1) - 0.5) * (padSpacing * 0.65);
-                    if (!this.isPointInPolygon(jx, jy, polyPts)) continue;
-                    if ((hash % 1) > 0.58) continue;
-
-                    const padR = 9 + ((hash * 7) % 7);
-                    const notchAngle = (hash * Math.PI * 2) + Math.sin(time * 1.4 + hash) * 0.12;
-                    const bobX = jx + Math.sin(time * 1.5 + hash) * 1.8;
-                    const bobY = jy + Math.cos(time * 1.3 + hash) * 1.5;
-
-                    // Lily pad shadow
-                    ctx.fillStyle = 'rgba(4, 24, 18, 0.38)';
-                    ctx.beginPath();
-                    ctx.arc(bobX + 2, bobY + 2, padR, notchAngle + 0.25, notchAngle + Math.PI * 2 - 0.25);
-                    ctx.lineTo(bobX + 2, bobY + 2);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // Notched green lily pad
-                    ctx.fillStyle = (Math.floor(hash * 10) % 2 === 0) ? 'rgba(34, 138, 62, 0.92)' : 'rgba(52, 162, 74, 0.90)';
-                    ctx.beginPath();
-                    ctx.arc(bobX, bobY, padR, notchAngle + 0.25, notchAngle + Math.PI * 2 - 0.25);
-                    ctx.lineTo(bobX, bobY);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // Blooming pink/white lotus flower on every 3rd lily pad
-                    if (Math.floor(hash * 100) % 3 === 0) {
-                        ctx.fillStyle = (Math.floor(hash * 100) % 2 === 0) ? 'rgba(255, 165, 205, 0.95)' : 'rgba(255, 240, 248, 0.95)';
-                        for (let pet = 0; pet < 6; pet++) {
-                            const pa = (pet / 6) * Math.PI * 2 + time * 0.3;
-                            ctx.beginPath();
-                            ctx.ellipse(
-                                bobX + Math.cos(pa) * (padR * 0.28),
-                                bobY + Math.sin(pa) * (padR * 0.28),
-                                padR * 0.32,
-                                padR * 0.16,
-                                pa,
-                                0,
-                                Math.PI * 2
-                            );
-                            ctx.fill();
-                        }
-                        ctx.fillStyle = 'rgba(250, 204, 21, 0.95)';
-                        ctx.beginPath();
-                        ctx.arc(bobX, bobY, padR * 0.16, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-            }
-        } else if (style === 'cavern_pool') {
-            // Glowing submerged quartz crystal clusters inside the cavern pool
-            let cx = 0, cy = 0;
-            nodes.forEach(p => { cx += p.dx; cy += p.dy; });
-            cx /= nodes.length;
-            cy /= nodes.length;
-            const pulse = 0.7 + 0.3 * Math.sin(time * 2.6);
-            for (let c = 0; c < 6; c++) {
-                const ang = (c / 6) * Math.PI * 2 + 0.4;
-                const dist = 28 + (c % 2) * 32;
-                const gx = cx + Math.cos(ang) * dist;
-                const gy = cy + Math.sin(ang) * dist;
-                if (!this.isPointInPolygon(gx, gy, polyPts)) continue;
-
-                const glow = ctx.createRadialGradient(gx, gy, 1, gx, gy, 24);
-                glow.addColorStop(0, `rgba(0, 255, 240, ${0.75 * pulse})`);
-                glow.addColorStop(1, 'rgba(0, 180, 255, 0)');
-                ctx.fillStyle = glow;
-                ctx.beginPath();
-                ctx.arc(gx, gy, 24, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = 'rgba(185, 255, 255, 0.92)';
-                ctx.beginPath();
-                ctx.moveTo(gx, gy - 9);
-                ctx.lineTo(gx + 5, gy);
-                ctx.lineTo(gx, gy + 9);
-                ctx.lineTo(gx - 5, gy);
-                ctx.closePath();
-                ctx.fill();
-            }
-        } else if (style === 'blood_pool') {
-            // Sacrificial Runic Blood Pool: Submerged glowing crimson ritual circle
-            let cx = 0, cy = 0;
-            nodes.forEach(p => { cx += p.dx; cy += p.dy; });
-            cx /= nodes.length;
-            cy /= nodes.length;
-            const ringR = Math.min(width, height) * 0.24;
-            const pulse = 0.6 + 0.4 * Math.sin(time * 3.0);
-            ctx.strokeStyle = `rgba(255, 70, 90, ${0.65 * pulse})`;
-            ctx.lineWidth = 2.0;
-            ctx.beginPath();
-            ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.beginPath();
-            for (let p = 0; p < 5; p++) {
-                const a1 = (p * 4 * Math.PI) / 5 + time * 0.4;
-                const px = cx + Math.cos(a1) * ringR;
-                const py = cy + Math.sin(a1) * ringR;
-                if (p === 0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-            ctx.stroke();
-        }
-
-        ctx.restore();
-
-        // 3. Selection Outline
+        // Selection Outline
         if (el.id === this.selectedElementId && !this.isLocked) {
             ctx.save();
             this.traceSmoothClosedPolygon(ctx, nodes, 1.0);
@@ -4802,6 +6032,380 @@ class LivingElementsEngine {
         }
     }
 
+    // ------------------------------------------------------------------------
+    // BESPOKE POLYGON POOL RENDERERS
+    // ------------------------------------------------------------------------
+
+    drawPolygonBloodPool(el, ctx, nodes, time, opacity, intensity, qty) {
+        const { minX, minY, width, height } = el.bbox;
+        const polyPts = this.sampleSmoothClosedPolygon(nodes, 5);
+
+        // 1. Dried, congealed gore rim
+        this.traceSmoothClosedPolygon(ctx, nodes, 1.06);
+        ctx.fillStyle = `rgba(38, 4, 8, ${opacity * 0.95})`;
+        ctx.fill();
+
+        // 2. Multi-tier arterial crimson blood body
+        this.traceSmoothClosedPolygon(ctx, nodes, 1.0);
+        ctx.fillStyle = `rgba(110, 8, 18, ${opacity * 0.92})`;
+        ctx.fill();
+
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.92);
+        ctx.fillStyle = `rgba(148, 12, 22, ${opacity * 0.95})`;
+        ctx.fill();
+
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.78);
+        ctx.fillStyle = `rgba(182, 16, 30, ${opacity * 0.98})`;
+        ctx.fill();
+
+        // 3. Clip for Glowing Sacrificial Pentagram, Drifting Clots & Skulls
+        ctx.save();
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.98);
+        ctx.clip();
+
+        // Center calculation
+        let cx = 0, cy = 0;
+        nodes.forEach(p => { cx += p.dx; cy += p.dy; });
+        cx /= nodes.length;
+        cy /= nodes.length;
+
+        // Submerged Glowing Sacrificial Pentagram & Occult Arcane Runes
+        const ringR = Math.min(width, height) * 0.26;
+        const pulse = 0.6 + 0.4 * Math.sin(time * 2.8);
+        ctx.strokeStyle = `rgba(255, 55, 75, ${0.75 * pulse * intensity})`;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        for (let p = 0; p < 5; p++) {
+            const a1 = (p * 4 * Math.PI) / 5 + time * 0.35;
+            const px = cx + Math.cos(a1) * ringR;
+            const py = cy + Math.sin(a1) * ringR;
+            if (p === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // Runic boundary glyphs burning around the circle
+        ctx.fillStyle = `rgba(255, 120, 140, ${0.85 * pulse * intensity})`;
+        for (let g = 0; g < 8; g++) {
+            const ga = (g / 8) * Math.PI * 2 - time * 0.25;
+            const gx = cx + Math.cos(ga) * (ringR * 1.15);
+            const gy = cy + Math.sin(ga) * (ringR * 1.15);
+            ctx.fillRect(gx - 2, gy - 2, 4, 4);
+        }
+
+        // Drifting bleached human skulls orbiting the pool center
+        const skullCount = Math.max(2, Math.round(4 * qty));
+        for (let s = 0; s < skullCount; s++) {
+            const sa = time * 0.45 + (s / skullCount) * Math.PI * 2;
+            const sDist = ringR * (0.55 + 0.25 * Math.sin(s * 2.1));
+            const sx = cx + Math.cos(sa) * sDist;
+            const sy = cy + Math.sin(sa) * (sDist * 0.85);
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(sa + Math.PI * 0.5);
+
+            // Cranium
+            ctx.fillStyle = '#f1f5f9';
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.arc(0, -2, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Jaw
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(-3.5, 4, 7, 4);
+            ctx.strokeRect(-3.5, 4, 7, 4);
+
+            // Eye orbits
+            ctx.fillStyle = '#1e1b4b';
+            ctx.beginPath();
+            ctx.arc(-2.5, -1, 1.8, 0, Math.PI * 2);
+            ctx.arc(2.5, -1, 1.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // Concentric Viscous Crimson Ripple Rings & Bubbles
+        for (let r = 0; r < 5; r++) {
+            const phase = ((time * 0.4 + r * 0.22) % 1);
+            const curR = phase * (ringR * 1.6);
+            const alpha = (1 - phase) * 0.55 * intensity;
+            ctx.strokeStyle = `rgba(255, 120, 140, ${alpha})`;
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(cx, cy, curR, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    drawPolygonCavernPool(el, ctx, nodes, time, opacity, intensity, qty) {
+        const { minX, minY, width, height } = el.bbox;
+        const polyPts = this.sampleSmoothClosedPolygon(nodes, 5);
+
+        // 1. Damp Cavern Stone Shoreline
+        this.traceSmoothClosedPolygon(ctx, nodes, 1.05);
+        ctx.fillStyle = `rgba(24, 30, 42, ${opacity * 0.88})`;
+        ctx.fill();
+
+        // 2. Subterranean Sapphire-Indigo Basin
+        this.traceSmoothClosedPolygon(ctx, nodes, 1.0);
+        ctx.fillStyle = `rgba(12, 42, 82, ${opacity * 0.85})`;
+        ctx.fill();
+
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.92);
+        ctx.fillStyle = `rgba(8, 28, 64, ${opacity * 0.90})`;
+        ctx.fill();
+
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.78);
+        ctx.fillStyle = `rgba(4, 16, 42, ${opacity * 0.95})`;
+        ctx.fill();
+
+        // 3. Clip for Ceiling Water Drips, Submerged Quartz Crystals & Luminous Motes
+        ctx.save();
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.98);
+        ctx.clip();
+
+        // Submerged Glowing Multi-Faceted Quartz Crystals
+        let cx = 0, cy = 0;
+        nodes.forEach(p => { cx += p.dx; cy += p.dy; });
+        cx /= nodes.length;
+        cy /= nodes.length;
+
+        const pulse = 0.7 + 0.3 * Math.sin(time * 2.5);
+        const crystalCount = 6;
+        for (let c = 0; c < crystalCount; c++) {
+            const ang = (c / crystalCount) * Math.PI * 2 + 0.35;
+            const dist = 28 + (c % 2) * 36;
+            const gx = cx + Math.cos(ang) * dist;
+            const gy = cy + Math.sin(ang) * dist;
+            if (!this.isPointInPolygon(gx, gy, polyPts)) continue;
+
+            // Prismatic glow aura
+            const glow = ctx.createRadialGradient(gx, gy, 1, gx, gy, 28);
+            glow.addColorStop(0, `rgba(34, 211, 238, ${0.85 * pulse * intensity})`);
+            glow.addColorStop(0.5, `rgba(168, 85, 247, ${0.45 * pulse * intensity})`);
+            glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(gx, gy, 28, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Multi-faceted crystal prism shard
+            ctx.fillStyle = '#cffafe';
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.moveTo(gx, gy - 11);
+            ctx.lineTo(gx + 6, gy);
+            ctx.lineTo(gx, gy + 11);
+            ctx.lineTo(gx - 6, gy);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Ceiling Stalactite Water Droplets creating expanding ripple rings
+        for (let d = 0; d < 4; d++) {
+            const seed = (d + 1) * 7823;
+            const dx = minX + width * (0.25 + ((seed % 500) / 1000));
+            const dy = minY + height * (0.25 + (((seed * 3) % 500) / 1000));
+            const phase = (time * 0.45 + d * 0.28) % 1.0;
+            const maxR = 34 + (d % 3) * 12;
+            const curR = phase * maxR;
+            const alpha = (1 - phase) * 0.65 * intensity;
+
+            ctx.strokeStyle = `rgba(186, 230, 253, ${alpha})`;
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(dx, dy, curR, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    drawPolygonLilyPond(el, ctx, nodes, time, opacity, intensity, qty) {
+        const { minX, minY, width, height } = el.bbox;
+        const polyPts = this.sampleSmoothClosedPolygon(nodes, 5);
+
+        // 1. Natural Sandy / Grassy Rim
+        this.traceSmoothClosedPolygon(ctx, nodes, 1.05);
+        ctx.fillStyle = `rgba(168, 152, 118, ${opacity * 0.35})`;
+        ctx.fill();
+
+        // 2. Clear Emerald-Tinted Woodland Water
+        this.traceSmoothClosedPolygon(ctx, nodes, 1.0);
+        ctx.fillStyle = `rgba(18, 92, 112, ${opacity * 0.75})`;
+        ctx.fill();
+
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.94);
+        ctx.fillStyle = `rgba(12, 68, 88, ${opacity * 0.85})`;
+        ctx.fill();
+
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.82);
+        ctx.fillStyle = `rgba(8, 48, 66, ${opacity * 0.92})`;
+        ctx.fill();
+
+        // 3. Clip for Sunlit Caustics, Lily Pads & Blooming Lotus Blossoms
+        ctx.save();
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.98);
+        ctx.clip();
+
+        // Sunlit Caustic Web
+        const causticAlpha = Math.min(0.95, 0.22 * intensity);
+        ctx.strokeStyle = `rgba(185, 248, 240, ${causticAlpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let y = minY + 20; y < minY + height - 20; y += 28) {
+            for (let x = minX + 20; x < minX + width - 20; x += 34) {
+                const wx = Math.sin(x * 0.03 + time * 1.8 + y * 0.02) * 7;
+                const wy = Math.cos(y * 0.03 + time * 1.5 + x * 0.02) * 5;
+                ctx.moveTo(x + wx, y + wy);
+                ctx.lineTo(x + wx + 16, y + wy + 3);
+            }
+        }
+        ctx.stroke();
+
+        // 3D-Layered Green Lily Pads & Blooming Pink Lotus Flowers
+        const padSpacing = Math.max(36, Math.round(74 / Math.sqrt(qty)));
+        for (let py = minY + 32; py < minY + height - 32; py += padSpacing) {
+            for (let px = minX + 32; px < minX + width - 32; px += padSpacing) {
+                const hash = Math.abs(Math.sin(px * 12.9898 + py * 78.233) * 43758.5453);
+                const jx = px + ((hash % 1) - 0.5) * (padSpacing * 0.65);
+                const jy = py + (((hash * 17) % 1) - 0.5) * (padSpacing * 0.65);
+                if (!this.isPointInPolygon(jx, jy, polyPts)) continue;
+                if ((hash % 1) > 0.58) continue;
+
+                const padR = 9 + ((hash * 7) % 7);
+                const notchAngle = (hash * Math.PI * 2) + Math.sin(time * 1.4 + hash) * 0.12;
+                const bobX = jx + Math.sin(time * 1.5 + hash) * 1.8;
+                const bobY = jy + Math.cos(time * 1.3 + hash) * 1.5;
+
+                // Lily pad shadow on pond bed
+                ctx.fillStyle = 'rgba(4, 24, 18, 0.38)';
+                ctx.beginPath();
+                ctx.arc(bobX + 2, bobY + 2, padR, notchAngle + 0.25, notchAngle + Math.PI * 2 - 0.25);
+                ctx.lineTo(bobX + 2, bobY + 2);
+                ctx.closePath();
+                ctx.fill();
+
+                // Notched green lily pad
+                ctx.fillStyle = (Math.floor(hash * 10) % 2 === 0) ? 'rgba(34, 138, 62, 0.92)' : 'rgba(52, 162, 74, 0.90)';
+                ctx.beginPath();
+                ctx.arc(bobX, bobY, padR, notchAngle + 0.25, notchAngle + Math.PI * 2 - 0.25);
+                ctx.lineTo(bobX, bobY);
+                ctx.closePath();
+                ctx.fill();
+
+                // Radial veins on leaf
+                ctx.strokeStyle = 'rgba(22, 101, 52, 0.65)';
+                ctx.lineWidth = 0.8;
+                for (let v = 0; v < 5; v++) {
+                    const va = notchAngle + 0.6 + v * 0.9;
+                    ctx.beginPath();
+                    ctx.moveTo(bobX, bobY);
+                    ctx.lineTo(bobX + Math.cos(va) * (padR * 0.85), bobY + Math.sin(va) * (padR * 0.85));
+                    ctx.stroke();
+                }
+
+                // Blooming pink/white lotus flower on every 3rd lily pad
+                if (Math.floor(hash * 100) % 3 === 0) {
+                    ctx.fillStyle = (Math.floor(hash * 100) % 2 === 0) ? 'rgba(255, 165, 205, 0.95)' : 'rgba(255, 240, 248, 0.95)';
+                    for (let pet = 0; pet < 6; pet++) {
+                        const pa = (pet / 6) * Math.PI * 2 + time * 0.3;
+                        ctx.beginPath();
+                        ctx.ellipse(
+                            bobX + Math.cos(pa) * (padR * 0.28),
+                            bobY + Math.sin(pa) * (padR * 0.28),
+                            padR * 0.32,
+                            padR * 0.16,
+                            pa,
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.fill();
+                    }
+                    // Yellow stamen center
+                    ctx.fillStyle = 'rgba(250, 204, 21, 0.98)';
+                    ctx.beginPath();
+                    ctx.arc(bobX, bobY, padR * 0.16, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        ctx.restore();
+    }
+
+    drawPolygonOceanSurf(el, ctx, nodes, time, opacity, intensity, qty) {
+        const { minX, minY, width, height } = el.bbox;
+        const polyPts = this.sampleSmoothClosedPolygon(nodes, 5);
+
+        // 1. Wet Beach Sand Embankment
+        this.traceSmoothClosedPolygon(ctx, nodes, 1.05);
+        ctx.fillStyle = `rgba(217, 191, 143, ${opacity * 0.45})`;
+        ctx.fill();
+
+        // 2. Turquoise-to-Deep-Cobalt Ocean Surface
+        this.traceSmoothClosedPolygon(ctx, nodes, 1.0);
+        ctx.fillStyle = `rgba(14, 165, 233, ${opacity * 0.78})`;
+        ctx.fill();
+
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.92);
+        ctx.fillStyle = `rgba(2, 132, 199, ${opacity * 0.85})`;
+        ctx.fill();
+
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.78);
+        ctx.fillStyle = `rgba(3, 105, 161, ${opacity * 0.92})`;
+        ctx.fill();
+
+        // 3. Clip for Rolling White Breakers & Swash Lines
+        ctx.save();
+        this.traceSmoothClosedPolygon(ctx, nodes, 0.96);
+        ctx.clip();
+
+        // Rolling White Foam Breakers
+        const waveCount = 5;
+        for (let w = 0; w < waveCount; w++) {
+            const p = ((time * 0.3 + w / waveCount) % 1.0);
+            const waveY = minY + height * (0.15 + p * 0.75);
+            const waveH = Math.sin(p * Math.PI);
+
+            ctx.strokeStyle = `rgba(255, 255, 255, ${waveH * 0.85 * intensity})`;
+            ctx.lineWidth = 3.0 * waveH;
+            ctx.beginPath();
+            for (let x = minX; x < minX + width; x += 16) {
+                const swell = Math.sin(x * 0.04 + time * 2.5 + w) * 9;
+                if (x === minX) ctx.moveTo(x, waveY + swell);
+                else ctx.lineTo(x, waveY + swell);
+            }
+            ctx.stroke();
+
+            // Bubbles & sea spume behind breaker
+            ctx.fillStyle = `rgba(240, 249, 255, ${waveH * 0.45 * intensity})`;
+            for (let sp = 0; sp < 12; sp++) {
+                const spX = minX + (sp / 12) * width + Math.sin(time + sp) * 10;
+                const spY = waveY + Math.cos(time + sp) * 6;
+                ctx.beginPath();
+                ctx.arc(spX, spY, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        ctx.restore();
+    }
+
     // ========================================================================
     // 3B. DEFORMABLE FOREST / WOODS TOOL (Polygon Grove Fill & Curved Treeline)
     // ========================================================================
@@ -4816,6 +6420,8 @@ class LivingElementsEngine {
         const qty = Math.max(0.2, Math.min(4.0, cfg.quantity !== undefined ? cfg.quantity : 1.0));
         const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale !== undefined ? cfg.scale : 1.0)) || 1.0));
         const rough = Math.max(0, Math.min(2.0, parseFloat(cfg.fractalRoughness !== undefined ? cfg.fractalRoughness : 0.75)));
+        ctx._fractalRough = rough;
+        if (el.ctx) el.ctx._fractalRough = rough;
         const variant = cfg.variant || 'ancient_oak';
         const pal = this.getForestPalette(variant);
         const isPolygon = (cfg.shapeMode || 'polygon') === 'polygon';
@@ -6869,29 +8475,268 @@ class LivingElementsEngine {
         const qty = el.config.quantity !== undefined ? el.config.quantity : 1.0;
         const variant = el.config.variant || 'radioactive_sludge';
 
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-
-        let innerCol = '57, 255, 20';
-        let edgeCol = '15, 80, 10';
-        let vaporCol = '120, 255, 80';
-        if (variant === 'alien_mutagen') {
-            innerCol = '230, 20, 190';
-            edgeCol = '80, 5, 70';
-            vaporCol = '255, 120, 220';
-        } else if (variant === 'caustic_acid') {
-            innerCol = '250, 220, 10';
-            edgeCol = '120, 80, 5';
-            vaporCol = '255, 240, 120';
-        } else if (variant === 'cryo_coolant') {
-            innerCol = '0, 220, 255';
-            edgeCol = '10, 60, 110';
-            vaporCol = '180, 240, 255';
-        }
-
         const cx = W / 2;
         const cy = H / 2;
         const baseRad = Math.min(W, H) * 0.38;
+
+        if (variant === 'radioactive_sludge') {
+            // ================================================================
+            // LEAKING BIOHAZARD BARREL SPILL
+            // ================================================================
+            ctx.save();
+
+            // 1. Chartreuse Sludge Puddle Body with Corrosive Edges
+            const innerCol = '57, 255, 20';
+            const edgeCol = '15, 80, 10';
+            const vaporCol = '120, 255, 80';
+
+            ctx.beginPath();
+            const steps = 36;
+            for (let i = 0; i <= steps; i++) {
+                const angle = (Math.PI * 2 / steps) * i;
+                const rOff = Math.sin(angle * 3 + time * 0.8) * 10 + Math.cos(angle * 5 - time * 0.5) * 7;
+                const r = baseRad + rOff;
+                const px = cx + Math.cos(angle) * r;
+                const py = cy + Math.sin(angle) * (r * 0.72);
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+
+            const puddleGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, baseRad * 1.1);
+            puddleGrad.addColorStop(0, `rgba(${innerCol}, ${0.88 * intensity})`);
+            puddleGrad.addColorStop(0.7, `rgba(${edgeCol}, ${0.78 * intensity})`);
+            puddleGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = puddleGrad;
+            ctx.fill();
+
+            ctx.strokeStyle = `rgba(${innerCol}, ${0.70 * intensity})`;
+            ctx.lineWidth = 2.0;
+            ctx.stroke();
+
+            // 2. Dented Yellow 55-Gallon Steel Biohazard Barrel Resting on its Side
+            const bx = cx - baseRad * 0.38;
+            const by = cy - baseRad * 0.22;
+            const bW = baseRad * 0.65;
+            const bH = baseRad * 0.38;
+            const bRot = -0.32;
+
+            ctx.save();
+            ctx.translate(bx, by);
+            ctx.rotate(bRot);
+
+            // Barrel drop shadow in the sludge
+            ctx.fillStyle = 'rgba(6, 40, 8, 0.65)';
+            ctx.beginPath();
+            ctx.ellipse(3, 4, bW * 0.52, bH * 0.52, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Yellow steel cylindrical drum body
+            ctx.fillStyle = '#eab308';
+            ctx.strokeStyle = '#ca8a04';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(-bW * 0.5, -bH * 0.5, bW, bH, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // Heavy reinforced steel chime hoops / rib rings
+            ctx.strokeStyle = '#854d0e';
+            ctx.lineWidth = 3;
+            [-0.28, 0, 0.28].forEach(xOff => {
+                ctx.beginPath();
+                ctx.moveTo(bW * xOff, -bH * 0.5);
+                ctx.lineTo(bW * xOff, bH * 0.5);
+                ctx.stroke();
+            });
+
+            // Black hazard warning diagonal stripes on top and bottom
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(-bW * 0.5, -bH * 0.5, bW * 0.16, bH);
+
+            // Black Biohazard Trefoil Symbol on side of drum
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(bW * 0.08, 0, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+            for (let a = 0; a < 3; a++) {
+                const ang = (a / 3) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.arc(bW * 0.08 + Math.cos(ang) * 6, Math.sin(ang) * 6, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Puncture rupture hole at lower edge with sludge stream pouring out
+            ctx.fillStyle = '#09090b';
+            ctx.beginPath();
+            ctx.ellipse(bW * 0.35, bH * 0.32, 5, 3.5, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // 3. Sizzling Acid Bubbles in Sludge
+            const bubbleCount = Math.floor(18 * qty);
+            for (let b = 0; b < bubbleCount; b++) {
+                const bProg = ((time * 0.85 + b / bubbleCount) % 1.0);
+                const bAngle = b * 3.7;
+                const bDist = (baseRad * 0.65) * Math.sin(b * 1.3);
+                const pbx = cx + Math.cos(bAngle) * bDist;
+                const pby = cy + Math.sin(bAngle) * (bDist * 0.72);
+                const bRad = 2 + bProg * 5;
+                const bAlpha = Math.sin(bProg * Math.PI) * intensity;
+
+                ctx.fillStyle = `rgba(${innerCol}, ${bAlpha * 0.9})`;
+                ctx.beginPath();
+                ctx.arc(pbx, pby, bRad, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${bAlpha * 0.8})`;
+                ctx.beginPath();
+                ctx.arc(pbx - bRad * 0.3, pby - bRad * 0.3, bRad * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 4. Corrosive Toxic Vapor Plumes
+            const vaporCount = Math.floor(14 * qty);
+            for (let v = 0; v < vaporCount; v++) {
+                const vProg = ((time * 0.45 + v / vaporCount) % 1.0);
+                const vx = cx + Math.sin(v * 4.2 + time) * (baseRad * 0.65);
+                const vy = cy - vProg * 38;
+                const vRad = 12 + vProg * 22;
+                const vAlpha = (1 - vProg) * 0.24 * intensity;
+
+                const vGrad = ctx.createRadialGradient(vx, vy, 2, vx, vy, vRad);
+                vGrad.addColorStop(0, `rgba(${vaporCol}, ${vAlpha})`);
+                vGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = vGrad;
+                ctx.beginPath();
+                ctx.arc(vx, vy, vRad, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+            return;
+        }
+
+        if (variant === 'cryo_coolant') {
+            // ================================================================
+            // SUB-ZERO CRYO NITROGEN BREACH & DENDRITIC FROST
+            // ================================================================
+            ctx.save();
+
+            // 1. Spilling Sub-Zero Liquid Nitrogen Pool
+            const innerCol = '0, 225, 255';
+            const edgeCol = '12, 74, 138';
+            const vaporCol = '200, 245, 255';
+
+            ctx.beginPath();
+            const steps = 36;
+            for (let i = 0; i <= steps; i++) {
+                const angle = (Math.PI * 2 / steps) * i;
+                const rOff = Math.sin(angle * 4 + time * 0.5) * 8 + Math.cos(angle * 6 - time * 0.3) * 6;
+                const r = baseRad + rOff;
+                const px = cx + Math.cos(angle) * r;
+                const py = cy + Math.sin(angle) * (r * 0.72);
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+
+            const puddleGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, baseRad * 1.1);
+            puddleGrad.addColorStop(0, `rgba(${innerCol}, ${0.85 * intensity})`);
+            puddleGrad.addColorStop(0.7, `rgba(${edgeCol}, ${0.75 * intensity})`);
+            puddleGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = puddleGrad;
+            ctx.fill();
+
+            // 2. Dendritic Fractal Ice Needles & Frost Crystals Branching Outward
+            ctx.strokeStyle = 'rgba(224, 242, 254, 0.85)';
+            ctx.lineWidth = 1.6;
+            ctx.lineCap = 'round';
+            const needleBranches = 12;
+            for (let n = 0; n < needleBranches; n++) {
+                const na = (n / needleBranches) * Math.PI * 2 + Math.sin(n * 2.3) * 0.2;
+                const startR = baseRad * 0.85;
+                const sx = cx + Math.cos(na) * startR;
+                const sy = cy + Math.sin(na) * (startR * 0.72);
+                const nLen = 18 + (n % 4) * 8;
+                const ex = sx + Math.cos(na) * nLen;
+                const ey = sy + Math.sin(na) * nLen;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(ex, ey);
+                // Sub-branches
+                ctx.moveTo(sx + Math.cos(na) * (nLen * 0.5), sy + Math.sin(na) * (nLen * 0.5));
+                ctx.lineTo(sx + Math.cos(na + 0.5) * (nLen * 0.8), sy + Math.sin(na + 0.5) * (nLen * 0.8));
+                ctx.moveTo(sx + Math.cos(na) * (nLen * 0.5), sy + Math.sin(na) * (nLen * 0.5));
+                ctx.lineTo(sx + Math.cos(na - 0.5) * (nLen * 0.8), sy + Math.sin(na - 0.5) * (nLen * 0.8));
+                ctx.stroke();
+            }
+
+            // 3. Ruptured Brushed-Aluminum Cryo-Tank Venting Gas
+            const tx = cx - baseRad * 0.35;
+            const ty = cy - baseRad * 0.18;
+            const tW = baseRad * 0.62;
+            const tH = baseRad * 0.34;
+
+            ctx.save();
+            ctx.translate(tx, ty);
+            ctx.rotate(0.25);
+
+            // Tank metal cylinder with cyan cryo-frosting
+            ctx.fillStyle = '#94a3b8';
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(-tW * 0.5, -tH * 0.5, tW, tH, 7);
+            ctx.fill();
+            ctx.stroke();
+
+            // Cryo frost crust
+            ctx.fillStyle = 'rgba(240, 249, 255, 0.75)';
+            ctx.fillRect(-tW * 0.45, -tH * 0.45, tW * 0.9, tH * 0.25);
+
+            // Vent valve & pressure gauge
+            ctx.fillStyle = '#0284c7';
+            ctx.beginPath();
+            ctx.arc(tW * 0.35, 0, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // 4. Rolling Freezing White-Cyan Nitrogen Fog Hugging Floor
+            const vaporCount = Math.floor(18 * qty);
+            for (let v = 0; v < vaporCount; v++) {
+                const vProg = ((time * 0.38 + v / vaporCount) % 1.0);
+                const vx = cx + Math.cos(v * 3.7 + time * 0.3) * (baseRad * (0.4 + vProg * 0.7));
+                const vy = cy + Math.sin(v * 3.7 + time * 0.3) * (baseRad * (0.3 + vProg * 0.5)) + vProg * 8;
+                const vRad = 16 + vProg * 26;
+                const vAlpha = (1 - vProg) * 0.32 * intensity;
+
+                const vGrad = ctx.createRadialGradient(vx, vy, 2, vx, vy, vRad);
+                vGrad.addColorStop(0, `rgba(${vaporCol}, ${vAlpha})`);
+                vGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = vGrad;
+                ctx.beginPath();
+                ctx.arc(vx, vy, vRad, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+            return;
+        }
+
+        // Generic fallback for alien_mutagen / caustic_acid
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        let innerCol = '230, 20, 190';
+        let edgeCol = '80, 5, 70';
+        let vaporCol = '255, 120, 220';
+        if (variant === 'caustic_acid') {
+            innerCol = '250, 220, 10';
+            edgeCol = '120, 80, 5';
+            vaporCol = '255, 240, 120';
+        }
 
         ctx.beginPath();
         const steps = 36;
@@ -6916,45 +8761,6 @@ class LivingElementsEngine {
         ctx.strokeStyle = `rgba(${innerCol}, ${0.65 * intensity})`;
         ctx.lineWidth = 2.0;
         ctx.stroke();
-
-        const bubbleCount = Math.floor(18 * qty);
-        for (let b = 0; b < bubbleCount; b++) {
-            const bProg = ((time * 0.8 + b / bubbleCount) % 1.0);
-            const bAngle = b * 3.7;
-            const bDist = (baseRad * 0.65) * Math.sin(b * 1.3);
-            const bx = cx + Math.cos(bAngle) * bDist;
-            const by = cy + Math.sin(bAngle) * (bDist * 0.75);
-            const bRad = 2 + bProg * 5;
-            const bAlpha = Math.sin(bProg * Math.PI) * intensity;
-
-            ctx.fillStyle = `rgba(${innerCol}, ${bAlpha * 0.9})`;
-            ctx.beginPath();
-            ctx.arc(bx, by, bRad, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = `rgba(255, 255, 255, ${bAlpha * 0.8})`;
-            ctx.beginPath();
-            ctx.arc(bx - bRad * 0.3, by - bRad * 0.3, bRad * 0.3, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        const vaporCount = Math.floor(12 * qty);
-        for (let v = 0; v < vaporCount; v++) {
-            const vProg = ((time * 0.45 + v / vaporCount) % 1.0);
-            const vx = cx + Math.sin(v * 4.2 + time) * (baseRad * 0.6);
-            const vy = cy - vProg * 35;
-            const vRad = 12 + vProg * 20;
-            const vAlpha = (1 - vProg) * 0.22 * intensity;
-
-            const vGrad = ctx.createRadialGradient(vx, vy, 2, vx, vy, vRad);
-            vGrad.addColorStop(0, `rgba(${vaporCol}, ${vAlpha})`);
-            vGrad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = vGrad;
-            ctx.beginPath();
-            ctx.arc(vx, vy, vRad, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
         ctx.restore();
     }
 
@@ -9081,46 +10887,159 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 1.2;
+        const variant = cfg.variant || el.type || 'uni_downpour';
+
+        const isNeon = variant === 'sci_neonrain' || variant === 'neon_rain';
+        const isBlood = variant === 'oth_bloodrain' || variant === 'blood_rain';
+        const isHail = variant === 'uni_hailstorm';
+        const isSeaSpume = variant === 'hist_seaspume';
+        const isDrizzle = variant === 'uni_drizzle';
 
         if (!el.particles) el.particles = [];
-        const dropCount = Math.min(120, Math.round(70 * (cfg.quantity || 1.0)));
+        const baseTarget = isHail ? 35 : (isDrizzle ? 45 : (isNeon ? 65 : 85));
+        const dropCount = Math.min(140, Math.round(baseTarget * (cfg.quantity || 1.0)));
+
         while (el.particles.length < dropCount) {
             el.particles.push({
                 x: Math.random() * W,
                 y: Math.random() * H,
-                len: 12 + Math.random() * 14,
-                speedMult: 0.8 + Math.random() * 0.4
+                len: isHail ? (6 + Math.random() * 5) : (isDrizzle ? (8 + Math.random() * 8) : (14 + Math.random() * 16)),
+                speedMult: 0.75 + Math.random() * 0.5,
+                bounceLife: 0,
+                colorIdx: Math.floor(Math.random() * 2),
+                seed: Math.random() * 100
             });
         }
+        if (el.particles.length > dropCount) el.particles.length = dropCount;
 
         ctx.save();
-        const variant = cfg.variant || 'storm_downpour';
-        const isNeon = variant === 'neon_rain';
-        const isAcid = variant === 'acid_rain';
-        ctx.strokeStyle = isNeon ? 'rgba(0, 255, 230, 0.85)' : (isAcid ? 'rgba(225, 35, 55, 0.85)' : 'rgba(180, 215, 255, 0.75)');
-        ctx.lineWidth = variant === 'drizzle' ? 1.0 : 1.4;
-
         for (let i = 0; i < el.particles.length; i++) {
             const p = el.particles[i];
-            p.y += 240 * p.speedMult * speed * dt;
-            p.x += 65 * speed * dt; // Wind slant
 
-            if (p.y > H) {
-                p.y = 0;
-                p.x = Math.random() * W;
-                // Ground Splash Ring
-                ctx.fillStyle = 'rgba(200, 230, 255, 0.35)';
+            if (isHail) {
+                // Hard bouncing ice hailstones
+                p.y += 340 * p.speedMult * speed * dt;
+                p.x += 45 * speed * dt;
+
+                if (p.y > H - 10) {
+                    // Ice shatter impact
+                    ctx.strokeStyle = 'rgba(224, 242, 254, 0.85)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(p.x, H - 8, 5, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // Tiny ice shrapnel bits
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.fillRect(p.x - 3, H - 9, 2, 2);
+                    ctx.fillRect(p.x + 3, H - 7, 2, 2);
+
+                    p.y = -10;
+                    p.x = Math.random() * W;
+                }
+
+                // Hail stone sphere
+                const hg = ctx.createRadialGradient(p.x - 1, p.y - 1, 0, p.x, p.y, p.len * 0.45);
+                hg.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
+                hg.addColorStop(0.6, 'rgba(186, 230, 253, 0.88)');
+                hg.addColorStop(1, 'rgba(56, 189, 248, 0.65)');
+                ctx.fillStyle = hg;
                 ctx.beginPath();
-                ctx.ellipse(p.x, H - 4, 6, 2.5, 0, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, p.len * 0.45, 0, Math.PI * 2);
                 ctx.fill();
+
+            } else if (isNeon) {
+                // Cyberpunk electric neon cyan & magenta rain
+                p.y += 280 * p.speedMult * speed * dt;
+                p.x += 55 * speed * dt;
+
+                const isCyan = p.colorIdx === 0;
+                const neonColor = isCyan ? 'rgba(34, 211, 238, 0.95)' : 'rgba(244, 63, 94, 0.95)';
+                const glowColor = isCyan ? 'rgba(6, 182, 212, 0.45)' : 'rgba(225, 29, 72, 0.45)';
+
+                if (p.y > H - 8) {
+                    // Expanding neon splash ripples
+                    ctx.strokeStyle = neonColor;
+                    ctx.lineWidth = 1.8;
+                    ctx.beginPath();
+                    ctx.ellipse(p.x, H - 6, 9, 3.5, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    p.y = -p.len;
+                    p.x = Math.random() * W;
+                }
+
+                ctx.strokeStyle = neonColor;
+                ctx.lineWidth = 1.8;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x + 4, p.y + p.len * intensity);
+                ctx.stroke();
+
+            } else if (isBlood) {
+                // Viscous dark crimson blood rain
+                p.y += 210 * p.speedMult * speed * dt;
+                p.x += 40 * speed * dt;
+
+                if (p.y > H - 8) {
+                    // Blood splatter puddle
+                    ctx.fillStyle = 'rgba(153, 27, 27, 0.75)';
+                    ctx.beginPath();
+                    ctx.ellipse(p.x, H - 6, 8, 3, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    p.y = -p.len;
+                    p.x = Math.random() * W;
+                }
+
+                ctx.strokeStyle = 'rgba(185, 28, 28, 0.92)';
+                ctx.lineWidth = 2.0;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x + 3, p.y + p.len * intensity);
+                ctx.stroke();
+
+            } else if (isSeaSpume) {
+                // Coastal ocean salt brine spume blowing horizontally
+                p.y += 120 * p.speedMult * speed * dt;
+                p.x += 160 * speed * dt; // Heavy horizontal gale slant
+
+                if (p.x > W) {
+                    p.x = -10;
+                    p.y = Math.random() * H;
+                }
+                if (p.y > H) p.y = 0;
+
+                ctx.fillStyle = 'rgba(240, 253, 250, 0.85)';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2.0 + Math.sin(time * 3 + p.seed) * 1.0, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else {
+                // Natural Rain (Downpour / Drizzle / Noir City Rain)
+                p.y += (isDrizzle ? 180 : 250) * p.speedMult * speed * dt;
+                p.x += (isDrizzle ? 35 : 65) * speed * dt;
+
+                if (p.y > H) {
+                    p.y = 0;
+                    p.x = Math.random() * W;
+
+                    // Ground Splash Ring
+                    ctx.strokeStyle = 'rgba(200, 230, 255, 0.45)';
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.ellipse(p.x, H - 4, 6, 2.2, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.strokeStyle = isDrizzle ? 'rgba(186, 230, 253, 0.65)' : 'rgba(215, 235, 255, 0.82)';
+                ctx.lineWidth = isDrizzle ? 1.0 : 1.5;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x + (isDrizzle ? 2.5 : 4), p.y + p.len * intensity);
+                ctx.stroke();
             }
-
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p.x + 4, p.y + p.len * intensity);
-            ctx.stroke();
         }
-
         ctx.restore();
     }
 
@@ -9128,37 +11047,101 @@ class LivingElementsEngine {
         const time = el.stateTime;
         const cfg = el.config || {};
         const speed = cfg.speed || 1.0;
+        const intensity = cfg.intensity || 1.0;
+        const variant = cfg.variant || el.type || 'uni_flurry';
+
+        const isAshBlizzard = variant === 'oth_ashblizzard';
+        const isSleet = variant === 'mod_fallout_sleet';
+        const isGale = variant === 'uni_blizzard';
 
         if (!el.particles) el.particles = [];
-        const flakeCount = Math.min(100, Math.round(60 * (cfg.quantity || 1.0)));
+        const baseCount = isGale ? 95 : (isAshBlizzard ? 80 : 55);
+        const flakeCount = Math.min(130, Math.round(baseCount * (cfg.quantity || 1.0)));
+
         while (el.particles.length < flakeCount) {
             el.particles.push({
                 x: Math.random() * W,
                 y: Math.random() * H,
-                r: Math.random() * 2.5 + 1.0,
+                r: isGale ? (1.5 + Math.random() * 2.5) : (2.0 + Math.random() * 2.8),
                 sway: Math.random() * Math.PI * 2,
-                speedMult: 0.6 + Math.random() * 0.6
+                speedMult: 0.6 + Math.random() * 0.6,
+                angle: Math.random() * Math.PI * 2,
+                spin: (Math.random() - 0.5) * 3
             });
         }
+        if (el.particles.length > flakeCount) el.particles.length = flakeCount;
 
         ctx.save();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
-
         for (let i = 0; i < el.particles.length; i++) {
             const f = el.particles[i];
-            f.y += 45 * f.speedMult * speed * dt;
-            f.x += Math.sin(time * 2 + f.sway) * 20 * dt;
 
-            if (f.y > H) {
-                f.y = 0;
-                f.x = Math.random() * W;
+            if (isAshBlizzard) {
+                // Sinister Silent Hill dark volcanic soot & ash blizzard
+                f.y += 110 * f.speedMult * speed * dt;
+                f.x += 140 * speed * dt + Math.sin(time * 3 + f.sway) * 28 * dt;
+                f.angle += f.spin * dt;
+
+                if (f.x > W) f.x = -10;
+                if (f.y > H) { f.y = 0; f.x = Math.random() * W; }
+
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.rotate(f.angle);
+                ctx.fillStyle = i % 3 === 0 ? 'rgba(24, 24, 27, 0.92)' : 'rgba(82, 82, 91, 0.85)';
+                ctx.fillRect(-f.r, -f.r * 0.6, f.r * 2, f.r * 1.2);
+                ctx.restore();
+
+            } else if (isSleet) {
+                // Freezing urban chemical sleet
+                f.y += 240 * f.speedMult * speed * dt;
+                f.x += 75 * speed * dt;
+
+                if (f.y > H) { f.y = 0; f.x = Math.random() * W; }
+
+                ctx.strokeStyle = 'rgba(203, 213, 225, 0.78)';
+                ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                ctx.moveTo(f.x, f.y);
+                ctx.lineTo(f.x + 3, f.y + 7);
+                ctx.stroke();
+
+            } else if (isGale) {
+                // Blinding howling whiteout blizzard
+                f.y += 90 * f.speedMult * speed * dt;
+                f.x += 180 * speed * dt + Math.sin(time * 4 + f.sway) * 35 * dt;
+
+                if (f.x > W) f.x = -15;
+                if (f.y > H) { f.y = 0; f.x = Math.random() * W; }
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else {
+                // Gentle crystalline 6-pointed snowflakes
+                f.y += 45 * f.speedMult * speed * dt;
+                f.x += Math.sin(time * 2 + f.sway) * 22 * dt;
+                f.angle += f.spin * 0.5 * dt;
+
+                if (f.y > H) { f.y = 0; f.x = Math.random() * W; }
+
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.rotate(f.angle);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+                ctx.lineWidth = 1.2;
+                // Hexagonal crystalline arms
+                for (let a = 0; a < 3; a++) {
+                    ctx.beginPath();
+                    ctx.moveTo(-f.r * 1.2, 0);
+                    ctx.lineTo(f.r * 1.2, 0);
+                    ctx.stroke();
+                    ctx.rotate(Math.PI / 3);
+                }
+                ctx.restore();
             }
-
-            ctx.beginPath();
-            ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-            ctx.fill();
         }
-
         ctx.restore();
     }
 
@@ -9167,37 +11150,90 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 0.8;
+        const variant = cfg.variant || el.type || 'uni_mist';
+        const rough = ctx._fractalRough !== undefined ? ctx._fractalRough : (el.config.fractalRoughness !== undefined ? parseFloat(el.config.fractalRoughness) : 0.75);
+
+        const isGhost = variant === 'oth_ghostfog';
+        const isDungeon = variant === 'hist_dungeonmist';
+        const isDense = variant === 'uni_densefog';
 
         if (!el.particles) el.particles = [];
-        const puffCount = Math.min(25, Math.round(15 * (cfg.quantity || 1.0)));
+        const puffCount = Math.min(32, Math.round((isDense ? 24 : 16) * (cfg.quantity || 1.0)));
+
         while (el.particles.length < puffCount) {
             el.particles.push({
                 x: Math.random() * W,
                 y: Math.random() * H,
-                r: 45 + Math.random() * 35,
+                r: 45 + Math.random() * 45,
                 phase: Math.random() * Math.PI * 2,
-                driftSpeed: 0.5 + Math.random() * 0.5
+                driftSpeed: 0.5 + Math.random() * 0.5,
+                seed: Math.random() * 100
             });
         }
+        if (el.particles.length > puffCount) el.particles.length = puffCount;
 
         ctx.save();
-
         for (let i = 0; i < el.particles.length; i++) {
             const p = el.particles[i];
-            p.x += 18 * p.driftSpeed * speed * dt;
+            p.x += 16 * p.driftSpeed * speed * dt;
             if (p.x > W + p.r) p.x = -p.r;
 
-            const alpha = (Math.sin(time * 0.8 + p.phase) * 0.12 + 0.22) * intensity;
+            const alpha = (Math.sin(time * 0.8 + p.phase) * 0.12 + (isDense ? 0.34 : 0.22)) * intensity;
+
+            let fogColor = '220, 230, 242';
+            if (isGhost) fogColor = '52, 211, 153'; // Eerie luminescent spectral mist
+            else if (isDungeon) fogColor = '165, 185, 175'; // Murky damp greenish-gray crypt mist
+            else if (isDense) fogColor = '210, 218, 226'; // Pea-soup river fog
+
             const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-            grad.addColorStop(0, `rgba(220, 230, 240, ${alpha})`);
-            grad.addColorStop(1, 'rgba(220, 230, 240, 0)');
+            grad.addColorStop(0, `rgba(${fogColor}, ${alpha})`);
+            grad.addColorStop(0.65, `rgba(${fogColor}, ${alpha * 0.55})`);
+            grad.addColorStop(1, `rgba(${fogColor}, 0)`);
 
             ctx.fillStyle = grad;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
             ctx.fill();
-        }
 
+            // Fractal ragged mist wisps when rough > 0.05
+            if (rough > 0.05) {
+                const wAngle = time * 0.5 + p.seed;
+                const wx = p.x + Math.cos(wAngle) * p.r * 0.45 * rough;
+                const wy = p.y + Math.sin(wAngle) * p.r * 0.35 * rough;
+                const wr = p.r * (0.45 + rough * 0.25);
+                const wGrad = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
+                wGrad.addColorStop(0, `rgba(${fogColor}, ${alpha * 0.7})`);
+                wGrad.addColorStop(1, `rgba(${fogColor}, 0)`);
+                ctx.fillStyle = wGrad;
+                ctx.beginPath();
+                ctx.arc(wx, wy, wr, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Ghostly screaming skull / spectral silhouette subtly appearing in ghost fog
+            if (isGhost && i % 4 === 0) {
+                const sVis = Math.sin(time * 1.5 + p.seed);
+                if (sVis > 0.45) {
+                    const skullAlpha = (sVis - 0.45) * 0.75 * intensity;
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.fillStyle = `rgba(167, 243, 208, ${skullAlpha})`;
+                    // Ghostly skull dome
+                    ctx.beginPath();
+                    ctx.arc(0, -4, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Jaw
+                    ctx.fillRect(-4, 2, 8, 5);
+                    // Hollow eye sockets
+                    ctx.fillStyle = `rgba(6, 78, 59, ${skullAlpha * 1.2})`;
+                    ctx.beginPath();
+                    ctx.arc(-3, -4, 2, 0, Math.PI * 2);
+                    ctx.arc(3, -4, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
         ctx.restore();
     }
 
@@ -9205,37 +11241,336 @@ class LivingElementsEngine {
         const time = el.stateTime;
         const cfg = el.config || {};
         const speed = cfg.speed || 1.2;
+        const intensity = cfg.intensity || 1.0;
+        const variant = cfg.variant || el.type || 'uni_dustmotes';
 
         if (!el.particles) el.particles = [];
-        const moteCount = Math.min(80, Math.round(50 * (cfg.quantity || 1.0)));
+        const baseTarget = variant === 'mod_dustdevil' ? 45 : (variant === 'uni_sandstorm' ? 75 : (variant === 'mod_trash' ? 24 : 50));
+        const moteCount = Math.min(90, Math.round(baseTarget * (cfg.quantity || 1.0)));
+
         while (el.particles.length < moteCount) {
             el.particles.push({
                 x: Math.random() * W,
                 y: Math.random() * H,
                 r: Math.random() * 2.2 + 0.8,
-                phase: Math.random() * Math.PI * 2
+                phase: Math.random() * Math.PI * 2,
+                spin: (Math.random() - 0.5) * 3,
+                angle: Math.random() * Math.PI * 2,
+                speedMult: 0.7 + Math.random() * 0.6,
+                colorIdx: Math.floor(Math.random() * 4),
+                seed: Math.random() * 100
             });
         }
+        if (el.particles.length > moteCount) el.particles.length = moteCount;
 
         ctx.save();
-        const variant = cfg.variant || 'dust_motes';
-        if (variant === 'autumn_maple') ctx.fillStyle = 'rgba(235, 115, 35, 0.88)';
-        else if (variant === 'cherry_blossom') ctx.fillStyle = 'rgba(255, 182, 215, 0.9)';
-        else if (variant === 'ash_fall') ctx.fillStyle = 'rgba(155, 160, 170, 0.82)';
-        else ctx.fillStyle = 'rgba(225, 195, 150, 0.75)';
 
-        for (let i = 0; i < el.particles.length; i++) {
-            const m = el.particles[i];
-            m.x += (Math.cos(time * 1.5 + m.phase) * 22 + 28) * speed * dt;
-            m.y += Math.sin(time * 1.8 + m.phase) * 16 * speed * dt;
+        if (variant === 'uni_leaves' || variant === 'hist_leaves' || variant === 'autumn_maple') {
+            // Detailed 5-lobed autumn leaves (crimson, scarlet, amber, russet) fluttering in 3D
+            const leafColors = ['#dc2626', '#ea580c', '#f59e0b', '#b45309'];
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                m.x += (Math.cos(time * 1.5 + m.phase) * 24 + 32) * speed * dt;
+                m.y += (Math.sin(time * 1.8 + m.phase) * 18 + 14) * speed * dt;
+                m.angle += m.spin * dt;
 
-            if (m.x > W) m.x = 0;
-            if (m.y > H) m.y = 0;
-            if (m.y < 0) m.y = H;
+                if (m.x > W + 15) m.x = -15;
+                if (m.y > H + 15) { m.y = -15; m.x = Math.random() * W; }
 
-            ctx.beginPath();
-            ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
-            ctx.fill();
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.angle);
+                const flutter = Math.sin(time * 4 + m.phase);
+                ctx.scale(1, Math.max(0.25, Math.abs(flutter))); // 3D tumbling perspective
+
+                const lr = 7 * intensity;
+                ctx.fillStyle = leafColors[m.colorIdx % leafColors.length];
+                ctx.beginPath();
+                // 5-point maple silhouette
+                ctx.moveTo(0, -lr * 1.2);
+                ctx.lineTo(lr * 0.45, -lr * 0.45);
+                ctx.lineTo(lr * 1.1, -lr * 0.3);
+                ctx.lineTo(lr * 0.6, lr * 0.35);
+                ctx.lineTo(lr * 0.85, lr * 1.0);
+                ctx.lineTo(0, lr * 0.65);
+                ctx.lineTo(-lr * 0.85, lr * 1.0);
+                ctx.lineTo(-lr * 0.6, lr * 0.35);
+                ctx.lineTo(-lr * 1.1, -lr * 0.3);
+                ctx.lineTo(-lr * 0.45, -lr * 0.45);
+                ctx.closePath();
+                ctx.fill();
+
+                // Leaf stem & central vein
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, -lr * 1.2);
+                ctx.lineTo(0, lr * 1.3);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+        } else if (variant === 'uni_petals' || variant === 'cherry_blossom') {
+            // Delicate pink & blush white sakura cherry blossom petals
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                m.x += (Math.cos(time * 1.8 + m.phase) * 20 + 26) * speed * dt;
+                m.y += (Math.sin(time * 2.1 + m.phase) * 14 + 18) * speed * dt;
+                m.angle += m.spin * 0.8 * dt;
+
+                if (m.x > W + 10) m.x = -10;
+                if (m.y > H + 10) { m.y = -10; m.x = Math.random() * W; }
+
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.angle);
+                const flutter = Math.sin(time * 3.5 + m.phase);
+                ctx.scale(1, Math.max(0.3, Math.abs(flutter)));
+
+                const pr = 5 * intensity;
+                ctx.fillStyle = m.colorIdx % 2 === 0 ? 'rgba(251, 207, 232, 0.95)' : 'rgba(244, 114, 182, 0.90)';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, pr * 1.2, pr * 0.7, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+        } else if (variant === 'uni_dandelion') {
+            // White feathery starburst dandelion seed down
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                m.x += (Math.cos(time * 1.2 + m.phase) * 18 + 20) * speed * dt;
+                m.y += (Math.sin(time * 1.5 + m.phase) * 12 + 8) * speed * dt;
+                m.angle += m.spin * 0.4 * dt;
+
+                if (m.x > W + 10) m.x = -10;
+                if (m.y > H + 10) { m.y = -10; m.x = Math.random() * W; }
+
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.angle);
+
+                // Tiny seed kernel
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath();
+                ctx.ellipse(0, 4, 1.2, 2.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Slender stalk
+                ctx.strokeStyle = 'rgba(245, 245, 244, 0.85)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, 4);
+                ctx.lineTo(0, -2);
+                ctx.stroke();
+
+                // Radiating white parachute filaments (pappus starburst)
+                for (let f = 0; f < 7; f++) {
+                    const fa = (f / 7) * Math.PI - Math.PI;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -2);
+                    ctx.lineTo(Math.cos(fa) * 6, -2 + Math.sin(fa) * 5);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+        } else if (variant === 'hist_battleash') {
+            // Siege battlefield war cinders: tumbling scorched charcoal flakes with glowing orange ember cores!
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                m.x += (Math.cos(time * 2.2 + m.phase) * 32 + 42) * speed * dt;
+                m.y += (Math.sin(time * 2.8 + m.phase) * 22 - 12) * speed * dt; // Rising updrafts!
+                m.angle += m.spin * dt;
+
+                if (m.x > W + 15) m.x = -15;
+                if (m.y < -15) { m.y = H + 15; m.x = Math.random() * W; }
+
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.angle);
+
+                // Scorched charcoal flake
+                ctx.fillStyle = '#18181b';
+                ctx.beginPath();
+                ctx.fillRect(-3, -2, 6, 4);
+
+                // Incandescent glowing ember core
+                const pulse = Math.sin(time * 6 + m.phase) * 0.5 + 0.5;
+                ctx.fillStyle = `rgba(255, ${Math.floor(80 + pulse * 120)}, 20, ${0.75 + pulse * 0.25})`;
+                ctx.beginPath();
+                ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+        } else if (variant === 'mod_dustdevil') {
+            // Animated rotating 3D dust devil vortex!
+            const cx = W * 0.5;
+            const cy = H * 0.5;
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                // Spiraling vortex around center cone
+                const heightProg = (i / el.particles.length); // 0 at base, 1 at wide top
+                const coneR = (20 + heightProg * 75) * intensity;
+                const vAngle = time * (4.5 - heightProg * 1.8) * speed + m.phase;
+
+                const vx = cx + Math.cos(vAngle) * coneR + Math.sin(time * 2) * 15;
+                const vy = cy + (heightProg - 0.5) * (H * 0.75) + Math.sin(vAngle * 2) * 8;
+
+                ctx.fillStyle = `rgba(217, 185, 135, ${0.45 + (1 - heightProg) * 0.45})`;
+                ctx.beginPath();
+                ctx.arc(vx, vy, 2.2 + heightProg * 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (variant === 'mod_trash') {
+            // Blowing city street litter: tumbling newspapers, crushed soda cans, plastic bags
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                m.x += (Math.cos(time * 1.7 + m.phase) * 28 + 48) * speed * dt;
+                m.y += (Math.sin(time * 2.2 + m.phase) * 16 + 12) * speed * dt;
+                m.angle += m.spin * 1.5 * dt;
+
+                if (m.x > W + 20) m.x = -20;
+                if (m.y > H + 20) { m.y = -20; m.x = Math.random() * W; }
+
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.angle);
+
+                if (m.colorIdx === 0) {
+                    // Fluttering newspaper sheet
+                    ctx.fillStyle = '#f1f5f9';
+                    ctx.fillRect(-7, -5, 14, 10);
+                    ctx.fillStyle = '#64748b';
+                    ctx.fillRect(-5, -3, 10, 1.5);
+                    ctx.fillRect(-5, 0, 10, 1.5);
+                    ctx.fillRect(-5, 3, 6, 1.5);
+                } else if (m.colorIdx === 1) {
+                    // Crushed soda can
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(-5, -3, 10, 6);
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.fillRect(-5, -3, 3, 6);
+                } else {
+                    // Translucent crumpled plastic bag
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                    ctx.strokeStyle = 'rgba(203, 213, 225, 0.65)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, 8, 5, time * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+        } else if (variant === 'sci_ash') {
+            // Radioactive fallout ash drift with glowing Cherenkov green/cyan halos
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                m.x += (Math.cos(time * 1.4 + m.phase) * 20 + 26) * speed * dt;
+                m.y += 32 * speed * dt;
+
+                if (m.x > W + 10) m.x = -10;
+                if (m.y > H + 10) { m.y = -10; m.x = Math.random() * W; }
+
+                // Eerie glowing halo
+                const pulse = Math.sin(time * 4 + m.phase) * 0.4 + 0.6;
+                const rg = ctx.createRadialGradient(m.x, m.y, 1, m.x, m.y, 6);
+                rg.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+                rg.addColorStop(0.4, `rgba(52, 211, 153, ${0.75 * pulse})`);
+                rg.addColorStop(1, 'rgba(52, 211, 153, 0)');
+                ctx.fillStyle = rg;
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (variant === 'sci_nanites') {
+            // Scintillating cybernetic nanite swarm with dynamic vector connections!
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                m.x += (Math.cos(time * 2.8 + m.phase) * 35 + Math.sin(time * 4) * 15) * speed * dt;
+                m.y += (Math.sin(time * 2.5 + m.phase) * 30 + Math.cos(time * 3.5) * 15) * speed * dt;
+
+                if (m.x > W) m.x = 0;
+                if (m.x < 0) m.x = W;
+                if (m.y > H) m.y = 0;
+                if (m.y < 0) m.y = H;
+
+                // Microscopic glowing cyan diamond
+                ctx.fillStyle = '#22d3ee';
+                ctx.beginPath();
+                ctx.moveTo(m.x, m.y - 3);
+                ctx.lineTo(m.x + 3, m.y);
+                ctx.lineTo(m.x, m.y + 3);
+                ctx.lineTo(m.x - 3, m.y);
+                ctx.closePath();
+                ctx.fill();
+
+                // Telemetry vector line to nearest neighbour
+                if (i > 0 && i % 3 === 0) {
+                    const prev = el.particles[i - 1];
+                    const dist = Math.hypot(m.x - prev.x, m.y - prev.y);
+                    if (dist < 45) {
+                        ctx.strokeStyle = `rgba(34, 211, 238, ${(1 - dist / 45) * 0.75})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(m.x, m.y);
+                        ctx.lineTo(prev.x, prev.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+        } else if (variant === 'uni_sandstorm' || variant === 'mod_sandstorm') {
+            // Violent desert sandstorm: high-speed horizontal streaks of sand & grit
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                m.x += 240 * m.speedMult * speed * dt;
+                m.y += Math.sin(time * 3 + m.phase) * 15 * speed * dt;
+
+                if (m.x > W) { m.x = -15; m.y = Math.random() * H; }
+
+                ctx.strokeStyle = i % 2 === 0 ? 'rgba(234, 179, 8, 0.85)' : 'rgba(245, 158, 11, 0.75)';
+                ctx.lineWidth = 1.6;
+                ctx.beginPath();
+                ctx.moveTo(m.x, m.y);
+                ctx.lineTo(m.x + 14 * intensity, m.y + 2);
+                ctx.stroke();
+            }
+
+        } else {
+            // Floating Sunlit Dust Motes & Volcanic Ash Fall
+            const isAsh = variant === 'ash_fall' || variant === 'uni_ashfall';
+            ctx.fillStyle = isAsh ? 'rgba(161, 161, 170, 0.85)' : 'rgba(254, 240, 138, 0.85)';
+
+            for (let i = 0; i < el.particles.length; i++) {
+                const m = el.particles[i];
+                m.x += (Math.cos(time * 1.5 + m.phase) * 20 + 24) * speed * dt;
+                m.y += (Math.sin(time * 1.8 + m.phase) * 14 + (isAsh ? 22 : 6)) * speed * dt;
+
+                if (m.x > W) m.x = 0;
+                if (m.y > H) m.y = 0;
+                if (m.y < 0) m.y = H;
+
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (!isAsh) {
+                    // Sunlit luminous halo
+                    ctx.fillStyle = 'rgba(254, 240, 138, 0.25)';
+                    ctx.beginPath();
+                    ctx.arc(m.x, m.y, m.r * 2.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(254, 240, 138, 0.85)';
+                }
+            }
         }
 
         ctx.restore();
@@ -9905,54 +12240,116 @@ class LivingElementsEngine {
                 return true;
             }
 
-            // 2. Smoldering Ash & Red Coals (Breathing ember bed + lazy white smoke wisps, no roaring flame)
+            // 2. Smoldering Ash & Red Coals (Realistic charred split logs + incandescent glowing fissure veins + powdery ash)
             case 'uni_dyingembers': {
                 ctx.save();
-                const r = minDim * 0.36;
-                const pulse = 0.75 + 0.25 * Math.sin(time * 3.2 * speed);
+                const r = minDim * 0.38;
+                const pulse = 0.70 + 0.30 * Math.sin(time * 2.8 * speed);
 
-                // Soft red-orange ambient ember glow
-                const amb = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r * 1.25);
-                amb.addColorStop(0, `rgba(255, 70, 15, ${0.42 * pulse * intensity})`);
-                amb.addColorStop(0.6, `rgba(180, 30, 5, ${0.16 * pulse * intensity})`);
+                // 1. Soft 360° Omnidirectional Radiant Heat Glow
+                const amb = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r * 1.35);
+                amb.addColorStop(0, `rgba(255, 75, 15, ${0.48 * pulse * intensity})`);
+                amb.addColorStop(0.45, `rgba(194, 65, 12, ${0.22 * pulse * intensity})`);
+                amb.addColorStop(0.80, `rgba(124, 45, 10, ${0.08 * pulse * intensity})`);
                 amb.addColorStop(1, 'rgba(0, 0, 0, 0)');
                 ctx.fillStyle = amb;
                 ctx.beginPath();
-                ctx.arc(cx, cy, r * 1.25, 0, Math.PI * 2);
+                ctx.arc(cx, cy, r * 1.35, 0, Math.PI * 2);
                 ctx.fill();
 
-                // White/gray ash mound & charred log stubs
-                ctx.fillStyle = 'rgba(42, 39, 38, 0.92)';
+                // 2. Outer Scorched Hearth Pit & Ash Bed
+                const ashGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, r * 0.85);
+                ashGrad.addColorStop(0, '#1c1917');
+                ashGrad.addColorStop(0.65, '#292524');
+                ashGrad.addColorStop(0.92, '#171412');
+                ashGrad.addColorStop(1, 'rgba(15, 13, 11, 0)');
+                ctx.fillStyle = ashGrad;
                 ctx.beginPath();
-                ctx.arc(cx, cy, r * 0.75, 0, Math.PI * 2);
+                ctx.arc(cx, cy, r * 0.85, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Glowing red-orange coal cracks pulsing with wind
-                for (let i = 0; i < 14; i++) {
-                    const ang = i * 2.399;
-                    const dist = (0.15 + (i % 5) * 0.11) * r;
-                    const ex = cx + Math.cos(ang) * dist;
-                    const ey = cy + Math.sin(ang) * dist;
-                    const cPulse = 0.5 + 0.5 * Math.sin(time * 4.5 * speed + i * 1.3);
-                    const cr = (4 + (i % 3) * 2.5);
-                    ctx.fillStyle = `rgba(255, ${Math.floor(60 + cPulse * 130)}, 15, ${0.65 + cPulse * 0.35})`;
+                // Powdery white/gray wood ash patches around the perimeter
+                ctx.fillStyle = 'rgba(214, 211, 209, 0.45)';
+                for (let a = 0; a < 6; a++) {
+                    const aAngle = a * 1.05 + 0.3;
+                    const aDist = r * (0.45 + (a % 3) * 0.12);
+                    const ax = cx + Math.cos(aAngle) * aDist;
+                    const ay = cy + Math.sin(aAngle) * aDist;
                     ctx.beginPath();
-                    ctx.ellipse(ex, ey, cr, cr * 0.65, ang, 0, Math.PI * 2);
+                    ctx.ellipse(ax, ay, 9 + a * 2, 5 + (a % 2) * 2, aAngle, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
-                // Thin lazy gray-white smoke rings drifting up
-                for (let s = 0; s < 5; s++) {
-                    const prog = ((time * 0.35 * speed + s * 0.2) % 1);
-                    const sx = cx + Math.sin(time * 1.5 + s * 2) * (r * 0.35 * prog);
-                    const sy = cy - prog * r * 0.55;
-                    const sr = 6 + prog * 18;
-                    ctx.strokeStyle = `rgba(200, 205, 215, ${(1 - prog) * 0.28})`;
-                    ctx.lineWidth = 2;
+                // 3. Central Deep Glowing Coal Bed (Incandescent embers nestled between logs)
+                const coalHeat = 0.65 + 0.35 * Math.sin(time * 3.5 * speed);
+                const coalGrad = ctx.createRadialGradient(cx, cy, 1, cx, cy, r * 0.42);
+                coalGrad.addColorStop(0, `rgba(255, 235, 180, ${coalHeat * intensity})`);
+                coalGrad.addColorStop(0.35, `rgba(249, 115, 22, ${coalHeat * 0.9 * intensity})`);
+                coalGrad.addColorStop(0.70, `rgba(185, 28, 28, ${coalHeat * 0.6 * intensity})`);
+                coalGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = coalGrad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 4. Realistic Crossed Charred Split Oak Logs
+                const logAngles = [0.35, 1.45, 2.35, 3.25];
+                for (let l = 0; l < logAngles.length; l++) {
+                    const la = logAngles[l];
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(la);
+
+                    const logLen = r * 1.05;
+                    const logW = r * 0.22;
+
+                    // Charred dark bark
+                    ctx.fillStyle = '#1c1917';
+                    ctx.beginPath();
+                    ctx.roundRect(-logLen * 0.5, -logW * 0.5, logLen, logW, 3);
+                    ctx.fill();
+
+                    // Split log bark edge highlights
+                    ctx.strokeStyle = '#292524';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Glowing fiery longitudinal fissure cracks running along the wood grain
+                    const crackPulse = Math.sin(time * 3.8 * speed + l * 1.5) * 0.5 + 0.5;
+                    ctx.strokeStyle = `rgba(255, ${Math.floor(120 + crackPulse * 110)}, 30, ${0.75 + crackPulse * 0.25})`;
+                    ctx.lineWidth = 2.0;
+                    ctx.beginPath();
+                    ctx.moveTo(-logLen * 0.38, 0);
+                    ctx.lineTo(-logLen * 0.1, -1);
+                    ctx.lineTo(logLen * 0.15, 1);
+                    ctx.lineTo(logLen * 0.38, -0.5);
+                    ctx.stroke();
+
+                    // White powdery ash dusting the top face of the log
+                    ctx.fillStyle = 'rgba(228, 228, 231, 0.45)';
+                    ctx.fillRect(-logLen * 0.35, -logW * 0.35, logLen * 0.7, logW * 0.25);
+
+                    ctx.restore();
+                }
+
+                // 5. Delicate Curling Wisps of Pale White Woodsmoke rising from the hottest coals
+                for (let s = 0; s < 6; s++) {
+                    const prog = ((time * 0.4 * speed + s * 0.16) % 1.0);
+                    const sx = cx + Math.sin(time * 2.0 + s * 1.8) * (r * 0.28 * prog);
+                    const sy = cy - prog * (r * 0.85);
+                    const sr = 5 + prog * 18;
+                    const sAlpha = Math.sin(prog * Math.PI) * 0.35 * intensity;
+
+                    const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+                    sg.addColorStop(0, `rgba(228, 228, 231, ${sAlpha})`);
+                    sg.addColorStop(0.5, `rgba(212, 212, 216, ${sAlpha * 0.5})`);
+                    sg.addColorStop(1, 'rgba(212, 212, 216, 0)');
+                    ctx.fillStyle = sg;
                     ctx.beginPath();
                     ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-                    ctx.stroke();
+                    ctx.fill();
                 }
+
                 ctx.restore();
                 return true;
             }
@@ -10671,34 +13068,59 @@ class LivingElementsEngine {
                 return true;
             }
 
-            // 20. Iridescent Garage Oil Slick (Dark petroleum puddle + shifting rainbow sheen)
+            // 20. Iridescent Garage Oil Slick (Multi-spectral thin-film optical interference rainbow swirls)
             case 'mod_oil': {
                 ctx.save();
-                const rx = W * 0.40;
-                const ry = H * 0.36;
-                ctx.fillStyle = 'rgba(15, 17, 23, 0.92)';
+                const rx = W * 0.42;
+                const ry = H * 0.38;
+
+                // Wet asphalt base rim
+                ctx.fillStyle = 'rgba(24, 24, 27, 0.95)';
                 ctx.beginPath();
-                ctx.ellipse(cx, cy, rx, ry, 0.15, 0, Math.PI * 2);
+                ctx.ellipse(cx, cy, rx * 1.08, ry * 1.08, 0.1, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Iridescent rainbow bands
-                const shift = (time * 25 * speed) % 360;
-                for (let ring = 3; ring >= 1; ring--) {
-                    const hue = (shift + ring * 85) % 360;
-                    ctx.strokeStyle = `hsla(${hue}, 85%, 60%, 0.42)`;
-                    ctx.lineWidth = 7;
+                // Pitch-black petroleum pool interior
+                ctx.fillStyle = 'rgba(9, 9, 11, 0.98)';
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx, ry, 0.1, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Multi-spectral thin-film optical interference rainbow bands
+                ctx.save();
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx * 0.96, ry * 0.96, 0.1, 0, Math.PI * 2);
+                ctx.clip();
+
+                const bands = 7;
+                for (let b = bands; b >= 1; b--) {
+                    const frac = b / bands;
+                    const hue = (time * 30 * speed + b * 55) % 360;
+                    ctx.strokeStyle = `hsla(${hue}, 90%, 65%, 0.48)`;
+                    ctx.lineWidth = 9;
                     ctx.beginPath();
+                    const waveX = Math.sin(time * 1.5 + b) * 8;
+                    const waveY = Math.cos(time * 1.2 + b) * 6;
                     ctx.ellipse(
-                        cx + Math.sin(time + ring) * 6,
-                        cy + Math.cos(time + ring) * 4,
-                        rx * (ring * 0.24),
-                        ry * (ring * 0.24),
-                        0.2 * ring,
+                        cx + waveX,
+                        cy + waveY,
+                        rx * frac * 0.88,
+                        ry * frac * 0.88,
+                        b * 0.35 + time * 0.1,
                         0,
                         Math.PI * 2
                     );
                     ctx.stroke();
                 }
+
+                // Glistening wet petroleum specular arcs
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.arc(cx - rx * 0.3, cy - ry * 0.3, rx * 0.35, Math.PI * 1.1, Math.PI * 1.7);
+                ctx.stroke();
+
+                ctx.restore();
                 ctx.restore();
                 return true;
             }
@@ -10819,40 +13241,132 @@ class LivingElementsEngine {
                 return true;
             }
 
-            // 24. Gelatinous Cube / Dungeon Ooze (Trembling translucent acid cube + floating skull & sword inside)
+            // 24. Gelatinous Cube / Dungeon Ooze (Translucent undulating acid cube + suspended dissolving skeleton & corroded broadsword)
             case 'oth_ooze': {
                 ctx.save();
-                const wobbleX = Math.sin(time * 3.2 * speed) * 4;
-                const wobbleY = Math.cos(time * 2.7 * speed) * 4;
-                const pad = minDim * 0.14;
+                const wobbleX = Math.sin(time * 3.2 * speed) * 5;
+                const wobbleY = Math.cos(time * 2.7 * speed) * 5;
+                const pad = minDim * 0.12;
                 const cw = W - pad * 2 + wobbleX;
                 const ch = H - pad * 2 + wobbleY;
 
-                // Translucent acid-green gelatinous cube body
-                ctx.fillStyle = 'rgba(74, 222, 128, 0.34)';
-                ctx.strokeStyle = 'rgba(134, 239, 172, 0.88)';
-                ctx.lineWidth = 3;
-                ctx.fillRect(cx - cw * 0.5, cy - ch * 0.5, cw, ch);
-                ctx.strokeRect(cx - cw * 0.5, cy - ch * 0.5, cw, ch);
-
-                // Inner specular bevel lines
-                ctx.strokeStyle = 'rgba(220, 252, 231, 0.55)';
-                ctx.lineWidth = 1.5;
-                ctx.strokeRect(cx - cw * 0.38, cy - ch * 0.38, cw * 0.76, ch * 0.76);
-
-                // Dissolving skull & steel sword suspended inside the cube
-                const sx = cx - cw * 0.15 + Math.sin(time * 1.8) * 5;
-                const sy = cy - ch * 0.12 + Math.cos(time * 1.5) * 5;
-                ctx.fillStyle = 'rgba(245, 245, 244, 0.85)';
+                // 1. Wet acid slime trail footprint on floor
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
                 ctx.beginPath();
-                ctx.arc(sx, sy, 9, 0, Math.PI * 2);
+                ctx.ellipse(cx, cy + ch * 0.35, cw * 0.55, ch * 0.22, 0, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(226, 232, 240, 0.85)';
-                ctx.lineWidth = 3;
+
+                // 2. Translucent undulating gelatinous cube body
+                const cubeGrad = ctx.createLinearGradient(cx - cw * 0.5, cy - ch * 0.5, cx + cw * 0.5, cy + ch * 0.5);
+                cubeGrad.addColorStop(0, 'rgba(134, 239, 172, 0.50)');
+                cubeGrad.addColorStop(0.5, 'rgba(74, 222, 128, 0.35)');
+                cubeGrad.addColorStop(1, 'rgba(34, 197, 94, 0.60)');
+                ctx.fillStyle = cubeGrad;
+                ctx.strokeStyle = 'rgba(187, 247, 208, 0.90)';
+                ctx.lineWidth = 3.5;
                 ctx.beginPath();
-                ctx.moveTo(cx + cw * 0.05, cy + ch * 0.22);
-                ctx.lineTo(cx + cw * 0.26, cy - ch * 0.18);
+                ctx.roundRect(cx - cw * 0.5, cy - ch * 0.5, cw, ch, 8);
+                ctx.fill();
                 ctx.stroke();
+
+                // 3. 3D Faceted isometric transparent bevel lines & specular sheen
+                ctx.strokeStyle = 'rgba(240, 253, 244, 0.75)';
+                ctx.lineWidth = 1.8;
+                ctx.strokeRect(cx - cw * 0.40, cy - ch * 0.40, cw * 0.80, ch * 0.80);
+
+                ctx.beginPath();
+                ctx.moveTo(cx - cw * 0.5, cy - ch * 0.5);
+                ctx.lineTo(cx - cw * 0.40, cy - ch * 0.40);
+                ctx.moveTo(cx + cw * 0.5, cy - ch * 0.5);
+                ctx.lineTo(cx + cw * 0.40, cy - ch * 0.40);
+                ctx.moveTo(cx + cw * 0.5, cy + ch * 0.5);
+                ctx.lineTo(cx + cw * 0.40, cy + ch * 0.40);
+                ctx.moveTo(cx - cw * 0.5, cy + ch * 0.5);
+                ctx.lineTo(cx - cw * 0.40, cy + ch * 0.40);
+                ctx.stroke();
+
+                // 4. Suspended Dissolved Contents
+                // A. Bleached human skull floating half-digested
+                const sx = cx - cw * 0.16 + Math.sin(time * 1.8 * speed) * 6;
+                const sy = cy - ch * 0.14 + Math.cos(time * 1.5 * speed) * 6;
+                ctx.save();
+                ctx.translate(sx, sy);
+                ctx.rotate(Math.sin(time * 1.2) * 0.2);
+
+                // Skull cranium
+                ctx.fillStyle = '#f8fafc';
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1.0;
+                ctx.beginPath();
+                ctx.arc(0, -2, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Maxilla & teeth
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillRect(-3, 4, 6, 4);
+                ctx.strokeRect(-3, 4, 6, 4);
+
+                // Eye sockets
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.arc(-2.5, -1, 1.8, 0, Math.PI * 2);
+                ctx.arc(2.5, -1, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Spinal vertebrae trailing beneath skull
+                ctx.fillStyle = '#cbd5e1';
+                for (let v = 0; v < 4; v++) {
+                    ctx.fillRect(-2, 10 + v * 4, 4, 3);
+                }
+                ctx.restore();
+
+                // B. Corroded adventurer's steel broadsword suspended diagonally
+                const swX = cx + cw * 0.12 + Math.cos(time * 1.6 * speed) * 5;
+                const swY = cy + ch * 0.05 + Math.sin(time * 1.4 * speed) * 5;
+                ctx.save();
+                ctx.translate(swX, swY);
+                ctx.rotate(-0.65 + Math.sin(time * 1.1) * 0.1);
+
+                // Corroded blade with acid pitting
+                ctx.fillStyle = '#94a3b8';
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 1.0;
+                ctx.fillRect(-2, -22, 4, 28);
+                ctx.strokeRect(-2, -22, 4, 28);
+
+                // Crossguard & pommel
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(-7, 6, 14, 3);
+                ctx.fillStyle = '#ca8a04';
+                ctx.beginPath();
+                ctx.arc(0, 14, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Fizzing acidic micro-bubbles on blade
+                ctx.fillStyle = 'rgba(240, 253, 244, 0.9)';
+                for (let b = 0; b < 4; b++) {
+                    const byOff = -18 + b * 6;
+                    ctx.beginPath();
+                    ctx.arc(3, byOff + Math.sin(time * 8 + b) * 2, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                // 5. Internal Digestive Vacuoles & Air Bubbles
+                for (let v = 0; v < 6; v++) {
+                    const vx = cx + Math.sin(v * 2.3 + time * 0.8) * (cw * 0.32);
+                    const vy = cy + Math.cos(v * 2.1 + time * 0.7) * (ch * 0.30);
+                    const vr = 2.5 + (v % 3) * 2.2;
+                    ctx.fillStyle = 'rgba(220, 252, 231, 0.65)';
+                    ctx.strokeStyle = 'rgba(74, 222, 128, 0.85)';
+                    ctx.lineWidth = 1.0;
+                    ctx.beginPath();
+                    ctx.arc(vx, vy, vr, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+
                 ctx.restore();
                 return true;
             }
@@ -10986,55 +13500,166 @@ class LivingElementsEngine {
                 return true;
             }
 
-            // 28. Spiraling Desert Quicksand Pit & Boiling Black Bitumen Tar Pit
-            case 'uni_quicksand':
-            case 'uni_tarpit': {
+            // 28A. Spiraling Desert Quicksand Pit (Multi-tier sand vortex + subsidence terraces + central sink funnel)
+            case 'uni_quicksand': {
                 ctx.save();
                 const rx = W * 0.42;
                 const ry = H * 0.38;
-                if (variant === 'uni_quicksand') {
-                    // Concentric rotating desert sand vortex pulling inward
-                    ctx.fillStyle = 'rgba(180, 142, 84, 0.90)';
-                    ctx.beginPath();
-                    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    for (let r = 5; r >= 1; r--) {
-                        const frac = r / 5;
-                        ctx.strokeStyle = r % 2 === 0 ? 'rgba(120, 86, 40, 0.65)' : 'rgba(235, 205, 145, 0.55)';
-                        ctx.lineWidth = 5;
-                        ctx.beginPath();
-                        const rot = -time * (1.8 / frac) * speed;
-                        ctx.ellipse(cx, cy, rx * frac, ry * frac, rot, 0, Math.PI * 1.65);
-                        ctx.stroke();
-                    }
-                    ctx.fillStyle = 'rgba(48, 32, 14, 0.92)';
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, minDim * 0.08, 0, Math.PI * 2);
-                    ctx.fill();
-                } else {
-                    // Glossy pitch-black tar pit with viscous swelling bitumen bubbles & bleached bone
-                    ctx.fillStyle = 'rgba(12, 12, 16, 0.95)';
-                    ctx.strokeStyle = 'rgba(45, 42, 38, 0.85)';
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
 
-                    for (let b = 0; b < 6; b++) {
-                        const p = ((time * 0.45 * speed + b * 0.17) % 1);
-                        const bx = cx + Math.cos(b * 2.1) * rx * 0.48;
-                        const by = cy + Math.sin(b * 2.1) * ry * 0.48;
-                        const br = 4 + p * 16;
+                // Outer desert sand embankment
+                ctx.fillStyle = 'rgba(194, 155, 96, 0.95)';
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Subsidence terraced sand shelves
+                for (let tier = 4; tier >= 1; tier--) {
+                    const f = tier / 4;
+                    ctx.fillStyle = tier % 2 === 0 ? 'rgba(165, 128, 76, 0.95)' : 'rgba(182, 145, 88, 0.95)';
+                    ctx.beginPath();
+                    ctx.ellipse(cx, cy, rx * f, ry * f, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Inward-spiraling granular sand vortex flow lines
+                for (let r = 6; r >= 1; r--) {
+                    const frac = r / 6;
+                    ctx.strokeStyle = r % 2 === 0 ? 'rgba(115, 82, 38, 0.75)' : 'rgba(245, 218, 160, 0.65)';
+                    ctx.lineWidth = 3.5;
+                    ctx.beginPath();
+                    const rot = -time * (2.2 / frac) * speed;
+                    ctx.ellipse(cx, cy, rx * frac, ry * frac, rot, 0, Math.PI * 1.75);
+                    ctx.stroke();
+                }
+
+                // Granular sand particles spiraling inward
+                for (let p = 0; p < 12; p++) {
+                    const prog = ((time * 0.35 * speed + p / 12) % 1.0);
+                    const pDist = (1.0 - prog * 0.85);
+                    const pAng = time * 3.5 * speed + p * 1.8;
+                    const px = cx + Math.cos(pAng) * rx * pDist;
+                    const py = cy + Math.sin(pAng) * ry * pDist;
+                    ctx.fillStyle = (p % 2 === 0) ? '#fef08a' : '#78350f';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Deep central sink funnel vortex
+                ctx.fillStyle = 'rgba(38, 24, 10, 0.98)';
+                ctx.beginPath();
+                ctx.arc(cx, cy, minDim * 0.09, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+                return true;
+            }
+
+            // 28B. Boiling Black Bitumen Tar Pit (Viscous swelling bitumen domes + trapped prehistoric mammoth tusks & ribs)
+            case 'uni_tarpit': {
+                ctx.save();
+                const rx = W * 0.44;
+                const ry = H * 0.38;
+
+                // Crusted hardened bitumen & gravel outer bank
+                ctx.fillStyle = 'rgba(28, 25, 23, 0.98)';
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Glossy pitch-black boiling bitumen lake interior
+                ctx.fillStyle = 'rgba(10, 10, 12, 0.98)';
+                ctx.strokeStyle = 'rgba(68, 64, 60, 0.85)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx * 0.90, ry * 0.90, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Trapped Prehistoric Mammoth Tusk jutting out of the tar
+                const tuskX = cx + rx * 0.22;
+                const tuskY = cy - ry * 0.15;
+                ctx.save();
+                ctx.translate(tuskX, tuskY);
+                ctx.rotate(-0.45);
+
+                // Tusk shadow in tar
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.beginPath();
+                ctx.ellipse(2, 4, 18, 5, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Curved ivory tusk
+                ctx.fillStyle = '#fef08a';
+                ctx.strokeStyle = '#ca8a04';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(-16, 8);
+                ctx.quadraticCurveTo(0, -6, 22, -18);
+                ctx.quadraticCurveTo(4, -1, -12, 12);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Tar dripping coating the base of the tusk
+                ctx.fillStyle = '#09090b';
+                ctx.beginPath();
+                ctx.moveTo(-16, 8);
+                ctx.lineTo(-4, 0);
+                ctx.lineTo(-12, 12);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+
+                // Trapped Prehistoric Rib Bones jutting out on opposite side
+                const ribX = cx - rx * 0.28;
+                const ribY = cy + ry * 0.12;
+                ctx.strokeStyle = '#fef9c3';
+                ctx.lineWidth = 2.4;
+                ctx.beginPath();
+                ctx.arc(ribX, ribY, 14, -0.6, Math.PI * 0.45);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(ribX + 8, ribY + 4, 12, -0.6, Math.PI * 0.45);
+                ctx.stroke();
+
+                // Massive Viscous Swelling Tar Domes & Popping Sink Rings
+                for (let b = 0; b < 7; b++) {
+                    const p = ((time * 0.40 * speed + b * 0.15) % 1);
+                    const bx = cx + Math.cos(b * 2.3) * rx * 0.45;
+                    const by = cy + Math.sin(b * 2.3) * ry * 0.45;
+
+                    if (p < 0.72) {
+                        // Swelling glossy black tar dome
+                        const t = p / 0.72;
+                        const br = (4 + t * 16);
                         ctx.fillStyle = '#18181b';
-                        ctx.strokeStyle = `rgba(161, 161, 170, ${(1 - p) * 0.75})`;
-                        ctx.lineWidth = 1.8;
+                        ctx.strokeStyle = '#3f3f46';
+                        ctx.lineWidth = 1.5;
                         ctx.beginPath();
                         ctx.arc(bx, by, br, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.stroke();
+
+                        // Wet specular highlight on dome
+                        ctx.fillStyle = 'rgba(212, 212, 216, 0.75)';
+                        ctx.beginPath();
+                        ctx.arc(bx - br * 0.32, by - br * 0.32, br * 0.28, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        // Popped tar bubble: viscous collapsing sink ring
+                        const popT = (p - 0.72) / 0.28;
+                        const ringR = 16 * (1.0 + popT * 0.55);
+                        const alpha = (1.0 - popT) * 0.75;
+                        ctx.strokeStyle = `rgba(113, 113, 122, ${alpha})`;
+                        ctx.lineWidth = 2.0 * (1.0 - popT * 0.5);
+                        ctx.beginPath();
+                        ctx.arc(bx, by, ringR, 0, Math.PI * 2);
+                        ctx.stroke();
                     }
                 }
+
                 ctx.restore();
                 return true;
             }
