@@ -8502,16 +8502,21 @@ class LivingElementsEngine {
     drawRealisticTumbleweed(el, ctx, W, H, dt) {
         if (!el.particles) el.particles = [];
         if (!el.dustParticles) el.dustParticles = [];
+        if (!el.emberParticles) el.emberParticles = [];
+        if (!el.scorchMarks) el.scorchMarks = [];
 
         const cfg = el.config || {};
+        const variant = cfg.variant || el.type || 'desert_thistle';
+        const isFlaming = variant === 'flaming_tumbleweed' || variant === 'ww_flaming_tumbleweed';
+        const isBarbed = variant === 'barbed_wire' || variant === 'ww_tumbleweed_street';
         const baseCount = cfg.count !== undefined ? cfg.count : 12;
         const qty = cfg.quantity !== undefined ? cfg.quantity : 1.0;
         const targetCount = Math.max(1, Math.min(50, Math.round(baseCount * qty)));
         const speed = (cfg.speed || 1.8) * 85;
+        const intensity = cfg.intensity !== undefined ? parseFloat(cfg.intensity) : 1.0;
         const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale !== undefined ? cfg.scale : 1.0)) || 1.0));
         const rough = Math.max(0, Math.min(2.0, parseFloat(cfg.fractalRoughness !== undefined ? cfg.fractalRoughness : 0.75)));
 
-        // Trim if entity count decreased
         if (el.particles.length > targetCount) {
             el.particles.length = targetCount;
         }
@@ -8520,11 +8525,7 @@ class LivingElementsEngine {
         while (el.particles.length < targetCount) {
             const baseRadius = 18 + Math.random() * 16;
             const radius = baseRadius * elScale;
-            // On initial spawn, distribute tumbleweeds across the full width [0, W]
-            const initX = isInitial
-                ? (Math.random() * W)
-                : (-Math.random() * W * 0.4 - radius * 2);
-
+            const initX = isInitial ? (Math.random() * W) : (-Math.random() * W * 0.4 - radius * 2);
             el.particles.push({
                 x: initX,
                 y: 20 + Math.random() * Math.max(20, H - 40),
@@ -8536,10 +8537,35 @@ class LivingElementsEngine {
             });
         }
 
-        // 1. Update and render Fractal Ground Dust Puffs kick-up
+        // 1. Render Ground Scorch Trail (For Flaming Variant)
+        if (isFlaming) {
+            for (let s = el.scorchMarks.length - 1; s >= 0; s--) {
+                const sm = el.scorchMarks[s];
+                sm.life -= dt * 0.35;
+                if (sm.life <= 0) {
+                    el.scorchMarks.splice(s, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.fillStyle = `rgba(20, 15, 10, ${sm.life * 0.4 * intensity})`;
+                ctx.beginPath();
+                ctx.ellipse(sm.x, sm.y, sm.r * 0.9, sm.r * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Residual glowing cinder speck
+                if (sm.life > 0.4) {
+                    ctx.fillStyle = `rgba(255, 110, 20, ${(sm.life - 0.4) * 0.6 * intensity})`;
+                    ctx.beginPath();
+                    ctx.arc(sm.x, sm.y, 1.4 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        // 2. Update and render Ground Dust Puffs / Smoke
         for (let d = el.dustParticles.length - 1; d >= 0; d--) {
             const dp = el.dustParticles[d];
-            dp.life -= dt * 1.8;
+            dp.life -= dt * (isFlaming ? 1.4 : 1.8);
             dp.x += dp.vx * dt;
             dp.y += dp.vy * dt;
             dp.size += dt * 14 * elScale;
@@ -8550,13 +8576,37 @@ class LivingElementsEngine {
             }
 
             ctx.save();
-            ctx.fillStyle = `rgba(200, 175, 135, ${dp.life * 0.28})`;
+            if (isFlaming) {
+                ctx.fillStyle = `rgba(40, 35, 30, ${dp.life * 0.32 * intensity})`;
+            } else {
+                ctx.fillStyle = `rgba(200, 175, 135, ${dp.life * 0.28 * intensity})`;
+            }
             this.traceFractalLobe(ctx, dp.x, dp.y, dp.size * 1.15, dp.size * 0.85, dp.life * 2, rough * 0.8, d * 1.7, 14);
             ctx.fill();
             ctx.restore();
         }
 
-        // 2. Render each Tumbleweed with Live Element Scale & Fractal Briar Brambles
+        // 3. Render Flying Embers (For Flaming Variant)
+        if (isFlaming) {
+            for (let e = el.emberParticles.length - 1; e >= 0; e--) {
+                const em = el.emberParticles[e];
+                em.life -= dt * 1.6;
+                em.x += em.vx * dt;
+                em.y += em.vy * dt;
+                if (em.life <= 0) {
+                    el.emberParticles.splice(e, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.fillStyle = `rgba(255, ${Math.floor(120 + em.life * 135)}, 30, ${em.life * intensity})`;
+                ctx.beginPath();
+                ctx.arc(em.x, em.y, em.size * elScale, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // 4. Render Each Tumbleweed in Pure 90-Degree Overhead Battlemap Projection
         for (let i = 0; i < el.particles.length; i++) {
             const tw = el.particles[i];
             if (!tw.baseRadius) tw.baseRadius = tw.radius || 22;
@@ -8564,125 +8614,237 @@ class LivingElementsEngine {
             tw.radius = r;
 
             tw.x += speed * dt;
+            const rollPitch = tw.x / Math.max(8, r);
 
-            const rotSpeed = speed / Math.max(8, r);
-            tw.rotation += rotSpeed * dt;
+            // Z-axis parabolic bounce along terrain
+            const bounceCycle = tw.x * 0.045 + tw.seed;
+            const zAltitude = Math.abs(Math.sin(bounceCycle)) * (16 * elScale);
+            const isAirborne = zAltitude > 2.5 * elScale;
+            const zScale = 1.0 + (zAltitude / (85 * elScale));
 
-            const terrainMicroBump = Math.sin(tw.x * 0.08 + tw.seed) * 2.5 * elScale;
-            const currentY = tw.y + terrainMicroBump;
+            const groundX = tw.x;
+            const groundY = tw.y;
 
+            // Ground Contact / Impact Events
             tw.dustCooldown -= dt;
-            if (tw.dustCooldown <= 0 && cfg.dustPuffs !== false) {
-                el.dustParticles.push({
-                    x: tw.x - r * 0.4,
-                    y: currentY + r * 0.85,
-                    vx: -speed * 0.2,
-                    vy: -(Math.random() * 8),
-                    size: (3 + Math.random() * 4) * elScale,
-                    life: 1.0
-                });
-                tw.dustCooldown = 0.25 + Math.random() * 0.3;
+            if (tw.dustCooldown <= 0 && !isAirborne) {
+                if (cfg.dustPuffs !== false) {
+                    el.dustParticles.push({
+                        x: groundX - r * 0.5,
+                        y: groundY + (Math.random() - 0.5) * r * 0.4,
+                        vx: -speed * 0.18,
+                        vy: (Math.random() - 0.5) * 12,
+                        size: (3.5 + Math.random() * 4) * elScale,
+                        life: 1.0
+                    });
+                }
+                if (isFlaming) {
+                    // Drop scorch mark on terrain
+                    if (el.scorchMarks.length < 35) {
+                        el.scorchMarks.push({
+                            x: groundX,
+                            y: groundY,
+                            r: (4 + Math.random() * 5) * elScale,
+                            life: 1.0
+                        });
+                    }
+                }
+                tw.dustCooldown = 0.22 + Math.random() * 0.28;
             }
 
-            if (tw.x > W + r * 2) {
-                tw.x = -r * 2 - Math.random() * 60;
+            // Shed flying sparks / embers
+            if (isFlaming && Math.random() < 0.45) {
+                if (el.emberParticles.length < 50) {
+                    el.emberParticles.push({
+                        x: groundX - r * 0.3,
+                        y: groundY + (Math.random() - 0.5) * r * 0.5 - zAltitude * 0.3,
+                        vx: -speed * (0.3 + Math.random() * 0.4),
+                        vy: (Math.random() - 0.5) * 35,
+                        size: 1.2 + Math.random() * 1.6,
+                        life: 1.0
+                    });
+                }
+            }
+
+            // Screen boundary wrapping
+            if (tw.x > W + r * 2.5) {
+                tw.x = -r * 2.5 - Math.random() * 60;
                 tw.y = 20 + Math.random() * Math.max(20, H - 40);
             }
 
-            // Soft Fractal Ground Shadow
+            // A. PURE 90-DEG TOP-DOWN GROUND SHADOW ON TERRAIN
+            // Stays on the flat ground plane underneath (separated from airborne tumbleweed)
+            const sunOffX = 4 * elScale + zAltitude * 0.15;
+            const sunOffY = 6 * elScale + zAltitude * 0.22;
+            const shadowR = r * (0.82 + zAltitude * 0.012);
+            const shadowAlpha = Math.max(0.08, (0.38 - (zAltitude / (45 * elScale))) * intensity);
+
             ctx.save();
-            ctx.fillStyle = 'rgba(40, 28, 18, 0.34)';
-            this.traceFractalLobe(ctx, tw.x + 4 * elScale, currentY + r * 0.86, r * 0.88, r * 0.30, 0.1, rough * 0.75, tw.seed, 16);
+            ctx.fillStyle = isFlaming ? `rgba(25, 15, 10, ${shadowAlpha})` : `rgba(40, 28, 18, ${shadowAlpha})`;
+            ctx.beginPath();
+            ctx.ellipse(groundX + sunOffX, groundY + sunOffY, shadowR, shadowR * 0.78, 0.2, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
 
-            // Render 3D Tangled Fractal Briar & Thistle Cage
+            // B. 3D SPHERICAL TUMBLEWEED IN OVERHEAD VIEW
+            // Elevated along Z-axis toward the overhead camera
+            const drawX = groundX;
+            const drawY = groundY - zAltitude * 0.25;
+
             ctx.save();
-            ctx.translate(tw.x, currentY);
-            ctx.rotate(tw.rotation);
+            ctx.translate(drawX, drawY);
+            ctx.scale(zScale, zScale);
 
-            const colDeep = '#4f3c28';
-            const colMid = '#7d6645';
-            const colLight = '#a89068';
-            const colHighlight = '#cbb48c';
+            if (isFlaming) {
+                // Flaming Tumbleweed: Incandescent ember core & licking flames
+                const fireGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, r * 0.85);
+                fireGrad.addColorStop(0, `rgba(255, 255, 220, ${0.95 * intensity})`);
+                fireGrad.addColorStop(0.3, `rgba(255, 140, 20, ${0.85 * intensity})`);
+                fireGrad.addColorStop(0.7, `rgba(220, 38, 38, ${0.55 * intensity})`);
+                fireGrad.addColorStop(1, 'rgba(150, 20, 0, 0)');
+                ctx.fillStyle = fireGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2);
+                ctx.fill();
 
-            // A. Central Gnarled Root Knot
-            ctx.fillStyle = colDeep;
-            this.traceFractalLobe(ctx, 0, 0, r * 0.22, r * 0.18, tw.seed, Math.max(0.3, rough), tw.seed, 12);
-            ctx.fill();
+                // Charred black/soot woody briar stems
+                const colSoot = '#1c1917';
+                const colEmber = '#f97316';
+                ctx.strokeStyle = colSoot;
+                ctx.lineWidth = Math.max(1.2, r * 0.065);
+                const hoops = 6;
+                for (let h = 0; h < hoops; h++) {
+                    const hAngle = (Math.PI / hoops) * h;
+                    const cosRoll = Math.cos(rollPitch + h * 0.9);
+                    const hoopW = r * (0.85 + 0.1 * Math.sin(h * 2.1));
+                    const hoopH = r * Math.abs(cosRoll) * 0.85;
+                    ctx.strokeStyle = cosRoll > 0 ? colEmber : colSoot;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, hoopW, Math.max(2, hoopH), hAngle, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
 
-            // B. Recursive Bifurcating Woody Stems (Fractal Twig Branches)
-            const mainBranches = 7 + Math.floor(rough * 6);
-            const branchDepth = rough > 0.9 ? 4 : (rough > 0.45 ? 3 : 2);
-            const baseStemWidth = Math.max(1.2, r * 0.068);
-            for (let b = 0; b < mainBranches; b++) {
-                const bAng = (Math.PI * 2 / mainBranches) * b + Math.sin(b * 2.3 + tw.seed) * 0.22;
-                const bLen = r * (0.46 + 0.14 * Math.sin(b * 3.1 + tw.seed));
-                this.drawFractalTwigBranch(
-                    ctx,
-                    0,
-                    0,
-                    bLen,
-                    bAng,
-                    baseStemWidth,
-                    branchDepth,
-                    rough,
-                    tw.seed + b * 1.73,
-                    (b % 2 === 0) ? colDeep : colMid
-                );
-            }
+                // Licking surface flames
+                ctx.fillStyle = `rgba(255, 200, 50, ${0.75 * intensity})`;
+                for (let fl = 0; fl < 7; fl++) {
+                    const fa = (fl / 7) * Math.PI * 2 + tw.x * 0.05;
+                    const fDist = r * (0.55 + 0.3 * Math.sin(tw.x * 0.1 + fl));
+                    ctx.beginPath();
+                    ctx.arc(Math.cos(fa) * fDist, Math.sin(fa) * fDist, 2.5 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
 
-            // C. 6 Foreshortened 3D Fractal-Perturbed Briar Cage Hoops
-            ctx.lineWidth = Math.max(1.0, r * 0.045);
-            const hoopCount = 6;
-            for (let h = 0; h < hoopCount; h++) {
-                ctx.strokeStyle = (h % 2 === 0) ? colMid : colLight;
-                const hRot = (Math.PI / hoopCount) * h + (tw.seed % 3) * 0.2;
-                const hoopRx = r * (0.86 + 0.08 * Math.sin(h * 1.9));
-                const hoopRy = r * (0.48 + 0.18 * Math.cos(h * 2.3));
-                this.traceFractalLobe(
-                    ctx,
-                    0,
-                    0,
-                    hoopRx,
-                    hoopRy,
-                    hRot,
-                    Math.max(0.18, rough * 0.92),
-                    tw.seed + h * 4.1,
-                    24
-                );
+            } else if (isBarbed) {
+                // Barbed Wire Tangle: Rusted iron/steel wire rings & sharp cross barbs
+                const colRust = '#451a03';
+                const colSteel = '#94a3b8';
+                const colHighlight = '#e2e8f0';
+
+                ctx.lineWidth = Math.max(1.1, r * 0.052);
+                const coils = 7;
+                for (let c = 0; c < coils; c++) {
+                    const cAngle = (Math.PI / coils) * c + (tw.seed % 5) * 0.2;
+                    const cosRoll = Math.cos(rollPitch + c * 0.85);
+                    const coilW = r * (0.88 + 0.08 * Math.sin(c * 1.8));
+                    const coilH = r * Math.abs(cosRoll) * 0.88;
+
+                    ctx.strokeStyle = (c % 2 === 0) ? colSteel : colRust;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, coilW, Math.max(2, coilH), cAngle, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // Sharp dual wire barbs along the perimeter
+                    const barbs = 5;
+                    for (let b = 0; b < barbs; b++) {
+                        const ba = (Math.PI * 2 / barbs) * b + cAngle;
+                        const bx = Math.cos(ba) * (coilW * 0.95);
+                        const by = Math.sin(ba) * (Math.max(2, coilH) * 0.95);
+                        ctx.strokeStyle = colHighlight;
+                        ctx.lineWidth = 1.2 * elScale;
+                        ctx.beginPath();
+                        ctx.moveTo(bx - 3 * elScale, by - 3 * elScale);
+                        ctx.lineTo(bx + 3 * elScale, by + 3 * elScale);
+                        ctx.moveTo(bx + 3 * elScale, by - 3 * elScale);
+                        ctx.lineTo(bx - 3 * elScale, by + 3 * elScale);
+                        ctx.stroke();
+                    }
+                }
+
+            } else {
+                // Natural Desert Thistle Briar Cage: 3D Spherical Gnarled Briar Cage
+                const colDeep = '#4f3c28';
+                const colMid = '#7d6645';
+                const colLight = '#a89068';
+                const colHighlight = '#cbb48c';
+
+                // Central woody root knot
+                ctx.fillStyle = colDeep;
+                this.traceFractalLobe(ctx, 0, 0, r * 0.22, r * 0.18, tw.seed, Math.max(0.3, rough), tw.seed, 12);
+                ctx.fill();
+
+                // 3D Spherical Briar Cage: Longitudinal hoops rolling in 3D overhead projection
+                const hoopCount = 6;
+                ctx.lineWidth = Math.max(1.0, r * 0.045);
+                for (let h = 0; h < hoopCount; h++) {
+                    const hAngle = (Math.PI / hoopCount) * h + (tw.seed % 3) * 0.2;
+                    const cosRoll = Math.cos(rollPitch + h * 0.85);
+                    const hoopRx = r * (0.86 + 0.08 * Math.sin(h * 1.9));
+                    const hoopRy = r * Math.abs(cosRoll) * 0.82;
+
+                    ctx.strokeStyle = (cosRoll > 0) ? colLight : colDeep;
+                    this.traceFractalLobe(
+                        ctx,
+                        0,
+                        0,
+                        hoopRx,
+                        Math.max(2, hoopRy),
+                        hAngle,
+                        Math.max(0.18, rough * 0.92),
+                        tw.seed + h * 4.1,
+                        24
+                    );
+                    ctx.stroke();
+                }
+
+                // Recursive woody twig branches reaching through the sphere
+                const mainBranches = 6 + Math.floor(rough * 4);
+                const branchDepth = rough > 0.9 ? 3 : 2;
+                const baseStemWidth = Math.max(1.1, r * 0.062);
+                for (let b = 0; b < mainBranches; b++) {
+                    const bAng = (Math.PI * 2 / mainBranches) * b + Math.sin(b * 2.3 + tw.seed) * 0.22;
+                    const bLen = r * (0.48 + 0.14 * Math.sin(b * 3.1 + tw.seed));
+                    this.drawFractalTwigBranch(
+                        ctx,
+                        0,
+                        0,
+                        bLen,
+                        bAng,
+                        baseStemWidth,
+                        branchDepth,
+                        rough,
+                        tw.seed + b * 1.73,
+                        (b % 2 === 0) ? colMid : colLight
+                    );
+                }
+
+                // Hooked bramble thorns around perimeter
+                const spurCount = Math.round(18 + rough * 18);
+                ctx.strokeStyle = colHighlight;
+                ctx.lineWidth = Math.max(0.85, r * 0.032);
+                ctx.beginPath();
+                for (let t = 0; t < spurCount; t++) {
+                    const angle = (Math.PI * 2 / spurCount) * t;
+                    const rInner = r * (0.58 + 0.14 * Math.sin(t * 3.7 + tw.seed));
+                    const rOuter = r * (0.88 + 0.22 * this.fractalHarmonicMod(angle, tw.seed + t, rough));
+                    const tipX = Math.cos(angle) * rOuter;
+                    const tipY = Math.sin(angle) * rOuter;
+                    ctx.moveTo(Math.cos(angle) * rInner, Math.sin(angle) * rInner);
+                    ctx.lineTo(tipX, tipY);
+                    const barbLen = Math.max(2.0, r * (0.08 + rough * 0.08));
+                    ctx.lineTo(tipX + Math.sin(angle) * barbLen, tipY - Math.cos(angle) * barbLen);
+                }
                 ctx.stroke();
             }
-
-            // D. Outer Hooked Bramble Spurs & Dry Thistle Barbs
-            const spurCount = Math.round(20 + rough * 22);
-            ctx.strokeStyle = colHighlight;
-            ctx.lineWidth = Math.max(0.85, r * 0.032);
-            ctx.beginPath();
-            for (let t = 0; t < spurCount; t++) {
-                const angle = (Math.PI * 2 / spurCount) * t;
-                const rInner = r * (0.56 + 0.16 * Math.sin(t * 3.7 + tw.seed));
-                const rOuter = r * (0.86 + 0.24 * this.fractalHarmonicMod(angle, tw.seed + t, rough));
-                const midAng = angle + (t % 2 === 0 ? 1 : -1) * (0.16 + rough * 0.20);
-                const x0 = Math.cos(angle) * rInner;
-                const y0 = Math.sin(angle) * rInner;
-                const xm = Math.cos(midAng) * ((rInner + rOuter) * 0.52);
-                const ym = Math.sin(midAng) * ((rInner + rOuter) * 0.52);
-                const tipX = Math.cos(angle) * rOuter;
-                const tipY = Math.sin(angle) * rOuter;
-                ctx.moveTo(x0, y0);
-                ctx.quadraticCurveTo(xm, ym, tipX, tipY);
-                // Hooked bramble barb at tip
-                const barbLen = Math.max(2.0, r * (0.09 + rough * 0.09));
-                ctx.lineTo(tipX + Math.sin(angle) * barbLen, tipY - Math.cos(angle) * barbLen);
-                // Secondary lateral thorn spur on midpoint when rough > 0.35
-                if (rough > 0.35) {
-                    const latDir = (t % 2 === 0 ? 1 : -1);
-                    ctx.moveTo(xm, ym);
-                    ctx.lineTo(xm + Math.cos(midAng + latDir * 0.85) * barbLen * 0.85, ym + Math.sin(midAng + latDir * 0.85) * barbLen * 0.85);
-                }
-            }
-            ctx.stroke();
 
             ctx.restore();
         }
@@ -9906,45 +10068,246 @@ class LivingElementsEngine {
 
     drawRealisticForcefield(el, ctx, W, H, dt) {
         const time = el.stateTime;
-        const intensity = el.config.intensity || 1.0;
-        const qty = el.config.quantity !== undefined ? el.config.quantity : 1.0;
-        const variant = el.config.variant || 'hex_barrier';
+        const cfg = el.config || {};
+        const intensity = cfg.intensity || 1.0;
+        const speed = cfg.speed || 1.0;
+        const qty = cfg.quantity !== undefined ? cfg.quantity : 1.0;
+        const variant = cfg.variant || el.type || 'hex_barrier';
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
 
-        let color = '0, 230, 255';
-        if (variant === 'laser_grid') color = '255, 30, 50';
-        else if (variant === 'plasma_curtain') color = '210, 50, 255';
-        else if (variant === 'void_containment') color = '255, 185, 20';
-
-        const pad = 8;
+        const pad = 10 * elScale;
         const fw = W - pad * 2;
         const fh = H - pad * 2;
+        const cx = W * 0.5;
+        const cy = H * 0.5;
 
-        const borderGlow = 0.7 + 0.3 * Math.sin(time * 3);
-        ctx.strokeStyle = `rgba(${color}, ${0.85 * borderGlow * intensity})`;
-        ctx.lineWidth = 2.5;
-        ctx.strokeRect(pad, pad, fw, fh);
+        if (variant === 'laser_grid') {
+            // ================================================================
+            // 1. CRIMSON INDUSTRIAL LASER SECURITY GRID
+            // ================================================================
+            ctx.globalCompositeOperation = 'source-over';
+            // Heavy steel top & bottom emitter rails
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(pad - 4, pad - 6, fw + 8, 8 * elScale);
+            ctx.fillRect(pad - 4, H - pad - 2, fw + 8, 8 * elScale);
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.2;
+            ctx.strokeRect(pad - 4, pad - 6, fw + 8, 8 * elScale);
+            ctx.strokeRect(pad - 4, H - pad - 2, fw + 8, 8 * elScale);
 
-        ctx.strokeStyle = `rgba(${color}, ${0.28 * borderGlow * intensity})`;
-        ctx.lineWidth = 6;
-        ctx.strokeRect(pad - 2, pad - 2, fw + 4, fh + 4);
+            // Laser collimator emitter nozzles
+            const laserCols = Math.max(4, Math.round(7 * qty));
+            const stepX = fw / (laserCols + 1);
+            for (let c = 1; c <= laserCols; c++) {
+                const lx = pad + c * stepX;
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(lx - 3 * elScale, pad - 4, 6 * elScale, 4 * elScale);
+                ctx.fillRect(lx - 3 * elScale, H - pad, 6 * elScale, 4 * elScale);
+            }
 
-        if (variant === 'hex_barrier' || variant === 'void_containment') {
-            const hexSize = 22 / Math.sqrt(qty);
+            ctx.globalCompositeOperation = 'lighter';
+            // Criss-crossing collimated red laser beams
+            const laserSpacing = Math.max(16, 26 / Math.sqrt(qty)) * elScale;
+            // Vertical beams with micro-vibration
+            for (let x = pad + stepX; x < W - pad; x += stepX) {
+                const vib = Math.sin(time * 30 * speed + x) * 0.6;
+                ctx.strokeStyle = `rgba(239, 68, 68, ${0.45 * intensity})`;
+                ctx.lineWidth = 3.5 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(x + vib, pad); ctx.lineTo(x - vib, H - pad);
+                ctx.stroke();
+
+                ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * intensity})`;
+                ctx.lineWidth = 1.2 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(x + vib, pad); ctx.lineTo(x - vib, H - pad);
+                ctx.stroke();
+            }
+
+            // Diagonal angled cross-scan lasers
+            const diagLines = Math.max(3, Math.round(5 * qty));
+            for (let d = 0; d < diagLines; d++) {
+                const dProg = ((time * 0.4 * speed + d / diagLines) % 1.0);
+                const startX = pad + dProg * fw;
+                const endX = W - pad - dProg * fw;
+                ctx.strokeStyle = `rgba(255, 30, 60, ${0.75 * intensity})`;
+                ctx.lineWidth = 2.0 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(startX, pad); ctx.lineTo(endX, H - pad);
+                ctx.stroke();
+            }
+
+            // Intersection hot-spot spark bursts
+            for (let c = 1; c <= laserCols; c++) {
+                const ix = pad + c * stepX;
+                const iy = pad + ((time * 70 * speed + c * 45) % fh);
+                const sparkPulse = Math.sin(time * 25 + c) * 0.5 + 0.5;
+                ctx.fillStyle = `rgba(254, 240, 138, ${0.95 * sparkPulse * intensity})`;
+                ctx.beginPath();
+                ctx.arc(ix, iy, 2.8 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (variant === 'plasma_curtain') {
+            // ================================================================
+            // 2. TURBULENT IONIZED PLASMA CURTAIN (Violet / Magenta)
+            // ================================================================
+            ctx.globalCompositeOperation = 'source-over';
+            // Heavy ceramic containment rails & coils top and bottom
+            ctx.fillStyle = '#180d28';
+            ctx.fillRect(pad - 2, pad - 6, fw + 4, 8 * elScale);
+            ctx.fillRect(pad - 2, H - pad - 2, fw + 4, 8 * elScale);
+
+            // Purple magnetic coil rings along rails
+            ctx.fillStyle = '#9333ea';
+            for (let cxp = pad + 8; cxp < W - pad; cxp += 22 * elScale) {
+                ctx.fillRect(cxp - 2, pad - 5, 4 * elScale, 6 * elScale);
+                ctx.fillRect(cxp - 2, H - pad - 1, 4 * elScale, 6 * elScale);
+            }
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Ionized plasma backdrop glow
+            const pGrad = ctx.createLinearGradient(0, pad, 0, H - pad);
+            pGrad.addColorStop(0, `rgba(168, 85, 247, ${0.35 * intensity})`);
+            pGrad.addColorStop(0.5, `rgba(216, 70, 239, ${0.18 * intensity})`);
+            pGrad.addColorStop(1, `rgba(168, 85, 247, ${0.35 * intensity})`);
+            ctx.fillStyle = pGrad;
+            ctx.fillRect(pad, pad, fw, fh);
+
+            // Vertical turbulent plasma filaments twisting and leaping
+            const filaments = Math.max(8, Math.round(16 * qty));
+            for (let f = 0; f < filaments; f++) {
+                const fx = pad + (f / filaments) * fw + Math.sin(time * 4 * speed + f * 1.5) * (8 * elScale);
+                const fWave = Math.sin(time * 6 * speed + f * 2.1);
+                ctx.strokeStyle = f % 2 === 0 ? `rgba(216, 70, 239, ${0.85 * intensity})` : `rgba(147, 51, 234, ${0.75 * intensity})`;
+                ctx.lineWidth = (2.2 + Math.abs(fWave) * 1.5) * elScale;
+                ctx.beginPath();
+                ctx.moveTo(fx, pad);
+                const segs = 6;
+                for (let s = 1; s <= segs; s++) {
+                    const sy = pad + (s / segs) * fh;
+                    const sx = fx + Math.sin(time * 8 * speed + s * 1.8 + f) * (10 * elScale);
+                    ctx.lineTo(sx, sy);
+                }
+                ctx.stroke();
+
+                // High-voltage electric discharge arc snapping between filaments
+                if (f % 3 === 0) {
+                    const arcY = pad + ((time * 90 * speed + f * 30) % fh);
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * intensity})`;
+                    ctx.lineWidth = 1.4 * elScale;
+                    ctx.beginPath();
+                    ctx.moveTo(fx, arcY);
+                    ctx.lineTo(fx + (Math.sin(time * 20) * 16 * elScale), arcY + (Math.cos(time * 20) * 12 * elScale));
+                    ctx.stroke();
+                }
+            }
+
+        } else if (variant === 'void_containment') {
+            // ================================================================
+            // 3. VOID SINGULARITY CONTAINMENT (Dark Matter Vortex & Gold Prongs)
+            // ================================================================
+            ctx.globalCompositeOperation = 'source-over';
+            // Outer containment boundary frame with caution notches
+            ctx.strokeStyle = '#b45309';
+            ctx.lineWidth = 3.0 * elScale;
+            ctx.strokeRect(pad, pad, fw, fh);
+
+            // 4 Cardinal Magnetic Stabilizer Prongs (North, South, East, West)
+            const prongLen = Math.min(fw, fh) * 0.22;
+            ctx.fillStyle = '#78350f';
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.0;
+
+            // North Prong
+            ctx.fillRect(cx - 8 * elScale, pad, 16 * elScale, prongLen);
+            ctx.strokeRect(cx - 8 * elScale, pad, 16 * elScale, prongLen);
+            // South Prong
+            ctx.fillRect(cx - 8 * elScale, H - pad - prongLen, 16 * elScale, prongLen);
+            ctx.strokeRect(cx - 8 * elScale, H - pad - prongLen, 16 * elScale, prongLen);
+            // West Prong
+            ctx.fillRect(pad, cy - 8 * elScale, prongLen, 16 * elScale);
+            ctx.strokeRect(pad, cy - 8 * elScale, prongLen, 16 * elScale);
+            // East Prong
+            ctx.fillRect(W - pad - prongLen, cy - 8 * elScale, prongLen, 16 * elScale);
+            ctx.strokeRect(W - pad - prongLen, cy - 8 * elScale, prongLen, 16 * elScale);
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Golden stabilizer beams firing into center singularity
+            ctx.strokeStyle = `rgba(251, 191, 36, ${0.85 * intensity})`;
+            ctx.lineWidth = 2.5 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(cx, pad + prongLen); ctx.lineTo(cx, cy);
+            ctx.moveTo(cx, H - pad - prongLen); ctx.lineTo(cx, cy);
+            ctx.moveTo(pad + prongLen, cy); ctx.lineTo(cx, cy);
+            ctx.moveTo(W - pad - prongLen, cy); ctx.lineTo(cx, cy);
+            ctx.stroke();
+
+            // Orbiting golden accretion rings
+            const voidR = Math.min(fw, fh) * 0.35;
+            for (let ring = 1; ring <= 3; ring++) {
+                const rRadius = voidR * (0.35 + ring * 0.22);
+                ctx.strokeStyle = `rgba(245, 158, 11, ${(0.6 - ring * 0.12) * intensity})`;
+                ctx.lineWidth = (2.2 - ring * 0.4) * elScale;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rRadius, rRadius * 0.65, time * (1.2 - ring * 0.3) * speed, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Central Inky Gravitational Event Horizon
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#050308';
+            ctx.beginPath();
+            ctx.arc(cx, cy, voidR * 0.28, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 1.5 * elScale;
+            ctx.stroke();
+
+        } else {
+            // ================================================================
+            // 4. HEXAGONAL ENERGY SHIELD MATRIX (Default Cyan)
+            // ================================================================
+            ctx.globalCompositeOperation = 'lighter';
+            const color = '0, 230, 255';
+            const borderGlow = 0.7 + 0.3 * Math.sin(time * 3 * speed);
+
+            // Outer boundary glow
+            ctx.strokeStyle = `rgba(${color}, ${0.85 * borderGlow * intensity})`;
+            ctx.lineWidth = 2.5 * elScale;
+            ctx.strokeRect(pad, pad, fw, fh);
+
+            ctx.strokeStyle = `rgba(${color}, ${0.28 * borderGlow * intensity})`;
+            ctx.lineWidth = 6 * elScale;
+            ctx.strokeRect(pad - 2, pad - 2, fw + 4, fh + 4);
+
+            // Corner emitter nodules
+            ctx.fillStyle = `rgba(${color}, ${intensity})`;
+            const cRad = 5 * elScale;
+            ctx.beginPath();
+            ctx.arc(pad, pad, cRad, 0, Math.PI * 2);
+            ctx.arc(W - pad, pad, cRad, 0, Math.PI * 2);
+            ctx.arc(pad, H - pad, cRad, 0, Math.PI * 2);
+            ctx.arc(W - pad, H - pad, cRad, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Honeycomb hexagon grid
+            const hexSize = Math.max(14, 22 / Math.sqrt(qty)) * elScale;
             const hexH = hexSize * Math.sqrt(3);
             const cols = Math.ceil(fw / (hexSize * 1.5)) + 1;
             const rows = Math.ceil(fh / hexH) + 1;
 
-            ctx.lineWidth = 1.0;
+            ctx.lineWidth = 1.2 * elScale;
             for (let c = 0; c < cols; c++) {
                 for (let r = 0; r < rows; r++) {
                     const hx = pad + c * hexSize * 1.5;
                     const hy = pad + r * hexH + (c % 2 ? hexH / 2 : 0);
                     if (hx > W - pad || hy > H - pad) continue;
 
-                    const wave = Math.sin((hx + hy) * 0.025 - time * 3.5);
+                    const wave = Math.sin((hx + hy) * 0.025 - time * 3.5 * speed);
                     const hexAlpha = Math.max(0.08, (wave * 0.5 + 0.5) * 0.65) * intensity;
 
                     ctx.strokeStyle = `rgba(${color}, ${hexAlpha})`;
@@ -9959,67 +10322,13 @@ class LivingElementsEngine {
                     ctx.closePath();
                     ctx.stroke();
 
-                    if (wave > 0.85) {
-                        ctx.fillStyle = `rgba(${color}, ${(wave - 0.85) * 4 * intensity})`;
-                        ctx.fillRect(hx - 1.5, hy - 1.5, 3, 3);
+                    // Illuminating node vertex
+                    if (wave > 0.82) {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${(wave - 0.82) * 5 * intensity})`;
+                        ctx.fillRect(hx - 1.5 * elScale, hy - 1.5 * elScale, 3 * elScale, 3 * elScale);
                     }
                 }
             }
-
-        } else if (variant === 'laser_grid') {
-            const spacing = 24 / Math.sqrt(qty);
-            ctx.lineWidth = 1.2;
-
-            for (let y = pad + spacing; y < H - pad; y += spacing) {
-                const pulse = 0.5 + 0.5 * Math.sin(time * 5 + y * 0.2);
-                ctx.strokeStyle = `rgba(${color}, ${pulse * 0.85 * intensity})`;
-                ctx.beginPath();
-                ctx.moveTo(pad, y);
-                ctx.lineTo(W - pad, y);
-                ctx.stroke();
-            }
-
-            for (let x = pad + spacing; x < W - pad; x += spacing) {
-                const pulse = 0.5 + 0.5 * Math.sin(time * 5 + x * 0.2);
-                ctx.strokeStyle = `rgba(${color}, ${pulse * 0.85 * intensity})`;
-                ctx.beginPath();
-                ctx.moveTo(x, pad);
-                ctx.lineTo(x, H - pad);
-                ctx.stroke();
-            }
-
-            // Smooth traveling grid node pulse instead of random per-frame flicker
-            const nodeX = pad + ((time * 48) % Math.max(10, fw));
-            const nodeY = pad + ((time * 32) % Math.max(10, fh));
-            ctx.fillStyle = `rgba(255, 255, 255, ${0.75 * intensity})`;
-            ctx.beginPath();
-            ctx.arc(nodeX, nodeY, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-
-        } else {
-            // plasma_curtain
-            const bands = Math.floor(18 * qty);
-            for (let b = 0; b < bands; b++) {
-                const bx = pad + (b / bands) * fw;
-                const wave = Math.sin(bx * 0.05 + time * 3.2);
-                const pGrad = ctx.createLinearGradient(bx, pad, bx, H - pad);
-                const pAlpha = (0.2 + 0.25 * wave) * intensity;
-                pGrad.addColorStop(0, `rgba(${color}, ${pAlpha * 0.8})`);
-                pGrad.addColorStop(0.5, `rgba(${color}, ${pAlpha})`);
-                pGrad.addColorStop(1, `rgba(${color}, ${pAlpha * 0.8})`);
-                ctx.fillStyle = pGrad;
-                ctx.fillRect(bx, pad, fw / bands + 2, fh);
-            }
-        }
-
-        // Smoothly traveling perimeter energy nodes
-        for (let a = 0; a < 2; a++) {
-            const edgeX = pad + ((time * 60 + a * fw * 0.5) % Math.max(10, fw));
-            const edgeY = a === 0 ? pad : (H - pad);
-            ctx.fillStyle = `rgba(255, 255, 255, ${0.75 * intensity})`;
-            ctx.beginPath();
-            ctx.arc(edgeX, edgeY, 2.2, 0, Math.PI * 2);
-            ctx.fill();
         }
 
         ctx.restore();
@@ -10027,95 +10336,213 @@ class LivingElementsEngine {
 
     drawRealisticPlasmaLeak(el, ctx, W, H, dt) {
         const time = el.stateTime;
-        const intensity = el.config.intensity || 1.0;
-        const speed = el.config.speed || 1.0;
-        const qty = el.config.quantity !== undefined ? el.config.quantity : 1.0;
-        const variant = el.config.variant || 'fusion_vent';
+        const cfg = el.config || {};
+        const intensity = cfg.intensity || 1.0;
+        const speed = cfg.speed || 1.0;
+        const qty = cfg.quantity !== undefined ? cfg.quantity : 1.0;
+        const variant = cfg.variant || el.type || 'fusion_vent';
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-
-        let coreColor = '0, 245, 255';
-        let hotColor = '255, 255, 255';
-        let edgeColor = '0, 110, 255';
-        if (variant === 'warp_overload') {
-            coreColor = '230, 40, 255';
-            edgeColor = '100, 10, 180';
-        } else if (variant === 'superheated_jet') {
-            coreColor = '255, 175, 20';
-            edgeColor = '230, 50, 10';
-        }
 
         const ox = W * 0.14;
         const oy = H * 0.5;
-        const jetLen = W * 0.76;
+        const jetLen = W * 0.78;
 
-        ctx.fillStyle = '#222';
-        ctx.fillRect(ox - 16, oy - 24, 16, 48);
-        ctx.fillStyle = `rgba(${coreColor}, ${0.85 * intensity})`;
-        ctx.fillRect(ox - 2, oy - 20, 4, 40);
+        if (variant === 'warp_overload') {
+            // ================================================================
+            // 1. WARP CORE RADIATION OVERLOAD & REALITY FRACTURE (Violet)
+            // ================================================================
+            const cx = W * 0.45;
+            const cy = H * 0.5;
+            const coreR = Math.min(W, H) * 0.32;
 
-        const flareRad = 16 + Math.sin(time * 20) * 3;
-        const flareGrad = ctx.createRadialGradient(ox, oy, 2, ox, oy, flareRad);
-        flareGrad.addColorStop(0, `rgba(${hotColor}, ${intensity})`);
-        flareGrad.addColorStop(0.5, `rgba(${coreColor}, ${0.8 * intensity})`);
-        flareGrad.addColorStop(1, `rgba(${coreColor}, 0)`);
-        ctx.fillStyle = flareGrad;
-        ctx.beginPath();
-        ctx.arc(ox, oy, flareRad, 0, Math.PI * 2);
-        ctx.fill();
-
-        const diamondCount = 5;
-        const dSpacing = 32;
-        for (let d = 1; d <= diamondCount; d++) {
-            const dx = ox + d * dSpacing;
-            const dPulse = 0.8 + 0.2 * Math.sin(time * 30 + d * 1.5);
-            const dw = 14 * dPulse;
-            const dh = 10 * dPulse;
-
-            ctx.fillStyle = `rgba(${hotColor}, ${0.9 * intensity * dPulse})`;
+            // Cracked spherical containment housing
+            ctx.fillStyle = '#0f0a1c';
+            ctx.strokeStyle = '#4c1d95';
+            ctx.lineWidth = 3.0 * elScale;
             ctx.beginPath();
-            ctx.moveTo(dx - dw * 0.5, oy);
-            ctx.lineTo(dx, oy - dh * 0.5);
-            ctx.lineTo(dx + dw * 0.5, oy);
-            ctx.lineTo(dx, oy + dh * 0.5);
+            ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Pulsing Cherenkov violet radiation bursts
+            const cherenkovPulse = 0.75 + 0.25 * Math.sin(time * 12 * speed);
+            const burstGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreR * 1.35);
+            burstGrad.addColorStop(0, `rgba(255, 230, 255, ${0.98 * intensity})`);
+            burstGrad.addColorStop(0.3, `rgba(192, 38, 211, ${0.75 * cherenkovPulse * intensity})`);
+            burstGrad.addColorStop(0.7, `rgba(126, 34, 206, ${0.4 * cherenkovPulse * intensity})`);
+            burstGrad.addColorStop(1, 'rgba(59, 7, 100, 0)');
+            ctx.fillStyle = burstGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, coreR * 1.35, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Dimensional reality fracture fissures radiating outward
+            ctx.strokeStyle = `rgba(240, 171, 252, ${0.9 * intensity})`;
+            ctx.lineWidth = 2.0 * elScale;
+            const fissures = 7;
+            for (let f = 0; f < fissures; f++) {
+                const fa = (Math.PI * 2 / fissures) * f + (Math.sin(time * 3 + f) * 0.15);
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                let curX = cx;
+                let curY = cy;
+                const segs = 5;
+                for (let s = 1; s <= segs; s++) {
+                    const segDist = (coreR * 1.4 / segs);
+                    const jagged = Math.sin(time * 15 * speed + s * 2 + f) * (8 * elScale);
+                    curX += Math.cos(fa) * segDist - Math.sin(fa) * jagged;
+                    curY += Math.sin(fa) * segDist + Math.cos(fa) * jagged;
+                    ctx.lineTo(curX, curY);
+                }
+                ctx.stroke();
+            }
+
+            // High-energy quantum spark flecks
+            for (let sp = 0; sp < 16; sp++) {
+                const spa = sp * 1.3 + time * 4 * speed;
+                const spd = coreR * (0.3 + 0.8 * Math.sin(sp * 2.7 + time * 3));
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(cx + Math.cos(spa) * spd, cy + Math.sin(spa) * spd, 1.8 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (variant === 'superheated_jet') {
+            // ================================================================
+            // 2. SUPERHEATED INDUSTRIAL PLASMA TORCH & FLYING SLAG (Gold)
+            // ================================================================
+            // Ground scorch stencil beneath the torch lance
+            ctx.fillStyle = 'rgba(20, 12, 6, 0.65)';
+            ctx.beginPath();
+            ctx.ellipse(ox + jetLen * 0.45, oy, jetLen * 0.48, H * 0.22, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Industrial torch lance nozzle mounting bracket
+            ctx.fillStyle = '#292524';
+            ctx.fillRect(ox - 18 * elScale, oy - 14 * elScale, 18 * elScale, 28 * elScale);
+            ctx.strokeStyle = '#78716c';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(ox - 18 * elScale, oy - 14 * elScale, 18 * elScale, 28 * elScale);
+            // Brass nozzle collar
+            ctx.fillStyle = '#d97706';
+            ctx.fillRect(ox - 2 * elScale, oy - 8 * elScale, 6 * elScale, 16 * elScale);
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Intense blinding golden plasma flame core lance
+            const lanceGrad = ctx.createLinearGradient(ox, oy, ox + jetLen * 0.7, oy);
+            lanceGrad.addColorStop(0, `rgba(255, 255, 255, ${0.98 * intensity})`);
+            lanceGrad.addColorStop(0.2, `rgba(254, 240, 138, ${0.95 * intensity})`);
+            lanceGrad.addColorStop(0.6, `rgba(245, 158, 11, ${0.75 * intensity})`);
+            lanceGrad.addColorStop(1, 'rgba(220, 38, 38, 0)');
+
+            ctx.fillStyle = lanceGrad;
+            ctx.beginPath();
+            ctx.moveTo(ox + 4 * elScale, oy - 6 * elScale);
+            ctx.lineTo(ox + jetLen * 0.75, oy - 18 * elScale);
+            ctx.quadraticCurveTo(ox + jetLen * 0.9, oy, ox + jetLen * 0.75, oy + 18 * elScale);
+            ctx.lineTo(ox + 4 * elScale, oy + 6 * elScale);
             ctx.closePath();
             ctx.fill();
-        }
 
-        const puffCount = Math.floor(32 * qty);
-        for (let p = 0; p < puffCount; p++) {
-            const pProg = ((time * speed * 2.2 + p / puffCount) % 1.0);
-            const px = ox + pProg * jetLen;
-            const spread = pProg * (H * 0.38);
-            const py = oy + Math.sin(pProg * 8 + p * 2.1) * spread;
-            const pRad = 8 + pProg * 26;
-            const pAlpha = (1 - pProg) * 0.45 * intensity;
-
-            const puffGrad = ctx.createRadialGradient(px, py, 2, px, py, pRad);
-            puffGrad.addColorStop(0, `rgba(${coreColor}, ${pAlpha})`);
-            puffGrad.addColorStop(0.7, `rgba(${edgeColor}, ${pAlpha * 0.5})`);
-            puffGrad.addColorStop(1, 'rgba(0,0,0,0)');
-
-            ctx.fillStyle = puffGrad;
-            ctx.beginPath();
-            ctx.arc(px, py, pRad, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        for (let a = 0; a < 3; a++) {
-            ctx.strokeStyle = `rgba(${hotColor}, ${0.82 * intensity})`;
-            ctx.lineWidth = 1.3;
-            ctx.beginPath();
-            let curX = ox;
-            let curY = oy + (a - 1) * 7;
-            ctx.moveTo(curX, curY);
-            for (let seg = 1; seg <= 4; seg++) {
-                curX += 22;
-                curY = oy + (a - 1) * 7 + Math.sin(time * 9 * speed + a * 2.1 + seg * 1.6) * (6 + seg * 2.5);
-                ctx.lineTo(curX, curY);
+            // Flying molten slag sparks spraying forward
+            const slagCount = Math.floor(28 * qty);
+            for (let s = 0; s < slagCount; s++) {
+                const sProg = ((time * 3.5 * speed + s / slagCount) % 1.0);
+                const sx = ox + sProg * jetLen;
+                const sy = oy + (Math.sin(s * 4.3) * (H * 0.35) * sProg);
+                const sSize = (1.5 + (1 - sProg) * 2.5) * elScale;
+                ctx.fillStyle = sProg < 0.5 ? '#fef08a' : (sProg < 0.8 ? '#f97316' : '#dc2626');
+                ctx.beginPath();
+                ctx.arc(sx, sy, sSize, 0, Math.PI * 2);
+                ctx.fill();
             }
-            ctx.stroke();
+
+        } else {
+            // ================================================================
+            // 3. FUSION COOLANT VENT & MACH DIAMOND CONES (Cyan)
+            // ================================================================
+            // Sheared high-pressure pipe flange
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(ox - 16 * elScale, oy - 20 * elScale, 16 * elScale, 40 * elScale);
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(ox - 16 * elScale, oy - 20 * elScale, 16 * elScale, 40 * elScale);
+
+            // Cryogenic floor fog rolling outward
+            const fogCount = Math.floor(18 * qty);
+            for (let f = 0; f < fogCount; f++) {
+                const fProg = ((time * 1.2 * speed + f / fogCount) % 1.0);
+                const fx = ox + fProg * jetLen;
+                const fy = oy + Math.sin(f * 3.1 + time) * (fProg * H * 0.4);
+                const fR = (12 + fProg * 35) * elScale;
+                const fogGrad = ctx.createRadialGradient(fx, fy, 2, fx, fy, fR);
+                fogGrad.addColorStop(0, `rgba(224, 242, 254, ${(1 - fProg) * 0.35 * intensity})`);
+                fogGrad.addColorStop(1, 'rgba(14, 165, 233, 0)');
+                ctx.fillStyle = fogGrad;
+                ctx.beginPath();
+                ctx.arc(fx, fy, fR, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Supersonic nozzle flare
+            const flareRad = 18 * elScale + Math.sin(time * 24 * speed) * 3 * elScale;
+            const flareGrad = ctx.createRadialGradient(ox, oy, 2, ox, oy, flareRad);
+            flareGrad.addColorStop(0, `rgba(255, 255, 255, ${intensity})`);
+            flareGrad.addColorStop(0.5, `rgba(56, 189, 248, ${0.85 * intensity})`);
+            flareGrad.addColorStop(1, 'rgba(2, 132, 199, 0)');
+            ctx.fillStyle = flareGrad;
+            ctx.beginPath();
+            ctx.arc(ox, oy, flareRad, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Supersonic Mach Diamonds (Shock diamond train)
+            const diamondCount = 5;
+            const dSpacing = 34 * elScale;
+            for (let d = 1; d <= diamondCount; d++) {
+                const dx = ox + d * dSpacing;
+                const dPulse = 0.8 + 0.2 * Math.sin(time * 30 * speed + d * 1.5);
+                const dw = (16 - d * 1.5) * dPulse * elScale;
+                const dh = (12 - d * 1.2) * dPulse * elScale;
+
+                ctx.fillStyle = `rgba(240, 249, 255, ${0.95 * intensity * dPulse})`;
+                ctx.beginPath();
+                ctx.moveTo(dx - dw * 0.5, oy);
+                ctx.lineTo(dx, oy - dh * 0.5);
+                ctx.lineTo(dx + dw * 0.5, oy);
+                ctx.lineTo(dx, oy + dh * 0.5);
+                ctx.closePath();
+                ctx.fill();
+
+                // Shockwave diamond glow halo
+                ctx.strokeStyle = `rgba(56, 189, 248, ${0.65 * intensity})`;
+                ctx.lineWidth = 1.5 * elScale;
+                ctx.stroke();
+            }
+
+            // High-speed plasma jet plumes
+            const puffCount = Math.floor(26 * qty);
+            for (let p = 0; p < puffCount; p++) {
+                const pProg = ((time * speed * 2.4 + p / puffCount) % 1.0);
+                const px = ox + pProg * jetLen;
+                const spread = pProg * (H * 0.32);
+                const py = oy + Math.sin(pProg * 8 + p * 2.1) * spread;
+                const pRad = (8 + pProg * 24) * elScale;
+                const pAlpha = (1 - pProg) * 0.42 * intensity;
+
+                const puffGrad = ctx.createRadialGradient(px, py, 2, px, py, pRad);
+                puffGrad.addColorStop(0, `rgba(56, 189, 248, ${pAlpha})`);
+                puffGrad.addColorStop(0.7, `rgba(2, 132, 199, ${pAlpha * 0.5})`);
+                puffGrad.addColorStop(1, 'rgba(0,0,0,0)');
+
+                ctx.fillStyle = puffGrad;
+                ctx.beginPath();
+                ctx.arc(px, py, pRad, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         ctx.restore();
@@ -10126,271 +10553,563 @@ class LivingElementsEngine {
     // ========================================================================
     drawRealisticTeleporter(el, ctx, W, H, dt) {
         const time = el.stateTime;
-        const intensity = el.config.intensity || 1.0;
-        const qty = el.config.quantity !== undefined ? el.config.quantity : 1.0;
-        const variant = el.config.variant || 'transmat_pad';
+        const cfg = el.config || {};
+        const intensity = cfg.intensity || 1.0;
+        const speed = cfg.speed || 1.0;
+        const qty = cfg.quantity !== undefined ? cfg.quantity : 1.0;
+        const variant = cfg.variant || el.type || 'transmat_pad';
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
 
-        let color = '0, 235, 255';
-        if (variant === 'warp_gate') color = '180, 50, 255';
-        else if (variant === 'precursor_ring') color = '40, 255, 130';
-        else if (variant === 'disintegration_field') color = '255, 45, 60';
-
-        const cx = W / 2;
-        const cy = H / 2;
+        const cx = W * 0.5;
+        const cy = H * 0.5;
         const padR = Math.min(W, H) * 0.42;
 
-        // 1. Top-Down Reinforced Transmat Floor Pad (Hex / Circular Rim)
-        const ringPulse = 0.82 + 0.18 * Math.sin(time * 3);
-        ctx.strokeStyle = `rgba(${color}, ${0.9 * ringPulse * intensity})`;
-        ctx.lineWidth = 2.2;
-        ctx.beginPath();
-        ctx.arc(cx, cy, padR, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.strokeStyle = `rgba(${color}, ${0.45 * ringPulse * intensity})`;
-        ctx.lineWidth = 1.0;
-        ctx.beginPath();
-        ctx.arc(cx, cy, padR * 1.08, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // 2. 6 Outer Energy Pylons & Radial Floor Power Conduits
-        const pylonCount = 6;
-        ctx.lineCap = 'round';
-        for (let p = 0; p < pylonCount; p++) {
-            const angle = (Math.PI * 2 / pylonCount) * p;
-            const px = cx + Math.cos(angle) * padR;
-            const py = cy + Math.sin(angle) * padR;
-
-            // Power conduit line to center core
-            const conduitPulse = 0.4 + 0.3 * Math.sin(time * 4 + p * 1.2);
-            ctx.strokeStyle = `rgba(${color}, ${conduitPulse * intensity})`;
-            ctx.lineWidth = 1.5;
+        if (variant === 'warp_gate') {
+            // ================================================================
+            // 1. SWIRLING HYPERSPACE VORTEX GATE (Deep Indigo / Violet)
+            // ================================================================
+            // Outer containment floor ring
+            ctx.fillStyle = '#0f0a1c';
             ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(px, py);
-            ctx.stroke();
-
-            // Pylon emitter node
-            ctx.fillStyle = `rgba(${color}, ${intensity})`;
-            ctx.beginPath();
-            ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+            ctx.arc(cx, cy, padR * 1.05, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1.0;
-            ctx.beginPath();
-            ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+            ctx.strokeStyle = '#4c1d95';
+            ctx.lineWidth = 3.0 * elScale;
             ctx.stroke();
-        }
 
-        // 3. Counter-Rotating Concentric Runic Rings
-        const rotOuter = time * 0.45;
-        const rotInner = -time * 0.65;
+            ctx.globalCompositeOperation = 'lighter';
+            // Accretion disk spiral arms swirling inward
+            const arms = 3;
+            for (let a = 0; a < arms; a++) {
+                const armOffset = (Math.PI * 2 / arms) * a;
+                ctx.strokeStyle = `rgba(168, 85, 247, ${0.75 * intensity})`;
+                ctx.lineWidth = 3.5 * elScale;
+                ctx.beginPath();
+                const steps = 30;
+                for (let s = 0; s <= steps; s++) {
+                    const prog = s / steps;
+                    const r = padR * (1.0 - prog * 0.85);
+                    const theta = armOffset + prog * 4.5 - time * 2.5 * speed;
+                    const x = cx + Math.cos(theta) * r;
+                    const y = cy + Math.sin(theta) * r;
+                    if (s === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
 
-        // Outer glyph ring
-        ctx.strokeStyle = `rgba(${color}, ${0.70 * intensity})`;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.arc(cx, cy, padR * 0.72, 0, Math.PI * 2);
-        ctx.stroke();
+            // Inward-spiraling quantum distortion motes
+            const motes = Math.floor(36 * qty);
+            for (let m = 0; m < motes; m++) {
+                const mProg = ((time * 0.8 * speed + m / motes) % 1.0);
+                const invProg = 1.0 - mProg; // Spiraling inward
+                const mTheta = m * 2.4 + time * 3.5 * speed + invProg * 5.0;
+                const mDist = padR * invProg * 0.95;
+                const mx = cx + Math.cos(mTheta) * mDist;
+                const my = cy + Math.sin(mTheta) * mDist;
+                const mAlpha = Math.sin(mProg * Math.PI) * 0.9 * intensity;
+                ctx.fillStyle = `rgba(216, 180, 254, ${mAlpha})`;
+                ctx.beginPath();
+                ctx.arc(mx, my, (1.2 + mProg * 2.2) * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
-        for (let g = 0; g < 8; g++) {
-            const ga = rotOuter + g * (Math.PI / 4);
-            const gx = cx + Math.cos(ga) * (padR * 0.72);
-            const gy = cy + Math.sin(ga) * (padR * 0.72);
-            ctx.fillStyle = `rgba(${color}, ${0.85 * intensity})`;
-            ctx.fillRect(gx - 2, gy - 2, 4, 4);
-        }
-
-        // Inner glyph ring
-        ctx.strokeStyle = `rgba(${color}, ${0.80 * intensity})`;
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.arc(cx, cy, padR * 0.46, 0, Math.PI * 2);
-        ctx.stroke();
-
-        for (let g = 0; g < 6; g++) {
-            const ga = rotInner + g * (Math.PI / 3);
-            const gx = cx + Math.cos(ga) * (padR * 0.46);
-            const gy = cy + Math.sin(ga) * (padR * 0.46);
-            ctx.fillStyle = `rgba(${color}, ${0.95 * intensity})`;
+            // Central Inky Spatial Wormhole Event Horizon
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#020108';
             ctx.beginPath();
-            ctx.arc(gx, gy, 2, 0, Math.PI * 2);
+            ctx.arc(cx, cy, padR * 0.22, 0, Math.PI * 2);
             ctx.fill();
+
+            ctx.strokeStyle = '#c084fc';
+            ctx.lineWidth = 1.8 * elScale;
+            ctx.stroke();
+
+        } else if (variant === 'precursor_ring') {
+            // ================================================================
+            // 2. ALIEN PRECURSOR RESONATOR (Emerald Basalt Dais & Hovering Obelisks)
+            // ================================================================
+            // Ancient weathered basalt floor circle
+            ctx.fillStyle = '#062016';
+            ctx.beginPath();
+            ctx.arc(cx, cy, padR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#047857';
+            ctx.lineWidth = 3.0 * elScale;
+            ctx.stroke();
+
+            // Concentric glowing alien geometric rune circle
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = `rgba(52, 211, 153, ${0.85 * intensity})`;
+            ctx.lineWidth = 1.5 * elScale;
+            ctx.beginPath();
+            ctx.arc(cx, cy, padR * 0.65, 0, Math.PI * 2);
+            ctx.arc(cx, cy, padR * 0.35, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Runic square inlays
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(time * 0.25 * speed);
+            ctx.strokeRect(-padR * 0.45, -padR * 0.45, padR * 0.9, padR * 0.9);
+            ctx.rotate(Math.PI * 0.25);
+            ctx.strokeRect(-padR * 0.45, -padR * 0.45, padR * 0.9, padR * 0.9);
+            ctx.restore();
+
+            // 4 Hovering Emerald Crystal Obelisks at Cardinal Points
+            const obelisks = 4;
+            for (let o = 0; o < obelisks; o++) {
+                const oa = (Math.PI * 2 / obelisks) * o + time * 0.35 * speed;
+                const ox = cx + Math.cos(oa) * (padR * 0.88);
+                const oy = cy + Math.sin(oa) * (padR * 0.88);
+
+                // Hovering shadow on floor
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = 'rgba(2, 44, 34, 0.65)';
+                ctx.beginPath();
+                ctx.ellipse(ox + 3 * elScale, oy + 4 * elScale, 8 * elScale, 5 * elScale, oa, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Faceted emerald crystal obelisk
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath();
+                ctx.moveTo(ox, oy - 10 * elScale);
+                ctx.lineTo(ox + 6 * elScale, oy);
+                ctx.lineTo(ox, oy + 10 * elScale);
+                ctx.lineTo(ox - 6 * elScale, oy);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.globalCompositeOperation = 'lighter';
+                // Power beam firing from crystal toward center dais
+                ctx.strokeStyle = `rgba(167, 243, 208, ${0.85 * intensity})`;
+                ctx.lineWidth = 1.8 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(ox, oy); ctx.lineTo(cx, cy);
+                ctx.stroke();
+            }
+
+            // Central pulsing precursor energy node
+            const pPulse = 0.8 + 0.2 * Math.sin(time * 6 * speed);
+            ctx.fillStyle = `rgba(209, 250, 229, ${0.95 * pPulse * intensity})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 10 * pPulse * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+        } else if (variant === 'disintegration_field') {
+            // ================================================================
+            // 3. MATTER DECONSTRUCTION FIELD (Crimson Caution Deconstruction Grid)
+            // ================================================================
+            const boxW = padR * 1.8;
+            const boxH = padR * 1.8;
+            const left = cx - boxW * 0.5;
+            const top = cy - boxH * 0.5;
+
+            // Industrial floor recessed tray
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(left, top, boxW, boxH);
+
+            // Perimeter diagonal hazard yellow/black stripes
+            ctx.strokeStyle = '#eab308';
+            ctx.lineWidth = 3.0 * elScale;
+            ctx.strokeRect(left, top, boxW, boxH);
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Crimson scanning laser deconstruction grid
+            const gridLines = Math.max(5, Math.round(9 * qty));
+            const step = boxW / (gridLines + 1);
+            for (let g = 1; g <= gridLines; g++) {
+                const gx = left + g * step;
+                const gy = top + g * step;
+                const gPulse = 0.5 + 0.5 * Math.sin(time * 8 * speed + g);
+                ctx.strokeStyle = `rgba(239, 68, 68, ${gPulse * 0.85 * intensity})`;
+                ctx.lineWidth = 1.5 * elScale;
+                // Horizontal scan line
+                ctx.beginPath();
+                ctx.moveTo(left, gy); ctx.lineTo(left + boxW, gy);
+                ctx.stroke();
+                // Vertical scan line
+                ctx.beginPath();
+                ctx.moveTo(gx, top); ctx.lineTo(gx, top + boxH);
+                ctx.stroke();
+            }
+
+            // Dissolving carbon ash flakes drifting away
+            const flakes = Math.floor(30 * qty);
+            for (let f = 0; f < flakes; f++) {
+                const fProg = ((time * 0.9 * speed + f / flakes) % 1.0);
+                const fx = left + ((f * 37) % boxW);
+                const fy = top + boxH - fProg * boxH;
+                const fAlpha = (1.0 - fProg) * 0.85 * intensity;
+                ctx.fillStyle = `rgba(255, 180, 180, ${fAlpha})`;
+                ctx.fillRect(fx, fy, 2.2 * elScale, 2.2 * elScale);
+            }
+
+        } else {
+            // ================================================================
+            // 4. QUANTUM TRANSMAT PAD & VOXEL COLUMN (Default Cyan)
+            // ================================================================
+            // Brushed-steel hexagonal floor platform
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            for (let a = 0; a < 6; a++) {
+                const angle = (Math.PI / 3) * a;
+                const px = cx + Math.cos(angle) * padR;
+                const py = cy + Math.sin(angle) * padR;
+                if (a === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2.5 * elScale;
+            ctx.stroke();
+
+            // 3 Triangular Perimeter Emitter Pillars at 120-degree intervals
+            const pillars = 3;
+            for (let p = 0; p < pillars; p++) {
+                const pa = (Math.PI * 2 / pillars) * p + Math.PI * 0.5;
+                const px = cx + Math.cos(pa) * (padR * 0.9);
+                const py = cy + Math.sin(pa) * (padR * 0.9);
+
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(px, py, 9 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#0284c7';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.globalCompositeOperation = 'lighter';
+                // Glowing blue emitter lens
+                ctx.fillStyle = '#38bdf8';
+                ctx.beginPath();
+                ctx.arc(px, py, 4 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Conduit line to center
+                ctx.strokeStyle = `rgba(56, 189, 248, ${0.5 * intensity})`;
+                ctx.lineWidth = 2.0 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(px, py); ctx.lineTo(cx, cy);
+                ctx.stroke();
+            }
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Central transmat column glow
+            const coreGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, padR * 0.45);
+            coreGrad.addColorStop(0, `rgba(255, 255, 255, ${0.98 * intensity})`);
+            coreGrad.addColorStop(0.4, `rgba(56, 189, 248, ${0.8 * intensity})`);
+            coreGrad.addColorStop(0.8, `rgba(2, 132, 199, ${0.3 * intensity})`);
+            coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, padR * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ascending digitized square holographic voxels floating toward camera
+            const voxels = Math.floor(36 * qty);
+            for (let v = 0; v < voxels; v++) {
+                const vProg = ((time * 0.9 * speed + v / voxels) % 1.0);
+                const va = v * 2.399 + time * 0.8;
+                const vDist = padR * 0.4 * Math.sqrt(vProg);
+                const vx = cx + Math.cos(va) * vDist;
+                const vy = cy + Math.sin(va) * vDist;
+                const vSize = (2.0 + vProg * 3.5) * elScale;
+                const vAlpha = Math.sin(vProg * Math.PI) * 0.9 * intensity;
+
+                ctx.fillStyle = `rgba(224, 242, 254, ${vAlpha})`;
+                ctx.fillRect(vx - vSize * 0.5, vy - vSize * 0.5, vSize, vSize);
+            }
         }
-
-        // 4. Central Quantum Singularity Core (Intense Glowing Vortex)
-        const coreHeat = 0.85 + 0.15 * Math.sin(time * 5);
-        const coreGrad = ctx.createRadialGradient(cx, cy, 1, cx, cy, padR * 0.28);
-        coreGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-        coreGrad.addColorStop(0.35, `rgba(${color}, ${coreHeat * 0.9})`);
-        coreGrad.addColorStop(0.75, `rgba(${color}, ${coreHeat * 0.4})`);
-        coreGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = coreGrad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, padR * 0.28, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 5. Transmat Motes Swirling in a 360\u00B0 Spiral Vortex
-        const moteCount = Math.floor(40 * qty);
-        for (let m = 0; m < moteCount; m++) {
-            const mProg = ((time * 0.7 + m / moteCount) % 1.0);
-            const mVortexAngle = m * 2.399 + time * 2.5 + mProg * 4.0;
-            const mDist = padR * Math.sqrt(mProg) * 0.95;
-            const mx = cx + Math.cos(mVortexAngle) * mDist;
-            const my = cy + Math.sin(mVortexAngle) * mDist;
-            const mAlpha = Math.sin(mProg * Math.PI) * 0.90 * intensity;
-            const mSize = 1.5 + mProg * 2.2;
-
-            ctx.fillStyle = `rgba(${color}, ${mAlpha})`;
-            ctx.fillRect(mx - mSize * 0.5, my - mSize * 0.5, mSize, mSize);
-        }
-
-        // 6. Planar Shockwave Waves Expanding Outward in 360\u00B0 across floor
-        const shockProg = (time * 0.45) % 1.0;
-        const shockAlpha = (1 - shockProg) * 0.65 * intensity;
-        ctx.strokeStyle = `rgba(${color}, ${shockAlpha})`;
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.arc(cx, cy, padR * shockProg * 1.35, 0, Math.PI * 2);
-        ctx.stroke();
 
         ctx.restore();
     }
 
     drawRealisticCyberTerminal(el, ctx, W, H, dt) {
         const time = el.stateTime;
-        const intensity = el.config.intensity || 1.0;
-        const variant = el.config.variant || 'tactical_hud';
+        const cfg = el.config || {};
+        const intensity = cfg.intensity || 1.0;
+        const speed = cfg.speed || 1.0;
+        const variant = cfg.variant || el.type || 'tactical_hud';
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
 
-        let color = '0, 240, 255';
-        if (variant === 'neon_sign') color = '255, 30, 160';
-        else if (variant === 'reactor_terminal') color = '255, 40, 40';
-        else if (variant === 'cyber_workstation') color = '0, 255, 120';
-
-        const pad = 10;
+        const pad = 8 * elScale;
         const tw = W - pad * 2;
         const th = H - pad * 2;
-
-        ctx.strokeStyle = `rgba(${color}, ${0.85 * intensity})`;
-        ctx.lineWidth = 1.5;
-        const chamf = 12;
-        ctx.beginPath();
-        ctx.moveTo(pad + chamf, pad);
-        ctx.lineTo(W - pad - chamf, pad);
-        ctx.lineTo(W - pad, pad + chamf);
-        ctx.lineTo(W - pad, H - pad - chamf);
-        ctx.lineTo(W - pad - chamf, H - pad);
-        ctx.lineTo(pad + chamf, H - pad);
-        ctx.lineTo(pad, H - pad - chamf);
-        ctx.lineTo(pad, pad + chamf);
-        ctx.closePath();
-        ctx.stroke();
-
-        for (let l = 0; l < 3; l++) {
-            const ledAlpha = (Math.sin(time * 6 + l * 2) > 0) ? 0.9 : 0.3;
-            ctx.fillStyle = `rgba(${color}, ${ledAlpha * intensity})`;
-            ctx.beginPath();
-            ctx.arc(pad + 20 + l * 12, pad + 8, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        const cx = W * 0.5;
+        const cy = H * 0.5;
 
         if (variant === 'tactical_hud') {
-            const rcx = W * 0.42;
-            const rcy = H * 0.52;
-            const rRad = Math.min(tw, th) * 0.36;
+            // ================================================================
+            // 1. TACTICAL HUD & ROTATING RADAR SWEEP (Tactical Green)
+            // ================================================================
+            const color = '34, 197, 94';
+            const rRad = Math.min(tw, th) * 0.42;
 
+            // Outer tactical HUD bezel
+            ctx.strokeStyle = `rgba(${color}, ${0.85 * intensity})`;
+            ctx.lineWidth = 2.0 * elScale;
+            ctx.strokeRect(pad, pad, tw, th);
+
+            // Corner bracket accents
+            const cb = 14 * elScale;
+            ctx.lineWidth = 3.0 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(pad, pad + cb); ctx.lineTo(pad, pad); ctx.lineTo(pad + cb, pad);
+            ctx.moveTo(W - pad, pad + cb); ctx.lineTo(W - pad, pad); ctx.lineTo(W - pad - cb, pad);
+            ctx.moveTo(pad, H - pad - cb); ctx.lineTo(pad, H - pad); ctx.lineTo(pad + cb, H - pad);
+            ctx.moveTo(W - pad, H - pad - cb); ctx.lineTo(W - pad, H - pad); ctx.lineTo(W - pad - cb, H - pad);
+            ctx.stroke();
+
+            // Concentric radar range rings
             ctx.strokeStyle = `rgba(${color}, ${0.35 * intensity})`;
             ctx.lineWidth = 1.0;
             ctx.beginPath();
-            ctx.arc(rcx, rcy, rRad, 0, Math.PI * 2);
-            ctx.arc(rcx, rcy, rRad * 0.5, 0, Math.PI * 2);
-            ctx.moveTo(rcx - rRad, rcy); ctx.lineTo(rcx + rRad, rcy);
-            ctx.moveTo(rcx, rcy - rRad); ctx.lineTo(rcx, rcy + rRad);
+            ctx.arc(cx, cy, rRad, 0, Math.PI * 2);
+            ctx.arc(cx, cy, rRad * 0.66, 0, Math.PI * 2);
+            ctx.arc(cx, cy, rRad * 0.33, 0, Math.PI * 2);
+            // Crosshairs
+            ctx.moveTo(cx - rRad, cy); ctx.lineTo(cx + rRad, cy);
+            ctx.moveTo(cx, cy - rRad); ctx.lineTo(cx, cy + rRad);
             ctx.stroke();
 
-            const sweep = time * 2.2;
-            ctx.strokeStyle = `rgba(${color}, ${0.9 * intensity})`;
-            ctx.lineWidth = 1.8;
+            // Rotating radar sweep line with phosphorescent trail sector
+            const sweep = time * 2.4 * speed;
+            const sweepGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, rRad);
+            sweepGrad.addColorStop(0, `rgba(74, 222, 128, ${0.45 * intensity})`);
+            sweepGrad.addColorStop(1, 'rgba(34, 197, 94, 0)');
+            ctx.fillStyle = sweepGrad;
             ctx.beginPath();
-            ctx.moveTo(rcx, rcy);
-            ctx.lineTo(rcx + Math.cos(sweep) * rRad, rcy + Math.sin(sweep) * rRad);
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, rRad, sweep - 0.75, sweep);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = `rgba(187, 247, 208, ${0.95 * intensity})`;
+            ctx.lineWidth = 1.8 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(sweep) * rRad, cy + Math.sin(sweep) * rRad);
             ctx.stroke();
 
+            // Moving tactical radar blips
             const blips = [
-                { a: 0.8, dist: 0.65 },
-                { a: 2.4, dist: 0.82 },
-                { a: 4.5, dist: 0.45 }
+                { a: 0.85, dist: 0.72, id: 'T-01' },
+                { a: 2.35, dist: 0.88, id: 'T-02' },
+                { a: 4.15, dist: 0.52, id: 'T-03' }
             ];
-            blips.forEach(b => {
-                const diff = (sweep - b.a) % (Math.PI * 2);
-                if (diff >= 0 && diff < 1.2) {
-                    const bx = rcx + Math.cos(b.a) * rRad * b.dist;
-                    const by = rcy + Math.sin(b.a) * rRad * b.dist;
-                    const bAlpha = (1 - diff / 1.2) * intensity;
-                    ctx.fillStyle = `rgba(255, 60, 60, ${bAlpha})`;
+            blips.forEach((b, idx) => {
+                const diff = (sweep - b.a + Math.PI * 4) % (Math.PI * 2);
+                if (diff < 2.0) {
+                    const bx = cx + Math.cos(b.a) * rRad * b.dist;
+                    const by = cy + Math.sin(b.a) * rRad * b.dist;
+                    const bAlpha = (1.0 - diff / 2.0) * intensity;
+                    ctx.fillStyle = `rgba(239, 68, 68, ${bAlpha})`;
                     ctx.beginPath();
-                    ctx.arc(bx, by, 3.5, 0, Math.PI * 2);
+                    ctx.arc(bx, by, 3.5 * elScale, 0, Math.PI * 2);
                     ctx.fill();
+                    // Velocity trail
+                    ctx.strokeStyle = `rgba(239, 68, 68, ${bAlpha * 0.6})`;
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by);
+                    ctx.lineTo(bx - 8 * elScale, by - 4 * elScale);
+                    ctx.stroke();
                 }
             });
 
-            ctx.strokeStyle = `rgba(${color}, ${0.85 * intensity})`;
-            ctx.lineWidth = 1.2;
-            ctx.beginPath();
-            const waveY = H - pad - 18;
-            for (let x = pad + 15; x < W - pad - 15; x += 4) {
-                const wy = waveY + Math.sin(x * 0.12 - time * 8) * 8 * Math.cos(time * 2);
-                if (x === pad + 15) ctx.moveTo(x, wy);
-                else ctx.lineTo(x, wy);
+        } else if (variant === 'cyber_workstation') {
+            // ================================================================
+            // 2. DUAL CRT TERMINALS & MATRIX DIGITAL CODE RAIN (Green / Cyan)
+            // ================================================================
+            // Heavy workstation console desk
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(pad, pad, tw, th);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2.0 * elScale;
+            ctx.strokeRect(pad, pad, tw, th);
+
+            // Left CRT Monitor (Matrix Code Rain)
+            const monW = tw * 0.46;
+            const monH = th * 0.82;
+            const monY = pad + th * 0.08;
+            const mon1X = pad + tw * 0.03;
+            const mon2X = pad + tw * 0.51;
+
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(mon1X, monY, monW, monH);
+            ctx.strokeRect(mon1X, monY, monW, monH);
+            ctx.fillRect(mon2X, monY, monW, monH);
+            ctx.strokeRect(mon2X, monY, monW, monH);
+
+            // Matrix Digital Code Rain on Left Monitor
+            const codeCols = 8;
+            for (let c = 0; c < codeCols; c++) {
+                const colX = mon1X + (c + 0.6) * (monW / codeCols);
+                const colProg = ((time * (1.2 + c * 0.3) * speed) % 1.0);
+                const headY = monY + colProg * monH;
+
+                // Bright leading glyph
+                ctx.fillStyle = '#f0fdf4';
+                ctx.fillRect(colX - 1.5, headY - 2, 3 * elScale, 5 * elScale);
+
+                // Trailing green code glyphs
+                for (let g = 1; g <= 6; g++) {
+                    const gy = headY - g * 7 * elScale;
+                    if (gy > monY) {
+                        ctx.fillStyle = `rgba(34, 197, 94, ${(1.0 - g / 7) * 0.85 * intensity})`;
+                        ctx.fillRect(colX - 1, gy, 2.5 * elScale, 4 * elScale);
+                    }
+                }
             }
-            ctx.stroke();
+
+            // Right Monitor: Hex Editor Memory Dump & Status Bars
+            ctx.fillStyle = '#38bdf8';
+            for (let r = 0; r < 5; r++) {
+                const barY = monY + 12 * elScale + r * 14 * elScale;
+                const barW = (monW * 0.75) * (0.4 + 0.5 * Math.sin(time * 3 + r * 2));
+                ctx.fillStyle = `rgba(56, 189, 248, ${0.75 * intensity})`;
+                ctx.fillRect(mon2X + 8 * elScale, barY, barW, 4 * elScale);
+            }
+
+            // Blinking LED status array along the bottom
+            for (let l = 0; l < 6; l++) {
+                const ledPulse = Math.sin(time * 8 * speed + l * 1.5) > 0;
+                ctx.fillStyle = ledPulse ? '#22c55e' : '#1e293b';
+                ctx.beginPath();
+                ctx.arc(mon2X + 10 * elScale + l * 10 * elScale, monY + monH - 10 * elScale, 2.5 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
         } else if (variant === 'neon_sign') {
-            ctx.font = 'bold 22px sans-serif';
+            // ================================================================
+            // 3. CYBERPUNK NEON GLASS TUBE SIGN (Magenta & Cyan Flicker)
+            // ================================================================
+            // Wall mounting bracket and backplate
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(pad, pad, tw, th);
+            ctx.strokeStyle = '#3f3f46';
+            ctx.lineWidth = 2.0 * elScale;
+            ctx.strokeRect(pad, pad, tw, th);
+
+            // Transformer box in corner with power cables
+            ctx.fillStyle = '#27272a';
+            ctx.fillRect(pad + 6 * elScale, pad + 6 * elScale, 24 * elScale, 18 * elScale);
+            ctx.strokeStyle = '#52525b';
+            ctx.lineWidth = 1.0;
+            ctx.strokeRect(pad + 6 * elScale, pad + 6 * elScale, 24 * elScale, 18 * elScale);
+
+            // Power cable curving down to sign letters
+            ctx.strokeStyle = '#09090b';
+            ctx.lineWidth = 2.2 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(pad + 18 * elScale, pad + 24 * elScale);
+            ctx.quadraticCurveTo(pad + 20 * elScale, cy, cx - 40 * elScale, cy - 10 * elScale);
+            ctx.stroke();
+
+            // Intermittent neon flicker / buzz cycle
+            const buzz = Math.sin(time * 35 * speed);
+            const isFlickering = (Math.sin(time * 4) > 0.88);
+            const flickerAlpha = (isFlickering ? (buzz > 0 ? 0.95 : 0.15) : (0.85 + buzz * 0.1)) * intensity;
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Neon glow halo (Magenta Bloom)
+            ctx.fillStyle = `rgba(236, 72, 153, ${flickerAlpha * 0.35})`;
+            ctx.fillRect(pad + 10 * elScale, cy - 25 * elScale, tw - 20 * elScale, 50 * elScale);
+
+            // Glass Neon Letterforms: "RESTRICTED"
+            ctx.font = `bold ${Math.round(18 * elScale)}px monospace`;
             ctx.textAlign = 'center';
-            const flicker = 0.85 + 0.15 * Math.sin(time * 28);
-            ctx.fillStyle = `rgba(${color}, ${flicker * intensity})`;
-            ctx.fillText('\u30A2\u30AF\u30BB\u30B9\u5236\u9650', W / 2, H * 0.45);
+            ctx.textBaseline = 'middle';
 
-            ctx.font = 'bold 12px monospace';
-            ctx.fillText('RESTRICTED AREA // LVL 5', W / 2, H * 0.65);
+            // Outer Magenta Neon Stroke
+            ctx.strokeStyle = `rgba(236, 72, 153, ${flickerAlpha})`;
+            ctx.lineWidth = 4.5 * elScale;
+            ctx.strokeText('RESTRICTED', cx, cy - 6 * elScale);
 
-        } else if (variant === 'reactor_terminal') {
-            const alertPulse = Math.sin(time * 6) > 0;
-            ctx.fillStyle = alertPulse ? `rgba(255, 40, 40, ${0.9 * intensity})` : `rgba(255, 40, 40, ${0.3 * intensity})`;
-            ctx.font = 'bold 14px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('\u26A0\uFE0F REACTOR OVERLOAD', W / 2, H * 0.38);
+            // Inner White-Hot Neon Core Filament
+            ctx.fillStyle = `rgba(255, 255, 255, ${flickerAlpha * 0.95})`;
+            ctx.fillText('RESTRICTED', cx, cy - 6 * elScale);
 
-            const gaugeProg = 0.65 + 0.3 * Math.sin(time * 2);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.strokeRect(W * 0.15, H * 0.52, W * 0.7, 14);
-            ctx.fillStyle = `rgba(255, 50, 50, ${intensity})`;
-            ctx.fillRect(W * 0.15, H * 0.52, W * 0.7 * gaugeProg, 14);
-
-            ctx.font = '10px monospace';
-            ctx.fillText(`CORE TEMP: ${(gaugeProg * 4500).toFixed(0)} K`, W / 2, H * 0.78);
+            // Sub-text Neon: "LEVEL // 05" (Cyan)
+            ctx.font = `bold ${Math.round(11 * elScale)}px monospace`;
+            ctx.strokeStyle = `rgba(6, 182, 212, ${flickerAlpha})`;
+            ctx.lineWidth = 3.0 * elScale;
+            ctx.strokeText('ACCESS DENIED \u2022 LVL-05', cx, cy + 16 * elScale);
+            ctx.fillStyle = `rgba(224, 242, 254, ${flickerAlpha * 0.95})`;
+            ctx.fillText('ACCESS DENIED \u2022 LVL-05', cx, cy + 16 * elScale);
 
         } else {
-            ctx.font = '10px monospace';
-            ctx.fillStyle = `rgba(${color}, ${0.85 * intensity})`;
-            const lines = [
-                '0x7F4B > MEM_ALLOC OK',
-                'PORT 8080 : LISTENING',
-                'CRYPTO_HASH: 9F2A..E8',
-                'DATA STREAM: SYNCHRONIZED',
-                'NET_SYS: RUNNING'
-            ];
-            lines.forEach((l, idx) => {
-                ctx.fillText(l, pad + 16, pad + 32 + idx * 18);
-            });
+            // ================================================================
+            // 4. NUCLEAR REACTOR EMERGENCY TERMINAL (Crimson Warning)
+            // ================================================================
+            ctx.fillStyle = '#1c1917';
+            ctx.fillRect(pad, pad, tw, th);
+
+            // Hazard chevron border trim
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 3.0 * elScale;
+            ctx.strokeRect(pad, pad, tw, th);
+
+            // Flashing Red Alert Beacon Strobe
+            const alertFlash = (Math.sin(time * 9 * speed) > 0);
+            ctx.globalCompositeOperation = 'lighter';
+            const alertGrad = ctx.createRadialGradient(cx, pad + 16 * elScale, 2, cx, pad + 16 * elScale, tw * 0.45);
+            alertGrad.addColorStop(0, alertFlash ? `rgba(255, 50, 50, ${0.95 * intensity})` : 'rgba(150, 20, 20, 0.2)');
+            alertGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = alertGrad;
+            ctx.beginPath();
+            ctx.arc(cx, pad + 16 * elScale, tw * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Analog Core Temp Meter (Semicircular Dial with Needle)
+            const dialX = cx;
+            const dialY = cy + 12 * elScale;
+            const dialR = Math.min(tw, th) * 0.32;
+
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#0c0a09';
+            ctx.beginPath();
+            ctx.arc(dialX, dialY, dialR, Math.PI, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#44403c';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Red Overheat Danger Arc
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 5.0 * elScale;
+            ctx.beginPath();
+            ctx.arc(dialX, dialY, dialR * 0.85, Math.PI * 1.5, 0);
+            ctx.stroke();
+
+            // Oscillating Red-Zone Needle
+            const needleAngle = Math.PI + Math.PI * (0.65 + 0.3 * Math.sin(time * 4 * speed));
+            ctx.strokeStyle = '#f87171';
+            ctx.lineWidth = 2.2 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(dialX, dialY);
+            ctx.lineTo(dialX + Math.cos(needleAngle) * dialR * 0.9, dialY + Math.sin(needleAngle) * dialR * 0.9);
+            ctx.stroke();
+
+            // Emergency SCRAM Button / Switch Guard
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(cx - 25 * elScale, H - pad - 18 * elScale, 50 * elScale, 14 * elScale);
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(cx - 25 * elScale, H - pad - 18 * elScale, 50 * elScale, 14 * elScale);
+            ctx.font = `bold ${Math.round(8 * elScale)}px monospace`;
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText('EMERGENCY SCRAM', cx, H - pad - 8 * elScale);
         }
 
         ctx.restore();
@@ -10653,41 +11372,180 @@ class LivingElementsEngine {
             return;
         }
 
-        // Generic fallback for alien_mutagen / caustic_acid
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        let innerCol = '230, 20, 190';
-        let edgeCol = '80, 5, 70';
-        let vaporCol = '255, 120, 220';
-        if (variant === 'caustic_acid') {
-            innerCol = '250, 220, 10';
-            edgeCol = '120, 80, 5';
-            vaporCol = '255, 240, 120';
+        if (variant === 'alien_mutagen') {
+            // ================================================================
+            // 3. ALIEN MUTAGEN XENOBLOOD & CYST EGG PODS (Violet / Biomass)
+            // ================================================================
+            ctx.save();
+            const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
+
+            // Viscous dark-violet organic biomass pool
+            ctx.beginPath();
+            const steps = 36;
+            for (let i = 0; i <= steps; i++) {
+                const angle = (Math.PI * 2 / steps) * i;
+                const rOff = Math.sin(angle * 4 + time * 1.2) * 12 + Math.cos(angle * 6 - time * 0.7) * 9;
+                const r = baseRad + rOff;
+                const px = cx + Math.cos(angle) * r;
+                const py = cy + Math.sin(angle) * (r * 0.76);
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+
+            const poolGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, baseRad * 1.1);
+            poolGrad.addColorStop(0, `rgba(168, 85, 247, ${0.92 * intensity})`);
+            poolGrad.addColorStop(0.5, `rgba(112, 26, 117, ${0.85 * intensity})`);
+            poolGrad.addColorStop(1, 'rgba(59, 7, 100, 0)');
+            ctx.fillStyle = poolGrad;
+            ctx.fill();
+
+            // Squirming micro-tentacle cilia border reaching from the pool edges
+            ctx.strokeStyle = '#c084fc';
+            ctx.lineWidth = 1.4 * elScale;
+            const ciliaCount = 18;
+            for (let c = 0; c < ciliaCount; c++) {
+                const ca = (Math.PI * 2 / ciliaCount) * c;
+                const cr = baseRad * (0.88 + 0.1 * Math.sin(c * 2.5));
+                const csx = cx + Math.cos(ca) * cr;
+                const csy = cy + Math.sin(ca) * (cr * 0.76);
+                const cWave = Math.sin(time * 6 + c * 2.0);
+                const cex = csx + Math.cos(ca + cWave * 0.3) * (14 * elScale);
+                const cey = csy + Math.sin(ca + cWave * 0.3) * (14 * elScale);
+                ctx.beginPath();
+                ctx.moveTo(csx, csy);
+                ctx.quadraticCurveTo(csx + cWave * 6, csy + cWave * 6, cex, cey);
+                ctx.stroke();
+            }
+
+            // 4 Pulsating Translucent Xenomorph Cyst Egg Pods
+            const cystCount = 4;
+            for (let egg = 0; egg < cystCount; egg++) {
+                const ea = (Math.PI * 2 / cystCount) * egg + 0.4;
+                const edist = baseRad * (0.35 + (egg % 2) * 0.25);
+                const ex = cx + Math.cos(ea) * edist;
+                const ey = cy + Math.sin(ea) * (edist * 0.7);
+                const epulse = 0.85 + 0.15 * Math.sin(time * 4 + egg * 1.5);
+                const er = (11 + (egg % 3) * 3) * epulse * elScale;
+
+                // Translucent gelatinous egg membrane
+                ctx.fillStyle = `rgba(192, 132, 252, ${0.65 * intensity})`;
+                ctx.beginPath();
+                ctx.ellipse(ex, ey, er, er * 0.82, 0.2 * egg, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#e879f9';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+
+                // Dark embryonic nucleus inside egg
+                ctx.fillStyle = 'rgba(46, 16, 101, 0.85)';
+                ctx.beginPath();
+                ctx.arc(ex + Math.sin(time * 2 + egg) * 2, ey, er * 0.42, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Bioluminescent violet spore wisps
+            ctx.globalCompositeOperation = 'lighter';
+            const sporeCount = Math.floor(16 * qty);
+            for (let s = 0; s < sporeCount; s++) {
+                const spProg = ((time * 0.4 + s / sporeCount) % 1.0);
+                const spx = cx + Math.sin(s * 3.7 + time) * (baseRad * 0.7);
+                const spy = cy - spProg * 40 * elScale;
+                const spAlpha = (1.0 - spProg) * 0.65 * intensity;
+                ctx.fillStyle = `rgba(244, 114, 182, ${spAlpha})`;
+                ctx.beginPath();
+                ctx.arc(spx, spy, 2.2 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+            return;
         }
 
+        // ================================================================
+        // 4. CAUSTIC ACID & DISSOLVING METAL (Sizzling Vitriol Pool)
+        // ================================================================
+        ctx.save();
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
+
+        // Etched floor crater rim (stone erosion ring)
+        ctx.fillStyle = '#1c1917';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, baseRad * 1.08, baseRad * 0.82, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sizzling yellow-green vitriol pool
         ctx.beginPath();
         const steps = 36;
         for (let i = 0; i <= steps; i++) {
             const angle = (Math.PI * 2 / steps) * i;
-            const rOff = Math.sin(angle * 3 + time * 0.6) * 12 + Math.cos(angle * 5 - time * 0.4) * 8;
+            const rOff = Math.sin(angle * 5 + time * 1.5) * 8 + Math.cos(angle * 3 - time * 0.8) * 6;
             const r = baseRad + rOff;
             const px = cx + Math.cos(angle) * r;
-            const py = cy + Math.sin(angle) * (r * 0.75);
+            const py = cy + Math.sin(angle) * (r * 0.74);
             if (i === 0) ctx.moveTo(px, py);
             else ctx.lineTo(px, py);
         }
         ctx.closePath();
 
-        const puddleGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, baseRad * 1.1);
-        puddleGrad.addColorStop(0, `rgba(${innerCol}, ${0.85 * intensity})`);
-        puddleGrad.addColorStop(0.7, `rgba(${edgeCol}, ${0.75 * intensity})`);
-        puddleGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = puddleGrad;
+        const acidGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, baseRad * 1.05);
+        acidGrad.addColorStop(0, `rgba(250, 204, 21, ${0.92 * intensity})`);
+        acidGrad.addColorStop(0.55, `rgba(132, 204, 22, ${0.85 * intensity})`);
+        acidGrad.addColorStop(1, 'rgba(74, 85, 20, 0)');
+        ctx.fillStyle = acidGrad;
         ctx.fill();
 
-        ctx.strokeStyle = `rgba(${innerCol}, ${0.65 * intensity})`;
-        ctx.lineWidth = 2.0;
-        ctx.stroke();
+        // Dissolving structural steel I-beam piece submerged in acid
+        const beamX = cx - baseRad * 0.35;
+        const beamY = cy + baseRad * 0.05;
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.5;
+        ctx.save();
+        ctx.translate(beamX, beamY);
+        ctx.rotate(-0.35);
+        ctx.fillRect(-22 * elScale, -6 * elScale, 44 * elScale, 12 * elScale);
+        ctx.strokeRect(-22 * elScale, -6 * elScale, 44 * elScale, 12 * elScale);
+        // Sizzling corroded notch on beam
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath();
+        ctx.arc(8 * elScale, 0, 4.5 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Boiling chemical froth / white foam rim
+        const foamBubbles = 18;
+        ctx.fillStyle = 'rgba(254, 252, 232, 0.85)';
+        for (let fb = 0; fb < foamBubbles; fb++) {
+            const fba = (Math.PI * 2 / foamBubbles) * fb + Math.sin(time * 3 + fb) * 0.2;
+            const fbr = baseRad * (0.85 + 0.12 * Math.sin(fb * 3.7));
+            const fbx = cx + Math.cos(fba) * fbr;
+            const fby = cy + Math.sin(fba) * (fbr * 0.74);
+            const bSize = (2.0 + Math.sin(time * 8 + fb * 1.5) * 1.5) * elScale;
+            ctx.beginPath();
+            ctx.arc(fbx, fby, Math.max(1, bSize), 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Acrid yellow-white rising vapor fumes
+        ctx.globalCompositeOperation = 'lighter';
+        const vaporCount = Math.floor(18 * qty);
+        for (let v = 0; v < vaporCount; v++) {
+            const vProg = ((time * 0.45 * speed + v / vaporCount) % 1.0);
+            const vx = cx + Math.sin(v * 4.2 + time) * (baseRad * 0.65);
+            const vy = cy - vProg * 38 * elScale;
+            const vRad = (10 + vProg * 22) * elScale;
+            const vAlpha = (1.0 - vProg) * 0.28 * intensity;
+
+            const vGrad = ctx.createRadialGradient(vx, vy, 2, vx, vy, vRad);
+            vGrad.addColorStop(0, `rgba(254, 240, 138, ${vAlpha})`);
+            vGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = vGrad;
+            ctx.beginPath();
+            ctx.arc(vx, vy, vRad, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         ctx.restore();
     }
 
@@ -12212,78 +13070,209 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = (cfg.speed || 1.0) * (cfg.sweepSpeed || 0.8);
-        const pal = this.getSpotlightPalette(cfg.variant || 'prison_searchlight');
+        const variant = cfg.variant || el.type || 'prison_searchlight';
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
 
-        // 90-deg Top-Down Overhead Battlemap View:
-        // Searchlight sweeps across the floor in a smooth tactical patrol ellipse
-        const sweepSpanX = (W * 0.32) * intensity;
-        const sweepSpanY = (H * 0.22) * intensity;
-        const targetX = W * 0.5 + Math.sin(time * 1.1 * speed) * sweepSpanX;
-        const targetY = H * 0.5 + Math.cos(time * 0.75 * speed) * sweepSpanY;
-        const poolRx = Math.max(25, (W * 0.28) * intensity);
-        const poolRy = Math.max(20, (H * 0.24) * intensity);
+        if (variant === 'red_alert_siren') {
+            // ================================================================
+            // 1. ROTATING 360\u00B0 RED ALERT SIREN BEACON
+            // ================================================================
+            const cx = W * 0.5;
+            const cy = H * 0.5;
+            const sirenAngle = time * 5.0 * speed;
+            const maxR = Math.hypot(W, H) * 0.65;
 
-        // 1. Diffuse Overhead Volumetric Atmospheric Haze (Seen From Above)
-        const hazeGrad = ctx.createRadialGradient(targetX, targetY, poolRx * 0.15, targetX, targetY, poolRx * 1.4);
-        hazeGrad.addColorStop(0, pal.beamCore);
-        hazeGrad.addColorStop(0.55, pal.beamEdge);
-        hazeGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = hazeGrad;
-        ctx.beginPath();
-        ctx.ellipse(targetX, targetY, poolRx * 1.4, poolRy * 1.4, 0, 0, Math.PI * 2);
-        ctx.fill();
+            // Pulsing red ambient wash
+            const pulse = Math.sin(time * 5.0 * speed) * 0.5 + 0.5;
+            ctx.fillStyle = `rgba(220, 38, 38, ${pulse * 0.18 * intensity})`;
+            ctx.fillRect(0, 0, W, H);
 
-        // 2. Floor Illumination Pool (Where miniatures stand)
-        const poolGrad = ctx.createRadialGradient(targetX, targetY, 0, targetX, targetY, poolRx);
-        poolGrad.addColorStop(0, pal.poolCenter);
-        poolGrad.addColorStop(0.45, pal.beamCore);
-        poolGrad.addColorStop(0.85, pal.poolEdge);
-        poolGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.globalCompositeOperation = 'lighter';
+            // Sweeping concentrated red light wedge
+            const wedgeHalfAngle = 0.38;
+            const wedgeGrad = ctx.createRadialGradient(cx, cy, 5, cx, cy, maxR);
+            wedgeGrad.addColorStop(0, `rgba(255, 200, 200, ${0.95 * intensity})`);
+            wedgeGrad.addColorStop(0.2, `rgba(239, 68, 68, ${0.85 * intensity})`);
+            wedgeGrad.addColorStop(0.8, `rgba(185, 28, 28, ${0.45 * intensity})`);
+            wedgeGrad.addColorStop(1, 'rgba(150, 0, 0, 0)');
 
-        ctx.fillStyle = poolGrad;
-        ctx.beginPath();
-        ctx.ellipse(targetX, targetY, poolRx, poolRy, 0, 0, Math.PI * 2);
-        ctx.fill();
+            ctx.fillStyle = wedgeGrad;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, maxR, sirenAngle - wedgeHalfAngle, sirenAngle + wedgeHalfAngle);
+            ctx.closePath();
+            ctx.fill();
 
-        // Subtle tactical perimeter fringe ring
-        ctx.strokeStyle = pal.beamEdge;
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.ellipse(targetX, targetY, poolRx * 0.98, poolRy * 0.98, 0, 0, Math.PI * 2);
-        ctx.stroke();
+            // Central rotating siren dome
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 14 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2.5 * elScale;
+            ctx.stroke();
 
-        // 3. Floating Illuminated Dust Motes drifting across the floor light pool
-        if (!el.particles) el.particles = [];
-        const moteTarget = Math.min(50, Math.round(25 * (cfg.quantity || 1.0)));
-        while (el.particles.length < moteTarget) {
-            el.particles.push({
-                u: Math.random(),
-                v: Math.random(),
-                r: Math.random() * 2.2 + 0.8,
-                phase: Math.random() * Math.PI * 2,
-                driftSpeed: 0.4 + Math.random() * 0.8
-            });
-        }
+        } else if (variant === 'cyber_spotlight') {
+            // ================================================================
+            // 2. CYBER SECURITY DRONE SCANNING BEAM & HUD RETICLE (Cyan)
+            // ================================================================
+            const sweepSpanX = (W * 0.3) * intensity;
+            const sweepSpanY = (H * 0.2) * intensity;
+            const targetX = W * 0.5 + Math.sin(time * 1.2 * speed) * sweepSpanX;
+            const targetY = H * 0.5 + Math.cos(time * 0.85 * speed) * sweepSpanY;
+            const poolR = Math.min(W, H) * 0.32 * elScale;
 
-        ctx.fillStyle = pal.motes;
-        for (let m = 0; m < el.particles.length; m++) {
-            const mote = el.particles[m];
-            mote.u = (mote.u + dt * 0.05 * mote.driftSpeed) % 1.0;
-            mote.v = (mote.v + dt * 0.03 * mote.driftSpeed) % 1.0;
+            ctx.globalCompositeOperation = 'lighter';
+            // Cyan illumination pool
+            const poolGrad = ctx.createRadialGradient(targetX, targetY, 2, targetX, targetY, poolR);
+            poolGrad.addColorStop(0, `rgba(224, 242, 254, ${0.85 * intensity})`);
+            poolGrad.addColorStop(0.5, `rgba(56, 189, 248, ${0.55 * intensity})`);
+            poolGrad.addColorStop(0.9, `rgba(2, 132, 199, ${0.25 * intensity})`);
+            poolGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = poolGrad;
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, poolR, 0, Math.PI * 2);
+            ctx.fill();
 
-            const mx = targetX + (mote.u - 0.5) * poolRx * 1.6;
-            const my = targetY + (mote.v - 0.5) * poolRy * 1.6;
+            // Projected Cyan Targeting Reticle on Floor
+            ctx.strokeStyle = `rgba(56, 189, 248, ${0.9 * intensity})`;
+            ctx.lineWidth = 1.5 * elScale;
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, poolR * 0.85, 0, Math.PI * 2);
+            ctx.arc(targetX, targetY, poolR * 0.45, 0, Math.PI * 2);
+            // Cardinal reticle ticks
+            ctx.moveTo(targetX - poolR * 0.95, targetY); ctx.lineTo(targetX - poolR * 0.75, targetY);
+            ctx.moveTo(targetX + poolR * 0.75, targetY); ctx.lineTo(targetX + poolR * 0.95, targetY);
+            ctx.moveTo(targetX, targetY - poolR * 0.95); ctx.lineTo(targetX, targetY - poolR * 0.75);
+            ctx.moveTo(targetX, targetY + poolR * 0.75); ctx.lineTo(targetX, targetY + poolR * 0.95);
+            ctx.stroke();
 
-            const distNorm = Math.hypot((mx - targetX) / poolRx, (my - targetY) / poolRy);
-            if (distNorm < 0.95) {
-                const shimmer = (Math.sin(time * 3 + mote.phase) * 0.35 + 0.65) * (1.0 - distNorm) * intensity;
-                ctx.globalAlpha = shimmer * (cfg.opacity || 0.92);
+            // Oscillating laser scan line
+            const scanY = targetY + Math.sin(time * 4 * speed) * (poolR * 0.75);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.95 * intensity})`;
+            ctx.lineWidth = 1.8 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(targetX - poolR * 0.65, scanY);
+            ctx.lineTo(targetX + poolR * 0.65, scanY);
+            ctx.stroke();
+
+        } else if (variant === 'tactical_flashlight') {
+            // ================================================================
+            // 3. TACTICAL SWAT LED FLASHLIGHT (Tight Hotspot & Sharp Falloff)
+            // ================================================================
+            const jitterX = Math.sin(time * 18 * speed) * 3 * elScale;
+            const jitterY = Math.cos(time * 22 * speed) * 3 * elScale;
+            const fx = W * 0.5 + Math.sin(time * 1.4 * speed) * (W * 0.25) + jitterX;
+            const fy = H * 0.5 + Math.cos(time * 1.1 * speed) * (H * 0.2) + jitterY;
+            const hotR = 28 * elScale;
+            const spillR = 75 * elScale;
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Intense central hotspot
+            const hotGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, hotR);
+            hotGrad.addColorStop(0, `rgba(255, 255, 255, ${0.98 * intensity})`);
+            hotGrad.addColorStop(0.6, `rgba(240, 249, 255, ${0.9 * intensity})`);
+            hotGrad.addColorStop(1, 'rgba(219, 234, 254, 0.4)');
+            ctx.fillStyle = hotGrad;
+            ctx.beginPath();
+            ctx.arc(fx, fy, hotR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Spill ring (corona)
+            const spillGrad = ctx.createRadialGradient(fx, fy, hotR, fx, fy, spillR);
+            spillGrad.addColorStop(0, `rgba(191, 219, 254, ${0.45 * intensity})`);
+            spillGrad.addColorStop(0.85, `rgba(147, 197, 253, ${0.15 * intensity})`);
+            spillGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = spillGrad;
+            ctx.beginPath();
+            ctx.arc(fx, fy, spillR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Sharp edge falloff ring
+            ctx.strokeStyle = `rgba(191, 219, 254, ${0.35 * intensity})`;
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.arc(fx, fy, spillR * 0.98, 0, Math.PI * 2);
+            ctx.stroke();
+
+        } else if (variant === 'stage_spotlight') {
+            // ================================================================
+            // 4. THEATRICAL WARM AMBER FOLLOWSPOT (Gaussian Fresnel Feather)
+            // ================================================================
+            const fx = W * 0.5 + Math.sin(time * 0.6 * speed) * (W * 0.2);
+            const fy = H * 0.5 + Math.sin(time * 0.9 * speed) * (H * 0.15);
+            const stageR = Math.min(W, H) * 0.35 * elScale;
+
+            ctx.globalCompositeOperation = 'lighter';
+            const stageGrad = ctx.createRadialGradient(fx, fy, stageR * 0.1, fx, fy, stageR);
+            stageGrad.addColorStop(0, `rgba(255, 251, 235, ${0.9 * intensity})`);
+            stageGrad.addColorStop(0.4, `rgba(253, 230, 138, ${0.65 * intensity})`);
+            stageGrad.addColorStop(0.75, `rgba(245, 158, 11, ${0.25 * intensity})`);
+            stageGrad.addColorStop(1, 'rgba(217, 119, 6, 0)');
+            ctx.fillStyle = stageGrad;
+            ctx.beginPath();
+            ctx.arc(fx, fy, stageR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Floating golden theatrical dust motes
+            for (let m = 0; m < 14; m++) {
+                const ma = m * 2.3 + time * 0.4;
+                const md = stageR * 0.7 * Math.sqrt((m + 1) / 14);
+                const mx = fx + Math.cos(ma) * md;
+                const my = fy + Math.sin(ma) * md;
+                ctx.fillStyle = `rgba(254, 243, 199, ${0.85 * intensity})`;
                 ctx.beginPath();
-                ctx.arc(mx, my, mote.r, 0, Math.PI * 2);
+                ctx.arc(mx, my, 1.8 * elScale, 0, Math.PI * 2);
                 ctx.fill();
             }
+
+        } else {
+            // ================================================================
+            // 5. PRISON WATCHTOWER SEARCHLIGHT (Angular Sweeping Beam)
+            // ================================================================
+            const originX = 0;
+            const originY = 0;
+            const sweepSpanX = (W * 0.32) * intensity;
+            const sweepSpanY = (H * 0.22) * intensity;
+            const targetX = W * 0.5 + Math.sin(time * 1.1 * speed) * sweepSpanX;
+            const targetY = H * 0.5 + Math.cos(time * 0.75 * speed) * sweepSpanY;
+            const poolRx = Math.max(25, (W * 0.28) * intensity);
+            const poolRy = Math.max(20, (H * 0.24) * intensity);
+
+            ctx.globalCompositeOperation = 'lighter';
+            // Volumetric search beam slicing across the map from the tower origin
+            const beamGrad = ctx.createLinearGradient(originX, originY, targetX, targetY);
+            beamGrad.addColorStop(0, `rgba(255, 255, 255, ${0.5 * intensity})`);
+            beamGrad.addColorStop(0.7, `rgba(240, 245, 250, ${0.25 * intensity})`);
+            beamGrad.addColorStop(1, 'rgba(200, 220, 240, 0)');
+            ctx.fillStyle = beamGrad;
+            ctx.beginPath();
+            ctx.moveTo(originX, originY);
+            ctx.lineTo(targetX - poolRx * 0.8, targetY - poolRy * 0.8);
+            ctx.lineTo(targetX + poolRx * 0.8, targetY + poolRy * 0.8);
+            ctx.closePath();
+            ctx.fill();
+
+            // Floor illumination pool
+            const poolGrad = ctx.createRadialGradient(targetX, targetY, 0, targetX, targetY, poolRx);
+            poolGrad.addColorStop(0, `rgba(255, 255, 255, ${0.95 * intensity})`);
+            poolGrad.addColorStop(0.45, `rgba(224, 242, 254, ${0.75 * intensity})`);
+            poolGrad.addColorStop(0.85, `rgba(186, 230, 253, ${0.35 * intensity})`);
+            poolGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = poolGrad;
+            ctx.beginPath();
+            ctx.ellipse(targetX, targetY, poolRx, poolRy, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tactical perimeter ring
+            ctx.strokeStyle = `rgba(186, 230, 253, ${0.45 * intensity})`;
+            ctx.lineWidth = 1.4 * elScale;
+            ctx.beginPath();
+            ctx.ellipse(targetX, targetY, poolRx * 0.98, poolRy * 0.98, 0, 0, Math.PI * 2);
+            ctx.stroke();
         }
 
         ctx.restore();
@@ -12294,7 +13283,8 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = (cfg.speed || 1.2) * (cfg.wingSpeed || 1.4);
-        const variant = cfg.variant || 'dungeon_bats';
+        const variant = cfg.variant || el.type || 'dungeon_bats';
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         const baseCount = cfg.flockCount !== undefined ? cfg.flockCount : 14;
         const qty = cfg.quantity !== undefined ? cfg.quantity : 1.0;
@@ -12308,24 +13298,15 @@ class LivingElementsEngine {
                     y: H * 0.5 + (Math.random() - 0.5) * H * 0.6,
                     vx: (Math.random() - 0.5) * 60,
                     vy: (Math.random() - 0.5) * 60,
-                    size: 7 + Math.random() * 5,
+                    size: (7 + Math.random() * 5) * elScale,
                     wingPhase: Math.random() * Math.PI * 2,
                     wingFreq: 14 + Math.random() * 6,
-                    altitude: 18 + Math.random() * 14
+                    altitude: (18 + Math.random() * 14) * elScale
                 });
             }
         }
 
         ctx.save();
-
-        const colorMap = {
-            dungeon_bats: { body: 'rgba(28, 22, 28, 0.95)', shadow: 'rgba(10, 8, 12, 0.38)' },
-            cemetery_crows: { body: 'rgba(16, 18, 24, 0.95)', shadow: 'rgba(8, 10, 16, 0.40)' },
-            desert_vultures: { body: 'rgba(56, 42, 32, 0.92)', shadow: 'rgba(30, 20, 15, 0.35)' },
-            harbor_gulls: { body: 'rgba(235, 240, 245, 0.95)', shadow: 'rgba(40, 50, 60, 0.30)' },
-            surveillance_drones: { body: 'rgba(40, 45, 52, 0.95)', led: 'rgba(0, 255, 200, 0.95)', shadow: 'rgba(10, 15, 20, 0.42)' }
-        };
-        const colors = colorMap[variant] || colorMap.dungeon_bats;
 
         for (let i = 0; i < el.particles.length; i++) {
             const b = el.particles[i];
@@ -12337,18 +13318,17 @@ class LivingElementsEngine {
             const toCenterY = cy - b.y;
             const distCenter = Math.hypot(toCenterX, toCenterY);
 
-            // Orbit force
-            const orbitForce = 85;
+            const orbitForce = (variant === 'desert_vultures') ? 55 : 85;
             b.vx += (-toCenterY / (distCenter + 20) * orbitForce + toCenterX * 0.15) * dt * speed;
             b.vy += (toCenterX / (distCenter + 20) * orbitForce + toCenterY * 0.15) * dt * speed;
 
-            // Small turbulence flutter
+            // Turbulence flutter
             b.vx += Math.sin(time * 3 + i * 2) * 20 * dt;
             b.vy += Math.cos(time * 2.8 + i * 2.2) * 20 * dt;
 
             // Speed limit clamp
             const spd = Math.hypot(b.vx, b.vy);
-            const maxSpd = 90 * speed;
+            const maxSpd = (variant === 'desert_vultures' ? 55 : (variant === 'surveillance_drones' ? 75 : 90)) * speed;
             if (spd > maxSpd) {
                 b.vx = (b.vx / spd) * maxSpd;
                 b.vy = (b.vy / spd) * maxSpd;
@@ -12361,44 +13341,192 @@ class LivingElementsEngine {
             const wingFlap = Math.sin(time * b.wingFreq * speed + b.wingPhase);
             const wingSpan = b.size * (0.55 + 0.45 * Math.abs(wingFlap));
 
-            // A. Offset Ground Shadow (Miniatures see creature's shadow beneath)
+            // A. Offset Ground Shadow on Terrain
             const shadowX = b.x + b.altitude * 0.55;
             const shadowY = b.y + b.altitude * 0.65;
-            ctx.fillStyle = colors.shadow;
+            ctx.fillStyle = (variant === 'surveillance_drones') ? 'rgba(15, 23, 42, 0.45)' : 'rgba(15, 10, 15, 0.35)';
             ctx.beginPath();
-            ctx.ellipse(shadowX, shadowY, b.size * 0.65, b.size * 0.35, heading, 0, Math.PI * 2);
+            ctx.ellipse(shadowX, shadowY, b.size * 0.7, b.size * 0.38, heading, 0, Math.PI * 2);
             ctx.fill();
 
-            // B. Flying Creature Body & Animated Wings
+            // B. Flying Entity Geometry in Pure 90-Degree Overhead View
             ctx.save();
             ctx.translate(b.x, b.y);
             ctx.rotate(heading);
 
-            ctx.fillStyle = colors.body;
-            ctx.beginPath();
-            // Torso & head
-            ctx.ellipse(0, 0, b.size * 0.65, b.size * 0.28, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Left & Right Articulated Wings
-            ctx.beginPath();
-            // Left wing
-            ctx.moveTo(b.size * 0.15, 0);
-            ctx.quadraticCurveTo(-b.size * 0.2, -wingSpan * 1.5, -b.size * 0.8, -wingSpan);
-            ctx.lineTo(-b.size * 0.3, 0);
-            // Right wing
-            ctx.moveTo(b.size * 0.15, 0);
-            ctx.quadraticCurveTo(-b.size * 0.2, wingSpan * 1.5, -b.size * 0.8, wingSpan);
-            ctx.lineTo(-b.size * 0.3, 0);
-            ctx.fill();
-
-            // Sci-Fi Drone Blinking LED
             if (variant === 'surveillance_drones') {
-                const blink = Math.sin(time * 8 + i) > 0 ? 1 : 0.2;
-                ctx.fillStyle = colors.led;
-                ctx.globalAlpha = blink;
+                // ============================================================
+                // QUAD-ROTOR CARBON-FIBER SURVEILLANCE DRONE
+                // ============================================================
+                const armL = b.size * 0.9;
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 2.2 * elScale;
+                // X-frame carbon arms
                 ctx.beginPath();
-                ctx.arc(b.size * 0.45, 0, 2, 0, Math.PI * 2);
+                ctx.moveTo(-armL, -armL); ctx.lineTo(armL, armL);
+                ctx.moveTo(-armL, armL); ctx.lineTo(armL, -armL);
+                ctx.stroke();
+
+                // 4 Ducted Rotor Propeller Blur Discs
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.32)';
+                ctx.strokeStyle = 'rgba(224, 242, 254, 0.55)';
+                ctx.lineWidth = 1.0;
+                const propR = b.size * 0.62;
+                [[-armL, -armL], [armL, -armL], [-armL, armL], [armL, armL]].forEach(([px, py]) => {
+                    ctx.beginPath();
+                    ctx.arc(px, py, propR, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                });
+
+                // Central Avionics Pod
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, b.size * 0.65, b.size * 0.42, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#0284c7';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Navigation LEDs: Red (Port/Left), Green (Starboard/Right), Cyan (Nose)
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(-b.size * 0.2, -armL * 0.85, 3, 3);
+                ctx.fillStyle = '#22c55e';
+                ctx.fillRect(-b.size * 0.2, armL * 0.85, 3, 3);
+                // Pulsing camera lens on front
+                const blink = Math.sin(time * 12 * speed + i) > 0 ? '#38bdf8' : '#0369a1';
+                ctx.fillStyle = blink;
+                ctx.beginPath();
+                ctx.arc(b.size * 0.55, 0, 2.5 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (variant === 'desert_vultures') {
+                // ============================================================
+                // CIRCLING DESERT VULTURES (Broad Slotted Wingtip Fingers)
+                // ============================================================
+                const vSpan = b.size * (1.1 + 0.15 * Math.abs(wingFlap));
+                ctx.fillStyle = '#3f2e22';
+                // Slotted flight wings with 5 distinct primary feather finger tips
+                ctx.beginPath();
+                ctx.moveTo(b.size * 0.2, 0);
+                ctx.quadraticCurveTo(b.size * 0.1, -vSpan * 0.8, -b.size * 0.3, -vSpan);
+                // Wingtip finger feathers
+                for (let f = 0; f < 4; f++) {
+                    ctx.lineTo(-b.size * (0.4 + f * 0.15), -vSpan + f * 3 * elScale);
+                }
+                ctx.lineTo(-b.size * 0.5, -vSpan * 0.4);
+                ctx.lineTo(-b.size * 0.4, 0);
+                // Right wing
+                ctx.lineTo(-b.size * 0.5, vSpan * 0.4);
+                for (let f = 3; f >= 0; f--) {
+                    ctx.lineTo(-b.size * (0.4 + f * 0.15), vSpan - f * 3 * elScale);
+                }
+                ctx.quadraticCurveTo(b.size * 0.1, vSpan * 0.8, b.size * 0.2, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                // Slender featherless pinkish-tan neck & hooked beak
+                ctx.fillStyle = '#b45309';
+                ctx.beginPath();
+                ctx.ellipse(b.size * 0.45, 0, b.size * 0.35, b.size * 0.18, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (variant === 'harbor_gulls') {
+                // ============================================================
+                // GLIDING COASTAL SEAGULLS (Slender Swept Wings & Black Tips)
+                // ============================================================
+                const gSpan = b.size * (1.0 + 0.25 * Math.abs(wingFlap));
+                ctx.fillStyle = '#f8fafc';
+                // White torso & head
+                ctx.beginPath();
+                ctx.ellipse(0, 0, b.size * 0.65, b.size * 0.25, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Narrow swept gray wings
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.moveTo(b.size * 0.1, 0);
+                ctx.lineTo(-b.size * 0.2, -gSpan);
+                ctx.lineTo(-b.size * 0.45, -gSpan * 0.85);
+                ctx.lineTo(-b.size * 0.3, 0);
+                ctx.lineTo(-b.size * 0.45, gSpan * 0.85);
+                ctx.lineTo(-b.size * 0.2, gSpan);
+                ctx.closePath();
+                ctx.fill();
+
+                // Charcoal black wingtips
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.moveTo(-b.size * 0.15, -gSpan * 0.85);
+                ctx.lineTo(-b.size * 0.2, -gSpan);
+                ctx.lineTo(-b.size * 0.35, -gSpan * 0.9);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(-b.size * 0.15, gSpan * 0.85);
+                ctx.lineTo(-b.size * 0.2, gSpan);
+                ctx.lineTo(-b.size * 0.35, gSpan * 0.9);
+                ctx.closePath();
+                ctx.fill();
+
+            } else if (variant === 'cemetery_crows') {
+                // ============================================================
+                // CEMETERY CROWS & RAVENS (Jet-Black Plumage & Fan Tail)
+                // ============================================================
+                ctx.fillStyle = '#09090b';
+                // Torso & head
+                ctx.beginPath();
+                ctx.ellipse(0, 0, b.size * 0.65, b.size * 0.28, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Wedge/fan tail feathers
+                ctx.beginPath();
+                ctx.moveTo(-b.size * 0.5, -b.size * 0.12);
+                ctx.lineTo(-b.size * 1.0, -b.size * 0.28);
+                ctx.lineTo(-b.size * 1.15, 0);
+                ctx.lineTo(-b.size * 1.0, b.size * 0.28);
+                ctx.lineTo(-b.size * 0.5, b.size * 0.12);
+                ctx.closePath();
+                ctx.fill();
+
+                // Black rowing wings
+                ctx.beginPath();
+                ctx.moveTo(b.size * 0.15, 0);
+                ctx.quadraticCurveTo(-b.size * 0.15, -wingSpan * 1.3, -b.size * 0.65, -wingSpan);
+                ctx.lineTo(-b.size * 0.35, 0);
+                ctx.lineTo(-b.size * 0.65, wingSpan);
+                ctx.quadraticCurveTo(-b.size * 0.15, wingSpan * 1.3, b.size * 0.15, 0);
+                ctx.fill();
+
+            } else {
+                // ============================================================
+                // DUNGEON CAVE BATS (Scalloped Web Membrane Wings & Echolocation)
+                // ============================================================
+                ctx.fillStyle = '#1c1917';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, b.size * 0.55, b.size * 0.28, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Scalloped leathery bat web wings
+                ctx.beginPath();
+                ctx.moveTo(b.size * 0.15, 0);
+                ctx.lineTo(-b.size * 0.2, -wingSpan * 1.4);
+                // Scalloped membrane finger arcs
+                ctx.quadraticCurveTo(-b.size * 0.45, -wingSpan * 1.1, -b.size * 0.55, -wingSpan * 0.7);
+                ctx.quadraticCurveTo(-b.size * 0.55, -wingSpan * 0.4, -b.size * 0.35, 0);
+                // Right wing
+                ctx.quadraticCurveTo(-b.size * 0.55, wingSpan * 0.4, -b.size * 0.55, wingSpan * 0.7);
+                ctx.quadraticCurveTo(-b.size * 0.45, wingSpan * 1.1, -b.size * 0.2, wingSpan * 1.4);
+                ctx.lineTo(b.size * 0.15, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                // Tiny bat ears
+                ctx.fillStyle = '#44403c';
+                ctx.beginPath();
+                ctx.arc(b.size * 0.35, -b.size * 0.22, 1.8 * elScale, 0, Math.PI * 2);
+                ctx.arc(b.size * 0.35, b.size * 0.22, 1.8 * elScale, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -12413,11 +13541,13 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = (cfg.speed || 1.2) * (cfg.dartSpeed || 1.5);
-        const variant = cfg.variant || 'sewer_rats';
+        const variant = cfg.variant || el.type || 'sewer_rats';
+        const elScale = Math.max(0.25, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
-        const baseCount = cfg.verminCount !== undefined ? cfg.verminCount : 12;
+        const isDeer = variant === 'bounding_deer' || variant === 'hf_bounding_deer';
+        const baseCount = isDeer ? 4 : (cfg.verminCount !== undefined ? cfg.verminCount : 12);
         const qty = cfg.quantity !== undefined ? cfg.quantity : 1.0;
-        const targetCount = Math.max(3, Math.min(35, Math.round(baseCount * qty)));
+        const targetCount = Math.max(2, Math.min(isDeer ? 10 : 35, Math.round(baseCount * qty)));
 
         if (!el.particles || el.particles.length !== targetCount) {
             el.particles = [];
@@ -12427,25 +13557,17 @@ class LivingElementsEngine {
                     y: Math.random() * H,
                     targetX: Math.random() * W,
                     targetY: Math.random() * H,
-                    state: 'darting', // 'darting' or 'sniffing'
+                    state: 'darting',
                     timer: 0.5 + Math.random() * 1.5,
-                    size: 8 + Math.random() * 4,
+                    size: (isDeer ? (22 + Math.random() * 8) : (8 + Math.random() * 4)) * elScale,
                     heading: Math.random() * Math.PI * 2,
-                    tailPhase: Math.random() * Math.PI * 2
+                    tailPhase: Math.random() * Math.PI * 2,
+                    seed: Math.floor(Math.random() * 1000)
                 });
             }
         }
 
         ctx.save();
-
-        const colorMap = {
-            sewer_rats: { body: 'rgba(52, 44, 40, 0.95)', tail: 'rgba(215, 160, 160, 0.85)', eyes: 'rgba(200, 30, 30, 0.9)' },
-            swarming_spiders: { body: 'rgba(18, 16, 20, 0.96)', legs: 'rgba(32, 28, 36, 0.92)', eyes: 'rgba(255, 40, 40, 0.9)' },
-            robo_scuttlers: { body: 'rgba(65, 75, 85, 0.96)', legs: 'rgba(180, 195, 210, 0.92)', eyes: 'rgba(0, 255, 200, 0.95)' },
-            shadow_crawlers: { body: 'rgba(28, 10, 36, 0.95)', tail: 'rgba(120, 40, 160, 0.85)', eyes: 'rgba(220, 80, 255, 0.95)' },
-            cave_scorpions: { body: 'rgba(75, 55, 38, 0.95)', tail: 'rgba(95, 70, 45, 0.9)', eyes: 'rgba(255, 180, 40, 0.9)' }
-        };
-        const colors = colorMap[variant] || colorMap.sewer_rats;
 
         for (let i = 0; i < el.particles.length; i++) {
             const r = el.particles[i];
@@ -12453,108 +13575,374 @@ class LivingElementsEngine {
 
             if (r.timer <= 0) {
                 if (r.state === 'darting') {
-                    // Stop to sniff / pause
-                    r.state = 'sniffing';
-                    r.timer = 0.6 + Math.random() * 1.2;
+                    r.state = isDeer ? 'grazing' : 'sniffing';
+                    r.timer = isDeer ? (0.8 + Math.random() * 1.5) : (0.6 + Math.random() * 1.2);
                 } else {
-                    // Pick new dart target
                     r.state = 'darting';
                     r.timer = 1.0 + Math.random() * 2.0;
-                    r.targetX = Math.max(20, Math.min(W - 20, r.x + (Math.random() - 0.5) * 160));
-                    r.targetY = Math.max(20, Math.min(H - 20, r.y + (Math.random() - 0.5) * 160));
+                    r.targetX = Math.max(20, Math.min(W - 20, r.x + (Math.random() - 0.5) * (isDeer ? 240 : 160)));
+                    r.targetY = Math.max(20, Math.min(H - 20, r.y + (Math.random() - 0.5) * (isDeer ? 180 : 160)));
                 }
             }
 
+            let isMoving = false;
             if (r.state === 'darting') {
                 const dx = r.targetX - r.x;
                 const dy = r.targetY - r.y;
                 const dist = Math.hypot(dx, dy);
                 if (dist > 4) {
                     const moveAngle = Math.atan2(dy, dx);
-                    // Smooth heading rotation
                     r.heading = moveAngle;
-                    const step = Math.min(dist, 75 * speed * dt);
+                    const step = Math.min(dist, (isDeer ? 110 : 75) * speed * dt);
                     r.x += Math.cos(moveAngle) * step;
                     r.y += Math.sin(moveAngle) * step;
+                    isMoving = true;
                 }
             }
 
-            // Ground Contact Shadow
-            ctx.fillStyle = 'rgba(10, 10, 12, 0.35)';
-            ctx.beginPath();
-            ctx.ellipse(r.x + 2, r.y + 3, r.size * 0.6, r.size * 0.35, r.heading, 0, Math.PI * 2);
-            ctx.fill();
+            // Screen boundary wrapping
+            if (r.x < -30) r.x = W + 30;
+            if (r.x > W + 30) r.x = -30;
+            if (r.y < -30) r.y = H + 30;
+            if (r.y > H + 30) r.y = -30;
 
-            ctx.save();
-            ctx.translate(r.x, r.y);
-            ctx.rotate(r.heading);
+            if (isDeer) {
+                // ============================================================
+                // 1. BOUNDING DEER HERD (Pure 90-Degree Overhead Stags & Does)
+                // ============================================================
+                const boundCycle = time * 8.5 * speed + i * 2.2;
+                const altitude = isMoving ? (Math.max(0, Math.sin(boundCycle)) * (18 * elScale)) : 0;
+                const isAirborne = altitude > 2.0 * elScale;
+                const zScale = 1.0 + (altitude / (100 * elScale));
 
-            if (variant === 'swarming_spiders') {
-                // Arachnid Body & 8 Articulated Scuttling Legs
-                ctx.fillStyle = colors.body;
+                // Ground Drop Shadow on Terrain
+                const shadowX = r.x - 3 * elScale;
+                const shadowY = r.y + 5 * elScale + altitude * 0.45;
+                const shadowW = Math.max(6, (r.size * 0.9 - altitude * 0.35));
+                const shadowH = Math.max(4, (r.size * 0.42 - altitude * 0.18));
+                ctx.fillStyle = `rgba(15, 23, 42, ${Math.max(0.12, 0.42 - altitude / (40 * elScale))})`;
                 ctx.beginPath();
-                ctx.arc(-r.size * 0.25, 0, r.size * 0.45, 0, Math.PI * 2); // Abdomen
-                ctx.arc(r.size * 0.3, 0, r.size * 0.3, 0, Math.PI * 2); // Cephalothorax
+                ctx.ellipse(shadowX, shadowY, shadowW, shadowH, r.heading, 0, Math.PI * 2);
                 ctx.fill();
 
-                // 8 Legs
-                ctx.strokeStyle = colors.legs;
-                ctx.lineWidth = 1.4;
-                for (let leg = 0; leg < 4; leg++) {
-                    const legAngle = (leg - 1.5) * 0.5;
-                    const legFlutter = Math.sin(time * 20 * speed + leg + i) * 3;
-                    // Left leg
-                    ctx.beginPath();
-                    ctx.moveTo(r.size * 0.1, -r.size * 0.2);
-                    ctx.lineTo(r.size * 0.1 + Math.cos(legAngle) * r.size * 0.9, -r.size * 0.8 + legFlutter);
-                    ctx.stroke();
-                    // Right leg
-                    ctx.beginPath();
-                    ctx.moveTo(r.size * 0.1, r.size * 0.2);
-                    ctx.lineTo(r.size * 0.1 + Math.cos(legAngle) * r.size * 0.9, r.size * 0.8 - legFlutter);
-                    ctx.stroke();
-                }
-            } else {
-                // Rodent Teardrop Body
-                ctx.fillStyle = colors.body;
-                ctx.beginPath();
-                ctx.ellipse(0, 0, r.size * 0.7, r.size * 0.38, 0, 0, Math.PI * 2);
-                ctx.fill();
+                // Deer Body elevated along Z-axis toward overhead camera
+                ctx.save();
+                ctx.translate(r.x, r.y - altitude * 0.25);
+                ctx.rotate(r.heading);
+                ctx.scale(zScale, zScale);
 
-                // Snout / Head
+                // Slender Quadruped Legs reaching in gallop cycle
+                const legReach = isMoving ? (Math.sin(boundCycle) * 10 * elScale) : 0;
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1.6 * elScale;
+                ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.moveTo(r.size * 0.5, -r.size * 0.25);
-                ctx.lineTo(r.size * 1.1, 0);
-                ctx.lineTo(r.size * 0.5, r.size * 0.25);
-                ctx.fill();
-
-                // Ears
-                ctx.beginPath();
-                ctx.arc(r.size * 0.25, -r.size * 0.32, 2.2, 0, Math.PI * 2);
-                ctx.arc(r.size * 0.25, r.size * 0.32, 2.2, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Sinuous Waving Tail
-                ctx.strokeStyle = colors.tail;
-                ctx.lineWidth = 1.3;
-                ctx.beginPath();
-                ctx.moveTo(-r.size * 0.65, 0);
-                for (let seg = 1; seg <= 5; seg++) {
-                    const tailX = -r.size * 0.65 - seg * (r.size * 0.28);
-                    const wave = Math.sin(time * 12 * speed + seg * 0.8 + r.tailPhase) * (seg * 1.5);
-                    ctx.lineTo(tailX, wave);
-                }
+                // Front hooves
+                ctx.moveTo(r.size * 0.4, -r.size * 0.2); ctx.lineTo(r.size * 0.4 + legReach, -r.size * 0.28);
+                ctx.moveTo(r.size * 0.4, r.size * 0.2);  ctx.lineTo(r.size * 0.4 + legReach, r.size * 0.28);
+                // Rear hooves
+                ctx.moveTo(-r.size * 0.4, -r.size * 0.2); ctx.lineTo(-r.size * 0.4 - legReach, -r.size * 0.28);
+                ctx.moveTo(-r.size * 0.4, r.size * 0.2);  ctx.lineTo(-r.size * 0.4 - legReach, r.size * 0.28);
                 ctx.stroke();
 
-                // Beady glowing eyes
-                ctx.fillStyle = colors.eyes;
+                // Tawny chestnut torso
+                const isStag = (i % 2 === 0);
+                ctx.fillStyle = '#b45309';
                 ctx.beginPath();
-                ctx.arc(r.size * 0.7, -r.size * 0.14, 1.2, 0, Math.PI * 2);
-                ctx.arc(r.size * 0.7, r.size * 0.14, 1.2, 0, Math.PI * 2);
+                ctx.ellipse(0, 0, r.size * 0.52, r.size * 0.26, 0, 0, Math.PI * 2);
                 ctx.fill();
-            }
 
-            ctx.restore();
+                // Dorsal coat & spine line
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, r.size * 0.46, r.size * 0.21, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1.4 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(-r.size * 0.4, 0); ctx.lineTo(r.size * 0.4, 0);
+                ctx.stroke();
+
+                // White rump patch flag
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.ellipse(-r.size * 0.48, 0, 4 * elScale, 3 * elScale, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Neck & Tapered Head
+                const neckX = r.size * 0.42;
+                ctx.fillStyle = '#92400e';
+                ctx.beginPath();
+                ctx.ellipse(neckX + 3 * elScale, 0, 6 * elScale, 4 * elScale, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                const headX = neckX + 7 * elScale;
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath();
+                ctx.moveTo(headX, -3.5 * elScale);
+                ctx.lineTo(headX + 7 * elScale, -1.5 * elScale);
+                ctx.lineTo(headX + 7 * elScale, 1.5 * elScale);
+                ctx.lineTo(headX, 3.5 * elScale);
+                ctx.closePath();
+                ctx.fill();
+
+                // Dark wet muzzle
+                ctx.fillStyle = '#1c1917';
+                ctx.fillRect(headX + 6 * elScale, -1.5 * elScale, 2 * elScale, 3 * elScale);
+
+                // Alert side eyes & swiveling ears
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(headX + 3 * elScale, -3 * elScale, 1.2 * elScale, 0, Math.PI * 2);
+                ctx.arc(headX + 3 * elScale, 3 * elScale, 1.2 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Stag Branching Antler Rack
+                if (isStag) {
+                    ctx.strokeStyle = '#d6d3d1';
+                    ctx.lineWidth = 1.3 * elScale;
+                    ctx.beginPath();
+                    // Left antler
+                    ctx.moveTo(headX + 2 * elScale, -2 * elScale);
+                    ctx.lineTo(headX - 4 * elScale, -8 * elScale);
+                    ctx.lineTo(headX - 2 * elScale, -12 * elScale);
+                    ctx.moveTo(headX - 4 * elScale, -8 * elScale);
+                    ctx.lineTo(headX - 8 * elScale, -10 * elScale);
+                    // Right antler
+                    ctx.moveTo(headX + 2 * elScale, 2 * elScale);
+                    ctx.lineTo(headX - 4 * elScale, 8 * elScale);
+                    ctx.lineTo(headX - 2 * elScale, 12 * elScale);
+                    ctx.moveTo(headX - 4 * elScale, 8 * elScale);
+                    ctx.lineTo(headX - 8 * elScale, 10 * elScale);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+
+            } else {
+                // Ground Contact Shadow for Vermin
+                ctx.fillStyle = 'rgba(10, 10, 12, 0.35)';
+                ctx.beginPath();
+                ctx.ellipse(r.x + 2, r.y + 3, r.size * 0.6, r.size * 0.35, r.heading, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.save();
+                ctx.translate(r.x, r.y);
+                ctx.rotate(r.heading);
+
+                if (variant === 'cave_scorpions') {
+                    // ========================================================
+                    // 2. DUNGEON CAVE SCORPION (Segmented Metasoma & Chela Claws)
+                    // ========================================================
+                    ctx.fillStyle = '#451a03';
+                    // Prosoma (Cephalothorax)
+                    ctx.beginPath();
+                    ctx.ellipse(r.size * 0.1, 0, r.size * 0.45, r.size * 0.32, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 2 Massive Forward Pedipalps & Chela Pincers (Claws)
+                    ctx.strokeStyle = '#78350f';
+                    ctx.lineWidth = 1.8 * elScale;
+                    // Left arm & claw
+                    ctx.beginPath();
+                    ctx.moveTo(r.size * 0.3, -r.size * 0.2);
+                    ctx.lineTo(r.size * 0.7, -r.size * 0.55);
+                    ctx.stroke();
+                    // Left pincer claw
+                    ctx.fillStyle = '#b45309';
+                    ctx.beginPath();
+                    ctx.arc(r.size * 0.7, -r.size * 0.55, 3.5 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Right arm & claw
+                    ctx.beginPath();
+                    ctx.moveTo(r.size * 0.3, r.size * 0.2);
+                    ctx.lineTo(r.size * 0.7, r.size * 0.55);
+                    ctx.stroke();
+                    ctx.fillStyle = '#b45309';
+                    ctx.beginPath();
+                    ctx.arc(r.size * 0.7, r.size * 0.55, 3.5 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 8 Jointed Walking Legs
+                    ctx.strokeStyle = '#92400e';
+                    ctx.lineWidth = 1.2 * elScale;
+                    for (let leg = 0; leg < 4; leg++) {
+                        const ly = (leg - 1.5) * 0.25;
+                        const legWave = Math.sin(time * 18 * speed + leg) * 2;
+                        // Left leg
+                        ctx.beginPath();
+                        ctx.moveTo(r.size * ly, -r.size * 0.25);
+                        ctx.lineTo(r.size * ly - 3, -r.size * 0.75 + legWave);
+                        ctx.stroke();
+                        // Right leg
+                        ctx.beginPath();
+                        ctx.moveTo(r.size * ly, r.size * 0.25);
+                        ctx.lineTo(r.size * ly - 3, r.size * 0.75 - legWave);
+                        ctx.stroke();
+                    }
+
+                    // Segmented Tail arched over back pointing forward with venom stinger
+                    ctx.strokeStyle = '#78350f';
+                    ctx.lineWidth = 2.2 * elScale;
+                    ctx.beginPath();
+                    ctx.moveTo(-r.size * 0.35, 0);
+                    const tailWag = Math.sin(time * 6 * speed + i) * (3 * elScale);
+                    ctx.quadraticCurveTo(-r.size * 0.8, tailWag, -r.size * 0.5, tailWag * 1.5);
+                    ctx.stroke();
+
+                    // Bulbous venom telson & stinger barb
+                    ctx.fillStyle = '#dc2626';
+                    ctx.beginPath();
+                    ctx.arc(-r.size * 0.5, tailWag * 1.5, 2.2 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (variant === 'robo_scuttlers') {
+                    // ========================================================
+                    // 3. CYBERNETIC BRASS/CHROME ROBO-BEETLE
+                    // ========================================================
+                    // Hexagonal faceted armored carapace
+                    ctx.fillStyle = '#334155';
+                    ctx.beginPath();
+                    for (let a = 0; a < 6; a++) {
+                        const ang = (Math.PI / 3) * a;
+                        const hx = Math.cos(ang) * (r.size * 0.45);
+                        const hy = Math.sin(ang) * (r.size * 0.32);
+                        if (a === 0) ctx.moveTo(hx, hy);
+                        else ctx.lineTo(hx, hy);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#eab308';
+                    ctx.lineWidth = 1.4 * elScale;
+                    ctx.stroke();
+
+                    // 6 Segmented Articulated Robotic Servo Legs
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 1.4 * elScale;
+                    for (let l = 0; l < 3; l++) {
+                        const lx = (l - 1) * (r.size * 0.28);
+                        const lFlut = Math.sin(time * 24 * speed + l * 2 + i) * 3;
+                        ctx.beginPath();
+                        ctx.moveTo(lx, -r.size * 0.25);
+                        ctx.lineTo(lx, -r.size * 0.75 + lFlut);
+                        ctx.moveTo(lx, r.size * 0.25);
+                        ctx.lineTo(lx, r.size * 0.75 - lFlut);
+                        ctx.stroke();
+                    }
+
+                    // Cyan optical sensor visor bar
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fillRect(r.size * 0.28, -r.size * 0.16, 3 * elScale, r.size * 0.32);
+
+                } else if (variant === 'shadow_crawlers') {
+                    // ========================================================
+                    // 4. SHADOW MIASMA CRAWLERS (Amorphous Void & Violet Eyes)
+                    // ========================================================
+                    ctx.fillStyle = '#0a0512';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r.size * 0.55, r.size * 0.35, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Writhing shadowy tendril arms
+                    ctx.strokeStyle = '#581c87';
+                    ctx.lineWidth = 1.6 * elScale;
+                    for (let s = 0; s < 6; s++) {
+                        const sa = (Math.PI * 2 / 6) * s + time * 2;
+                        const sdist = r.size * (0.6 + 0.3 * Math.sin(time * 8 + s));
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(Math.cos(sa) * sdist, Math.sin(sa) * sdist);
+                        ctx.stroke();
+                    }
+
+                    // Piercing glowing violet eyes
+                    ctx.fillStyle = '#e879f9';
+                    ctx.beginPath();
+                    ctx.arc(r.size * 0.25, -r.size * 0.12, 1.4 * elScale, 0, Math.PI * 2);
+                    ctx.arc(r.size * 0.25, r.size * 0.12, 1.4 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (variant === 'swarming_spiders') {
+                    // ========================================================
+                    // 5. SWARMING 8-LEGGED SPIDERS (Cephalothorax & Abdomen)
+                    // ========================================================
+                    ctx.fillStyle = '#18181b';
+                    ctx.beginPath();
+                    ctx.arc(-r.size * 0.22, 0, r.size * 0.42, 0, Math.PI * 2); // Abdomen
+                    ctx.arc(r.size * 0.26, 0, r.size * 0.28, 0, Math.PI * 2); // Cephalothorax
+                    ctx.fill();
+
+                    // 8 Articulated Scuttling Legs
+                    ctx.strokeStyle = '#27272a';
+                    ctx.lineWidth = 1.4 * elScale;
+                    for (let leg = 0; leg < 4; leg++) {
+                        const legAngle = (leg - 1.5) * 0.5;
+                        const legFlutter = Math.sin(time * 22 * speed + leg + i) * 3;
+                        ctx.beginPath();
+                        ctx.moveTo(r.size * 0.1, -r.size * 0.2);
+                        ctx.lineTo(r.size * 0.1 + Math.cos(legAngle) * r.size * 0.9, -r.size * 0.8 + legFlutter);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(r.size * 0.1, r.size * 0.2);
+                        ctx.lineTo(r.size * 0.1 + Math.cos(legAngle) * r.size * 0.9, r.size * 0.8 - legFlutter);
+                        ctx.stroke();
+                    }
+
+                    // Glistening red spider eyes
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(r.size * 0.42, -r.size * 0.08, 1.0 * elScale, 0, Math.PI * 2);
+                    ctx.arc(r.size * 0.42, r.size * 0.08, 1.0 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else {
+                    // ========================================================
+                    // 6. SKITTERING SEWER DUNGEON RATS (Rodent Body & Whiskers)
+                    // ========================================================
+                    ctx.fillStyle = '#3f3f46';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r.size * 0.65, r.size * 0.35, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Snout
+                    ctx.fillStyle = '#52525b';
+                    ctx.beginPath();
+                    ctx.moveTo(r.size * 0.45, -r.size * 0.22);
+                    ctx.lineTo(r.size * 1.05, 0);
+                    ctx.lineTo(r.size * 0.45, r.size * 0.22);
+                    ctx.fill();
+
+                    // Pink ears
+                    ctx.fillStyle = '#f472b6';
+                    ctx.beginPath();
+                    ctx.arc(r.size * 0.22, -r.size * 0.28, 2.0 * elScale, 0, Math.PI * 2);
+                    ctx.arc(r.size * 0.22, r.size * 0.28, 2.0 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Sinuous Tail
+                    ctx.strokeStyle = '#f472b6';
+                    ctx.lineWidth = 1.3 * elScale;
+                    ctx.beginPath();
+                    ctx.moveTo(-r.size * 0.6, 0);
+                    for (let seg = 1; seg <= 5; seg++) {
+                        const tailX = -r.size * 0.6 - seg * (r.size * 0.28);
+                        const wave = Math.sin(time * 12 * speed + seg * 0.8 + r.tailPhase) * (seg * 1.4);
+                        ctx.lineTo(tailX, wave);
+                    }
+                    ctx.stroke();
+
+                    // Beady black eyes
+                    ctx.fillStyle = '#09090b';
+                    ctx.beginPath();
+                    ctx.arc(r.size * 0.65, -r.size * 0.12, 1.2 * elScale, 0, Math.PI * 2);
+                    ctx.arc(r.size * 0.65, r.size * 0.12, 1.2 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
         }
 
         ctx.restore();
@@ -12566,10 +13954,11 @@ class LivingElementsEngine {
         const intensity = cfg.intensity || 1.0;
         const speed = (cfg.speed || 1.0) * (cfg.schoolSpeed || 1.0);
         const variant = cfg.variant || 'koi_pond';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
-        const baseCount = cfg.fishCount !== undefined ? cfg.fishCount : 8;
+        const baseCount = cfg.fishCount !== undefined ? cfg.fishCount : (variant === 'ocean_sharks' ? 3 : (variant === 'abyssal_biolum' ? 4 : 8));
         const qty = cfg.quantity !== undefined ? cfg.quantity : 1.0;
-        const targetCount = Math.max(2, Math.min(25, Math.round(baseCount * qty)));
+        const targetCount = Math.max(1, Math.min(25, Math.round(baseCount * qty)));
 
         if (!el.particles || el.particles.length !== targetCount) {
             el.particles = [];
@@ -12580,117 +13969,486 @@ class LivingElementsEngine {
                     speedMult: 0.8 + Math.random() * 0.4,
                     heading: Math.random() * Math.PI * 2,
                     turnRate: 0,
-                    size: 14 + Math.random() * 8,
+                    size: (variant === 'ocean_sharks' ? 42 : (variant === 'abyssal_biolum' ? 32 : (variant === 'drone_minnows' ? 22 : 24))) * (0.85 + Math.random() * 0.3),
                     colorVariant: i % 4,
-                    swimPhase: Math.random() * Math.PI * 2
+                    swimPhase: Math.random() * Math.PI * 2,
+                    dartTimer: Math.random() * 3,
+                    isDarting: false
                 });
             }
         }
 
         ctx.save();
 
-        const colorMap = {
-            koi_pond: [
-                { body: 'rgba(235, 90, 30, 0.95)', spots: 'rgba(255, 255, 255, 0.9)' },
-                { body: 'rgba(245, 245, 250, 0.95)', spots: 'rgba(230, 45, 25, 0.9)' },
-                { body: 'rgba(255, 170, 0, 0.95)', spots: 'rgba(25, 25, 30, 0.9)' },
-                { body: 'rgba(255, 255, 255, 0.95)', spots: 'rgba(25, 25, 30, 0.9)' }
-            ],
-            ocean_sharks: [
-                { body: 'rgba(75, 88, 102, 0.92)', spots: 'rgba(200, 210, 220, 0.8)' },
-                { body: 'rgba(92, 108, 125, 0.92)', spots: 'rgba(220, 230, 240, 0.8)' }
-            ],
-            river_trout: [
-                { body: 'rgba(85, 105, 75, 0.92)', spots: 'rgba(215, 120, 80, 0.85)' },
-                { body: 'rgba(105, 120, 90, 0.92)', spots: 'rgba(240, 215, 140, 0.85)' }
-            ],
-            abyssal_biolum: [
-                { body: 'rgba(22, 18, 35, 0.95)', spots: 'rgba(0, 255, 220, 0.95)', glow: 'rgba(0, 255, 220, 0.7)' },
-                { body: 'rgba(35, 18, 45, 0.95)', spots: 'rgba(216, 70, 239, 0.95)', glow: 'rgba(216, 70, 239, 0.7)' }
-            ],
-            drone_minnows: [
-                { body: 'rgba(65, 80, 95, 0.95)', spots: 'rgba(0, 220, 255, 0.95)', glow: 'rgba(0, 220, 255, 0.8)' }
-            ]
-        };
-        const paletteList = colorMap[variant] || colorMap.koi_pond;
-
         for (let i = 0; i < el.particles.length; i++) {
             const f = el.particles[i];
-            const pal = paletteList[f.colorVariant % paletteList.length];
 
-            // Gentle natural cruising and turning
-            f.turnRate += (Math.random() - 0.5) * 1.5 * dt;
-            f.turnRate = Math.max(-0.8, Math.min(0.8, f.turnRate * 0.95));
-            f.heading += f.turnRate * dt * speed;
-
-            // Forward motion
-            const fSpeed = 48 * f.speedMult * speed;
-            f.x += Math.cos(f.heading) * fSpeed * dt;
-            f.y += Math.sin(f.heading) * fSpeed * dt;
-
-            // Screen boundary wrapping
-            if (f.x < -40) f.x = W + 40;
-            if (f.x > W + 40) f.x = -40;
-            if (f.y < -40) f.y = H + 40;
-            if (f.y > H + 40) f.y = -40;
-
-            // Sinuous spine oscillation
-            const swimOsc = Math.sin(time * 6 * speed * f.speedMult + f.swimPhase);
-
-            // A. Submerged Depth Shadow cast on river/sea bed
-            ctx.fillStyle = 'rgba(6, 20, 28, 0.32)';
-            ctx.beginPath();
-            ctx.ellipse(f.x + 8, f.y + 10, f.size * 0.7, f.size * 0.28, f.heading, 0, Math.PI * 2);
-            ctx.fill();
-
-            // B. Swimming Fish Body
-            ctx.save();
-            ctx.translate(f.x, f.y);
-            ctx.rotate(f.heading);
-
-            // Sinuous Backbone Points (Head -> Mid -> Tail)
-            const midWave = swimOsc * (f.size * 0.14);
-            const tailWave = swimOsc * (f.size * 0.38);
-
-            ctx.fillStyle = pal.body;
-            ctx.beginPath();
-            ctx.moveTo(f.size * 0.8, 0); // Snout
-            ctx.quadraticCurveTo(0, -f.size * 0.35, -f.size * 0.5, midWave - f.size * 0.12);
-            ctx.lineTo(-f.size * 0.9, tailWave); // Tail root
-            ctx.lineTo(-f.size * 0.5, midWave + f.size * 0.12);
-            ctx.quadraticCurveTo(0, f.size * 0.35, f.size * 0.8, 0);
-            ctx.fill();
-
-            // Caudal Tail Fin (flapping rhythmically)
-            ctx.beginPath();
-            ctx.moveTo(-f.size * 0.85, tailWave * 0.8);
-            ctx.lineTo(-f.size * 1.35, tailWave * 1.4 - f.size * 0.3);
-            ctx.quadraticCurveTo(-f.size * 1.1, tailWave * 1.2, -f.size * 1.35, tailWave * 1.4 + f.size * 0.3);
-            ctx.closePath();
-            ctx.fill();
-
-            // Pectoral Fins
-            ctx.beginPath();
-            ctx.ellipse(f.size * 0.15, -f.size * 0.35, f.size * 0.25, f.size * 0.1, -0.4, 0, Math.PI * 2);
-            ctx.ellipse(f.size * 0.15, f.size * 0.35, f.size * 0.25, f.size * 0.1, 0.4, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Color Spots / Scales
-            ctx.fillStyle = pal.spots;
-            ctx.beginPath();
-            ctx.arc(f.size * 0.1, midWave * 0.5, f.size * 0.22, 0, Math.PI * 2);
-            ctx.arc(-f.size * 0.3, midWave * 0.8, f.size * 0.16, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Bioluminescent Angler Lure
-            if (pal.glow) {
-                ctx.fillStyle = pal.spots;
-                ctx.beginPath();
-                ctx.arc(f.size * 1.15, -midWave * 0.5, 3.5, 0, Math.PI * 2);
-                ctx.fill();
+            // Kinetics: variant-specific motion
+            if (variant === 'river_trout') {
+                // Rheotactic bursts: resting then sudden forward dart
+                f.dartTimer -= dt * speed;
+                if (f.dartTimer <= 0) {
+                    f.isDarting = !f.isDarting;
+                    f.dartTimer = f.isDarting ? (0.4 + Math.random() * 0.4) : (1.5 + Math.random() * 2.0);
+                    if (f.isDarting) f.heading += (Math.random() - 0.5) * 0.8;
+                }
+                const curSpd = f.isDarting ? 110 : 35;
+                f.x += Math.cos(f.heading) * curSpd * f.speedMult * speed * dt;
+                f.y += Math.sin(f.heading) * curSpd * f.speedMult * speed * dt;
+            } else if (variant === 'drone_minnows') {
+                // Robotic waypoint turns
+                f.dartTimer -= dt * speed;
+                if (f.dartTimer <= 0) {
+                    f.dartTimer = 1.0 + Math.random() * 1.5;
+                    f.turnRate = (Math.random() - 0.5) * 3.0;
+                }
+                f.heading += f.turnRate * dt * speed;
+                f.turnRate *= 0.92;
+                const dSpeed = 55 * f.speedMult * speed;
+                f.x += Math.cos(f.heading) * dSpeed * dt;
+                f.y += Math.sin(f.heading) * dSpeed * dt;
+            } else if (variant === 'ocean_sharks') {
+                // Broad predatory cruising arcs with steady glide
+                f.turnRate += (Math.random() - 0.5) * 0.8 * dt;
+                f.turnRate = Math.max(-0.4, Math.min(0.4, f.turnRate * 0.96));
+                f.heading += f.turnRate * dt * speed;
+                const sSpeed = 44 * f.speedMult * speed;
+                f.x += Math.cos(f.heading) * sSpeed * dt;
+                f.y += Math.sin(f.heading) * sSpeed * dt;
+            } else if (variant === 'abyssal_biolum') {
+                // Slow hovering drift in deep dark water
+                f.turnRate += (Math.random() - 0.5) * 0.5 * dt;
+                f.turnRate = Math.max(-0.3, Math.min(0.3, f.turnRate * 0.94));
+                f.heading += f.turnRate * dt * speed;
+                const aSpeed = 24 * f.speedMult * speed;
+                f.x += Math.cos(f.heading) * aSpeed * dt;
+                f.y += Math.sin(f.heading) * aSpeed * dt;
+            } else {
+                // koi_pond: Gentle natural meandering
+                f.turnRate += (Math.random() - 0.5) * 1.2 * dt;
+                f.turnRate = Math.max(-0.6, Math.min(0.6, f.turnRate * 0.95));
+                f.heading += f.turnRate * dt * speed;
+                const kSpeed = 38 * f.speedMult * speed;
+                f.x += Math.cos(f.heading) * kSpeed * dt;
+                f.y += Math.sin(f.heading) * kSpeed * dt;
             }
 
-            ctx.restore();
+            // Screen boundary wrapping
+            const pad = f.size * 1.5;
+            if (f.x < -pad) f.x = W + pad;
+            if (f.x > W + pad) f.x = -pad;
+            if (f.y < -pad) f.y = H + pad;
+            if (f.y > H + pad) f.y = -pad;
+
+            // Sinuous tail oscillation
+            const oscFreq = variant === 'river_trout' ? (f.isDarting ? 14 : 7) : (variant === 'ocean_sharks' ? 3.5 : (variant === 'drone_minnows' ? 10 : 5));
+            const swimOsc = Math.sin(time * oscFreq * speed * f.speedMult + f.swimPhase);
+
+            // ================================================================
+            // 1. OCEAN SHARKS (Large Predatory Apex Shark - Pure 90-deg Dorsal Plan)
+            // ================================================================
+            if (variant === 'ocean_sharks') {
+                const sLen = f.size * elScale;
+                const sWidth = sLen * 0.32;
+
+                // Seabed Depth Shadow (offset by depth)
+                ctx.save();
+                ctx.fillStyle = 'rgba(2, 6, 23, 0.38)';
+                ctx.translate(f.x + 14 * elScale, f.y + 18 * elScale);
+                ctx.rotate(f.heading);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, sLen * 0.65, sWidth * 0.55, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Surface Water Wake Ripple V-Cone
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.rotate(f.heading);
+                ctx.strokeStyle = `rgba(186, 230, 253, ${0.22 * intensity})`;
+                ctx.lineWidth = 1.2 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(sLen * 0.7, 0);
+                ctx.lineTo(-sLen * 0.8, -sWidth * 1.4);
+                ctx.moveTo(sLen * 0.7, 0);
+                ctx.lineTo(-sLen * 0.8, sWidth * 1.4);
+                ctx.stroke();
+
+                // Torpedo Body (Dorsal view)
+                const bodyGrad = ctx.createLinearGradient(0, -sWidth, 0, sWidth);
+                bodyGrad.addColorStop(0, '#334155');
+                bodyGrad.addColorStop(0.3, '#475569');
+                bodyGrad.addColorStop(0.5, '#64748b'); // Dorsal ridge highlight
+                bodyGrad.addColorStop(0.7, '#475569');
+                bodyGrad.addColorStop(1, '#334155');
+                ctx.fillStyle = bodyGrad;
+
+                const tailX = -sLen * 0.65;
+                const tailY = swimOsc * (sLen * 0.18);
+                const midWave = swimOsc * (sLen * 0.06);
+
+                ctx.beginPath();
+                ctx.moveTo(sLen * 0.7, 0); // Snout
+                ctx.bezierCurveTo(sLen * 0.35, -sWidth * 0.85, 0, -sWidth, tailX, tailY - 2 * elScale);
+                ctx.lineTo(tailX, tailY + 2 * elScale);
+                ctx.bezierCurveTo(0, sWidth, sLen * 0.35, sWidth * 0.85, sLen * 0.7, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                // Sweeping Triangular Pectoral Fins (Wide wingspan)
+                ctx.fillStyle = '#334155';
+                ctx.beginPath();
+                ctx.moveTo(sLen * 0.15, -sWidth * 0.6);
+                ctx.lineTo(-sLen * 0.1, -sWidth * 2.2); // Left pectoral wing tip
+                ctx.lineTo(-sLen * 0.22, -sWidth * 0.7);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(sLen * 0.15, sWidth * 0.6);
+                ctx.lineTo(-sLen * 0.1, sWidth * 2.2); // Right pectoral wing tip
+                ctx.lineTo(-sLen * 0.22, sWidth * 0.7);
+                ctx.closePath();
+                ctx.fill();
+
+                // Upright Triangular Dorsal Fin (Cuts surface, casts sharp shadow)
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.moveTo(sLen * 0.05, -2 * elScale);
+                ctx.lineTo(-sLen * 0.18, 0);
+                ctx.lineTo(sLen * 0.05, 2 * elScale);
+                ctx.closePath();
+                ctx.fill();
+
+                // Lateral dorsal fin shadow
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+                ctx.beginPath();
+                ctx.moveTo(sLen * 0.05, 0);
+                ctx.lineTo(-sLen * 0.1, 8 * elScale);
+                ctx.lineTo(-sLen * 0.2, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                // Asymmetric Heterocercal Caudal Tail Fin (Upper lobe longer)
+                ctx.fillStyle = '#334155';
+                ctx.beginPath();
+                ctx.moveTo(tailX, tailY);
+                ctx.lineTo(tailX - sLen * 0.38, tailY - sWidth * 1.3); // Long upper lobe
+                ctx.lineTo(tailX - sLen * 0.28, tailY);
+                ctx.lineTo(tailX - sLen * 0.32, tailY + sWidth * 0.85); // Shorter lower lobe
+                ctx.closePath();
+                ctx.fill();
+
+                // 5 Lateral Gill Slit Marks
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 1.0 * elScale;
+                for (let g = 0; g < 5; g++) {
+                    const gx = sLen * (0.28 - g * 0.05);
+                    ctx.beginPath();
+                    ctx.moveTo(gx, -sWidth * 0.55); ctx.lineTo(gx, -sWidth * 0.35);
+                    ctx.moveTo(gx, sWidth * 0.55); ctx.lineTo(gx, sWidth * 0.35);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+
+            // ================================================================
+            // 2. JAPANESE NISHIKIGOI (Calico Koi Pond - Flowing Veil Fins)
+            // ================================================================
+            } else if (variant === 'koi_pond') {
+                const kLen = f.size * elScale;
+                const kWidth = kLen * 0.36;
+
+                // Pond bed depth shadow
+                ctx.save();
+                ctx.fillStyle = 'rgba(8, 28, 36, 0.28)';
+                ctx.translate(f.x + 8 * elScale, f.y + 10 * elScale);
+                ctx.rotate(f.heading);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, kLen * 0.55, kWidth * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.rotate(f.heading);
+
+                const tailX = -kLen * 0.6;
+                const tailY = swimOsc * (kLen * 0.22);
+                const midWave = swimOsc * (kLen * 0.08);
+
+                // Calico base colors: 0=Kohaku (white+red), 1=Taisho Sanke (white+red+black), 2=Ogon (golden orange), 3=Showa (black+red)
+                const cIdx = f.colorVariant % 4;
+                const baseCol = cIdx === 2 ? '#f59e0b' : (cIdx === 3 ? '#1c1917' : '#f8fafc');
+                const spotCol = cIdx === 2 ? '#d97706' : (cIdx === 3 ? '#dc2626' : '#ea580c');
+
+                // Plump Curving Fish Torso
+                ctx.fillStyle = baseCol;
+                ctx.beginPath();
+                ctx.moveTo(kLen * 0.65, 0); // Rounded snout
+                ctx.bezierCurveTo(kLen * 0.35, -kWidth * 0.9, midWave, -kWidth * 0.6, tailX, tailY);
+                ctx.bezierCurveTo(midWave, kWidth * 0.6, kLen * 0.35, kWidth * 0.9, kLen * 0.65, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                // Calico Color Patches
+                ctx.fillStyle = spotCol;
+                ctx.beginPath();
+                ctx.ellipse(kLen * 0.28, midWave * 0.5, kLen * 0.2, kWidth * 0.45, 0.2, 0, Math.PI * 2);
+                ctx.ellipse(-kLen * 0.1, -midWave * 0.5, kLen * 0.16, kWidth * 0.35, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (cIdx === 1) { // Sanke black sumi spots
+                    ctx.fillStyle = '#0f172a';
+                    ctx.beginPath();
+                    ctx.arc(kLen * 0.1, kWidth * 0.2, 3.5 * elScale, 0, Math.PI * 2);
+                    ctx.arc(-kLen * 0.25, -kWidth * 0.15, 4.0 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Flowing Translucent Fan Pectoral Fins (Fluttering at sides)
+                const pecOsc = Math.sin(time * 8 * speed + f.swimPhase) * 0.2;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+                ctx.beginPath();
+                ctx.moveTo(kLen * 0.25, -kWidth * 0.5);
+                ctx.quadraticCurveTo(kLen * 0.1, -kWidth * 1.6 + pecOsc * 6, -kLen * 0.08, -kWidth * 1.3);
+                ctx.quadraticCurveTo(0, -kWidth * 0.6, kLen * 0.1, -kWidth * 0.4);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(kLen * 0.25, kWidth * 0.5);
+                ctx.quadraticCurveTo(kLen * 0.1, kWidth * 1.6 - pecOsc * 6, -kLen * 0.08, kWidth * 1.3);
+                ctx.quadraticCurveTo(0, kWidth * 0.6, kLen * 0.1, kWidth * 0.4);
+                ctx.closePath();
+                ctx.fill();
+
+                // Undulating Translucent Veil-Tail (Double flowing fin lobes)
+                const tailWave2 = Math.sin(time * 5 * speed + f.swimPhase - 1.0) * (kLen * 0.15);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+                ctx.beginPath();
+                ctx.moveTo(tailX, tailY);
+                ctx.bezierCurveTo(tailX - kLen * 0.3, tailY - kWidth * 1.2, tailX - kLen * 0.65, tailY + tailWave2 - kWidth * 0.8, tailX - kLen * 0.55, tailY);
+                ctx.bezierCurveTo(tailX - kLen * 0.65, tailY - tailWave2 + kWidth * 0.8, tailX - kLen * 0.3, tailY + kWidth * 1.2, tailX, tailY);
+                ctx.closePath();
+                ctx.fill();
+
+                // Snout Sensory Barbels (Whiskers)
+                ctx.strokeStyle = '#f8fafc';
+                ctx.lineWidth = 1.0 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(kLen * 0.62, -3 * elScale); ctx.lineTo(kLen * 0.75, -8 * elScale);
+                ctx.moveTo(kLen * 0.62, 3 * elScale); ctx.lineTo(kLen * 0.75, 8 * elScale);
+                ctx.stroke();
+
+                ctx.restore();
+
+            // ================================================================
+            // 3. MOUNTAIN STREAM RAINBOW TROUT (Speckled Streamlined Salmonid)
+            // ================================================================
+            } else if (variant === 'river_trout') {
+                const rLen = f.size * elScale;
+                const rWidth = rLen * 0.28;
+
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.rotate(f.heading);
+
+                const tailX = -rLen * 0.65;
+                const tailY = swimOsc * (rLen * 0.18);
+                const midWave = swimOsc * (rLen * 0.05);
+
+                // Streamlined Olive-Green Back
+                const troutGrad = ctx.createLinearGradient(0, -rWidth, 0, rWidth);
+                troutGrad.addColorStop(0, '#3f4d34'); // Dark olive
+                troutGrad.addColorStop(0.3, '#5c6e46');
+                troutGrad.addColorStop(0.5, '#788c5d');
+                troutGrad.addColorStop(0.7, '#5c6e46');
+                troutGrad.addColorStop(1, '#3f4d34');
+                ctx.fillStyle = troutGrad;
+
+                ctx.beginPath();
+                ctx.moveTo(rLen * 0.68, 0); // Pointed snout
+                ctx.bezierCurveTo(rLen * 0.3, -rWidth * 0.9, midWave, -rWidth * 0.5, tailX, tailY);
+                ctx.bezierCurveTo(midWave, rWidth * 0.5, rLen * 0.3, rWidth * 0.9, rLen * 0.68, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                // Iridescent Crimson / Magenta Lateral Stripe
+                ctx.strokeStyle = `rgba(244, 63, 94, ${0.85 * intensity})`;
+                ctx.lineWidth = 2.4 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(rLen * 0.45, 0);
+                ctx.quadraticCurveTo(0, midWave, tailX * 0.8, tailY * 0.8);
+                ctx.stroke();
+
+                // Dark Speckled Melanophore Spots
+                ctx.fillStyle = '#1c1917';
+                for (let s = 0; s < 7; s++) {
+                    const sx = rLen * (0.35 - s * 0.1);
+                    const sy = (s % 2 === 0 ? -1 : 1) * (rWidth * 0.3) + midWave * 0.3;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 1.2 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Homocercal Forked Tail Fin
+                ctx.fillStyle = '#4a593d';
+                ctx.beginPath();
+                ctx.moveTo(tailX, tailY);
+                ctx.lineTo(tailX - rLen * 0.26, tailY - rWidth * 0.9);
+                ctx.lineTo(tailX - rLen * 0.16, tailY);
+                ctx.lineTo(tailX - rLen * 0.26, tailY + rWidth * 0.9);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+
+            // ================================================================
+            // 4. BIOLUMINESCENT ABYSSAL ANGLERFISH (Lure Bulb & Photophores)
+            // ================================================================
+            } else if (variant === 'abyssal_biolum') {
+                const aLen = f.size * elScale;
+                const aWidth = aLen * 0.44;
+
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.rotate(f.heading);
+
+                const tailX = -aLen * 0.6;
+                const tailY = swimOsc * (aLen * 0.14);
+
+                // Bulbous Obsidian / Deep-Violet Head & Body
+                ctx.fillStyle = '#090514';
+                ctx.beginPath();
+                ctx.moveTo(aLen * 0.5, 0);
+                ctx.bezierCurveTo(aLen * 0.4, -aWidth, 0, -aWidth * 0.7, tailX, tailY);
+                ctx.bezierCurveTo(0, aWidth * 0.7, aLen * 0.4, aWidth, aLen * 0.5, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                // Wide Gaping Mouth with Translucent Needle Fangs
+                ctx.strokeStyle = 'rgba(240, 249, 255, 0.85)';
+                ctx.lineWidth = 1.0 * elScale;
+                for (let t = -3; t <= 3; t++) {
+                    const tx = aLen * 0.48;
+                    const ty = t * 3.0 * elScale;
+                    ctx.beginPath();
+                    ctx.moveTo(tx, ty);
+                    ctx.lineTo(tx + 4 * elScale, ty + (t % 2 === 0 ? 1 : -1) * 2 * elScale);
+                    ctx.stroke();
+                }
+
+                // Double Lateral Flank Bioluminescent Photophores (Glowing Dots)
+                const flick = Math.sin(time * 6 + i) * 0.2 + 0.8;
+                ctx.fillStyle = `rgba(6, 182, 212, ${0.9 * flick * intensity})`;
+                for (let p = 0; p < 5; p++) {
+                    const px = aLen * (0.25 - p * 0.12);
+                    ctx.beginPath();
+                    ctx.arc(px, -aWidth * 0.45, 1.4 * elScale, 0, Math.PI * 2);
+                    ctx.arc(px, aWidth * 0.45, 1.4 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Arching Dorsal Illicium Rod extending past snout
+                const lureOsc = Math.sin(time * 3 * speed + f.swimPhase) * (aLen * 0.12);
+                const lureX = aLen * 0.9;
+                const lureY = lureOsc;
+
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 1.2 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(aLen * 0.2, 0);
+                ctx.quadraticCurveTo(aLen * 0.5, -aWidth * 0.5, lureX, lureY);
+                ctx.stroke();
+
+                // Pulsing Esca Lure Bulb & Chromatic Light Pool
+                const lureGrad = ctx.createRadialGradient(lureX, lureY, 1, lureX, lureY, 18 * elScale * intensity);
+                lureGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+                lureGrad.addColorStop(0.3, `rgba(34, 211, 238, ${0.85 * flick * intensity})`);
+                lureGrad.addColorStop(0.7, `rgba(168, 85, 247, ${0.35 * flick * intensity})`);
+                lureGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = lureGrad;
+                ctx.beginPath();
+                ctx.arc(lureX, lureY, 18 * elScale * intensity, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Esca solid core bulb
+                ctx.fillStyle = '#67e8f9';
+                ctx.beginPath();
+                ctx.arc(lureX, lureY, 3.2 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+            // ================================================================
+            // 5. CYBERNETIC DRONE MINNOWS (Faceted Hull & Micro-Thrusters)
+            // ================================================================
+            } else {
+                const dLen = f.size * elScale;
+                const dWidth = dLen * 0.35;
+
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.rotate(f.heading);
+
+                // Faceted Chrome / Carbon-Fiber Hull
+                ctx.fillStyle = '#1e293b';
+                ctx.strokeStyle = '#64748b';
+                ctx.lineWidth = 1.2 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(dLen * 0.6, 0); // Pointed bow
+                ctx.lineTo(dLen * 0.25, -dWidth * 0.8);
+                ctx.lineTo(-dLen * 0.45, -dWidth * 0.6);
+                ctx.lineTo(-dLen * 0.55, 0); // Stern thruster bay
+                ctx.lineTo(-dLen * 0.45, dWidth * 0.6);
+                ctx.lineTo(dLen * 0.25, dWidth * 0.8);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Articulated Titanium Steering Hydroplanes (Side foils)
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.moveTo(0, -dWidth * 0.7);
+                ctx.lineTo(-dLen * 0.2, -dWidth * 1.5);
+                ctx.lineTo(-dLen * 0.3, -dWidth * 0.65);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(0, dWidth * 0.7);
+                ctx.lineTo(-dLen * 0.2, dWidth * 1.5);
+                ctx.lineTo(-dLen * 0.3, dWidth * 0.65);
+                ctx.closePath();
+                ctx.fill();
+
+                // Cyan LED Optical Visor Band (Sensor bow)
+                ctx.strokeStyle = `rgba(6, 182, 212, ${0.95 * intensity})`;
+                ctx.lineWidth = 2.0 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(dLen * 0.4, -dWidth * 0.4);
+                ctx.lineTo(dLen * 0.58, 0);
+                ctx.lineTo(dLen * 0.4, dWidth * 0.4);
+                ctx.stroke();
+
+                // Twin Stern Micro-Waterjet Thrusters (Cyan cavitation bubbles)
+                const jetPulse = Math.sin(time * 20 * speed + i) * 0.3 + 0.7;
+                ctx.fillStyle = `rgba(34, 211, 238, ${0.85 * jetPulse * intensity})`;
+                ctx.beginPath();
+                ctx.arc(-dLen * 0.65, -dWidth * 0.25, 2.5 * elScale, 0, Math.PI * 2);
+                ctx.arc(-dLen * 0.65, dWidth * 0.25, 2.5 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Trailing cavitation bubble wake
+                ctx.fillStyle = 'rgba(224, 242, 254, 0.4)';
+                ctx.beginPath();
+                ctx.arc(-dLen * 0.9, -dWidth * 0.25 + (Math.random() - 0.5) * 3, 1.8 * elScale, 0, Math.PI * 2);
+                ctx.arc(-dLen * 1.1, dWidth * 0.25 + (Math.random() - 0.5) * 3, 2.2 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
         }
 
         ctx.restore();
@@ -12702,359 +14460,711 @@ class LivingElementsEngine {
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 1.0;
         const variant = cfg.variant || 'will_o_wisp';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
 
-        // Closed-loop Lissajous patrol path (loops indefinitely without jump cuts)
+        // Continuous smooth Lissajous figure-8 patrol flight path
         const radius = (cfg.patrolRadius || 90) * (Math.min(W, H) / 240);
-        const cx = W * 0.5 + Math.sin(time * 0.7 * speed) * radius * 0.85;
-        const cy = H * 0.5 + Math.sin(time * 1.4 * speed) * (radius * 0.48);
+        const curX = W * 0.5 + Math.sin(time * 0.75 * speed) * radius * 0.85;
+        const curY = H * 0.5 + Math.sin(time * 1.5 * speed) * (radius * 0.5);
 
-        // Variant Color Definitions
-        const styles = {
-            will_o_wisp: { core: '220, 255, 240', mid: '45, 212, 191', outer: '13, 148, 136' },
-            gothic_ghost: { core: '235, 245, 255', mid: '147, 197, 253', outer: '59, 130, 246' },
-            patrol_drone: { core: '255, 255, 255', mid: '0, 255, 200', outer: '6, 182, 212' },
-            fey_sprite: { core: '255, 245, 180', mid: '250, 204, 21', outer: '217, 119, 6' },
-            eldritch_eye: { core: '255, 120, 220', mid: '216, 70, 239', outer: '147, 51, 234' }
-        };
-        const col = styles[variant] || styles.will_o_wisp;
+        // Velocity heading tangent
+        const vx = Math.cos(time * 0.75 * speed) * 0.75 * radius * 0.85;
+        const vy = Math.cos(time * 1.5 * speed) * 1.5 * (radius * 0.5);
+        const heading = Math.atan2(vy, vx);
 
-        // 1. Trailing Ethereal Particle Wake / Wisps
+        // Particles collection for trailing wakes
         if (!el.particles) el.particles = [];
-        const wakeTarget = Math.min(35, Math.round(18 * (cfg.quantity || 1.0)));
+        const wakeTarget = variant === 'fey_sprite' ? 36 : (variant === 'eldritch_eye' ? 24 : 18);
         while (el.particles.length < wakeTarget) {
             el.particles.push({
-                x: cx,
-                y: cy,
-                r: Math.random() * 6 + 2,
+                x: curX,
+                y: curY,
+                r: Math.random() * 4 + 1.5,
                 life: Math.random(),
-                decay: 0.5 + Math.random() * 0.7
+                decay: 0.6 + Math.random() * 0.8,
+                seed: Math.random() * 10
             });
         }
 
-        for (let p = 0; p < el.particles.length; p++) {
-            const part = el.particles[p];
-            part.life -= dt * part.decay * speed;
-            if (part.life <= 0) {
-                part.life = 1.0;
-                part.x = cx + (Math.random() - 0.5) * 8;
-                part.y = cy + (Math.random() - 0.5) * 8;
-                part.r = Math.random() * 6 + 2;
+        // ====================================================================
+        // 1. WILL-O'-THE-WISP (Ethereal Swirling Light Orb & Mote Vortex)
+        // ====================================================================
+        if (variant === 'will_o_wisp') {
+            // Trailing ethereal particle wake
+            for (let p = 0; p < el.particles.length; p++) {
+                const part = el.particles[p];
+                part.life -= dt * part.decay * speed;
+                if (part.life <= 0) {
+                    part.life = 1.0;
+                    part.x = curX + (Math.random() - 0.5) * 12 * elScale;
+                    part.y = curY + (Math.random() - 0.5) * 12 * elScale;
+                    part.r = Math.random() * 4 + 1.5;
+                }
+                ctx.fillStyle = `rgba(45, 212, 191, ${part.life * 0.55 * intensity})`;
+                ctx.beginPath();
+                ctx.arc(part.x, part.y, part.r * part.life * elScale, 0, Math.PI * 2);
+                ctx.fill();
             }
 
-            ctx.fillStyle = `rgba(${col.mid}, ${part.life * 0.45 * intensity})`;
+            // Pulsing multi-tier ambient aura
+            const pulse = Math.sin(time * 3.5 * speed) * 0.18 + 0.82;
+            const auraR = 38 * pulse * intensity * elScale;
+
+            const auraGrad = ctx.createRadialGradient(curX, curY, 2 * elScale, curX, curY, auraR);
+            auraGrad.addColorStop(0, `rgba(240, 253, 250, ${0.95 * intensity})`);
+            auraGrad.addColorStop(0.35, `rgba(45, 212, 191, ${0.75 * intensity})`);
+            auraGrad.addColorStop(0.7, `rgba(13, 148, 136, ${0.35 * intensity})`);
+            auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = auraGrad;
             ctx.beginPath();
-            ctx.arc(part.x, part.y, part.r * part.life, 0, Math.PI * 2);
+            ctx.arc(curX, curY, auraR, 0, Math.PI * 2);
             ctx.fill();
-        }
 
-        // 2. Multi-Layer Pulsing Core Aura
-        const pulse = Math.sin(time * 3 * speed) * 0.15 + 0.85;
-        const auraR = 32 * pulse * intensity;
+            // Swirling plasma filaments inside orb
+            ctx.strokeStyle = `rgba(204, 251, 241, ${0.85 * intensity})`;
+            ctx.lineWidth = 1.2 * elScale;
+            for (let f = 0; f < 3; f++) {
+                const fAng = time * 4 * speed + (f * Math.PI * 2) / 3;
+                ctx.beginPath();
+                ctx.ellipse(curX, curY, 14 * elScale, 6 * elScale, fAng, 0, Math.PI * 2);
+                ctx.stroke();
+            }
 
-        const auraGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, auraR);
-        auraGrad.addColorStop(0, `rgba(${col.core}, ${0.95 * (cfg.opacity || 0.95)})`);
-        auraGrad.addColorStop(0.35, `rgba(${col.mid}, ${0.75 * (cfg.opacity || 0.95)})`);
-        auraGrad.addColorStop(0.7, `rgba(${col.outer}, ${0.35 * (cfg.opacity || 0.95)})`);
-        auraGrad.addColorStop(1, 'rgba(0,0,0,0)');
-
-        ctx.fillStyle = auraGrad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, auraR, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 3. Dense Inner Core
-        ctx.fillStyle = `rgba(${col.core}, 0.98)`;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 7 * pulse, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 4. Variant Specific Embellishments
-        if (variant === 'fey_sprite') {
-            // Gossamer Fluttering Wings
-            const wingFlap = Math.sin(time * 18 * speed);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+            // Incandescent white inner core
+            ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            ctx.ellipse(cx - 10, cy, 14, 5 * Math.abs(wingFlap), -0.5, 0, Math.PI * 2);
-            ctx.ellipse(cx + 10, cy, 14, 5 * Math.abs(wingFlap), 0.5, 0, Math.PI * 2);
+            ctx.arc(curX, curY, 6 * pulse * elScale, 0, Math.PI * 2);
             ctx.fill();
+
+        // ====================================================================
+        // 2. GOTHIC GHOST (Spectral Phantom Apparition & Billowing Robes)
+        // ====================================================================
+        } else if (variant === 'gothic_ghost') {
+            // Ectoplasmic mist wake
+            for (let p = 0; p < el.particles.length; p++) {
+                const part = el.particles[p];
+                part.life -= dt * part.decay * speed;
+                if (part.life <= 0) {
+                    part.life = 1.0;
+                    part.x = curX - Math.cos(heading) * (18 * elScale) + (Math.random() - 0.5) * 16 * elScale;
+                    part.y = curY - Math.sin(heading) * (18 * elScale) + (Math.random() - 0.5) * 16 * elScale;
+                    part.r = Math.random() * 8 + 3;
+                }
+                const mGrad = ctx.createRadialGradient(part.x, part.y, 1, part.x, part.y, part.r * part.life * elScale);
+                mGrad.addColorStop(0, `rgba(224, 242, 254, ${part.life * 0.35 * intensity})`);
+                mGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = mGrad;
+                ctx.beginPath();
+                ctx.arc(part.x, part.y, part.r * part.life * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Separated ground drop shadow showing elevation
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.28)';
+            ctx.beginPath();
+            ctx.ellipse(curX + 6 * elScale, curY + 22 * elScale, 20 * elScale, 10 * elScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.save();
+            ctx.translate(curX, curY);
+            ctx.rotate(heading);
+
+            // Undulating Billowing Ectoplasmic Shroud / Robes (Flowing backwards)
+            const und = Math.sin(time * 5 * speed) * (8 * elScale);
+            const und2 = Math.cos(time * 4 * speed) * (6 * elScale);
+
+            const shroudGrad = ctx.createLinearGradient(12 * elScale, 0, -42 * elScale, 0);
+            shroudGrad.addColorStop(0, `rgba(240, 249, 255, ${0.9 * intensity})`);
+            shroudGrad.addColorStop(0.4, `rgba(186, 230, 253, ${0.65 * intensity})`);
+            shroudGrad.addColorStop(0.8, `rgba(125, 211, 252, ${0.35 * intensity})`);
+            shroudGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+            ctx.fillStyle = shroudGrad;
+
+            ctx.beginPath();
+            ctx.moveTo(14 * elScale, 0); // Hood crown
+            ctx.quadraticCurveTo(8 * elScale, -16 * elScale, -12 * elScale, -14 * elScale);
+            ctx.bezierCurveTo(-24 * elScale, -20 * elScale + und, -38 * elScale, -12 * elScale - und2, -48 * elScale, und);
+            ctx.bezierCurveTo(-38 * elScale, 12 * elScale + und2, -24 * elScale, 20 * elScale - und, -12 * elScale, 14 * elScale);
+            ctx.quadraticCurveTo(8 * elScale, 16 * elScale, 14 * elScale, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // Floating Spectral Cowl / Head
+            ctx.fillStyle = `rgba(224, 242, 254, ${0.85 * intensity})`;
+            ctx.beginPath();
+            ctx.arc(4 * elScale, 0, 11 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Dark Hollow Eye Sockets
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.ellipse(8 * elScale, -4 * elScale, 2.5 * elScale, 2.0 * elScale, 0.2, 0, Math.PI * 2);
+            ctx.ellipse(8 * elScale, 4 * elScale, 2.5 * elScale, 2.0 * elScale, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glowing Cold Spectral Blue Pinpoint Pupils
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(9 * elScale, -4 * elScale, 1.2 * elScale, 0, Math.PI * 2);
+            ctx.arc(9 * elScale, 4 * elScale, 1.2 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+        // ====================================================================
+        // 3. SENTRY PATROL DRONE (Quad-Rotor Chassis & Floor Targeting Laser)
+        // ====================================================================
         } else if (variant === 'patrol_drone') {
-            // Rotating Sensor Scanner Rings
-            ctx.strokeStyle = `rgba(${col.mid}, 0.85)`;
-            ctx.lineWidth = 1.4;
+            // Ground drop shadow
+            ctx.fillStyle = 'rgba(2, 6, 23, 0.42)';
             ctx.beginPath();
-            ctx.ellipse(cx, cy, 18, 7, time * 2, 0, Math.PI * 2);
+            ctx.ellipse(curX + 6 * elScale, curY + 16 * elScale, 24 * elScale, 14 * elScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.save();
+            ctx.translate(curX, curY);
+            ctx.rotate(heading);
+
+            // Forward Floor-Projected Dual Targeting Laser Beams
+            const laserLen = 120 * elScale;
+            const sweepAng = Math.sin(time * 3 * speed) * 0.35;
+
+            ctx.strokeStyle = `rgba(239, 68, 68, ${0.85 * intensity})`;
+            ctx.lineWidth = 1.6 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(14 * elScale, -4 * elScale);
+            ctx.lineTo(14 * elScale + Math.cos(sweepAng) * laserLen, -4 * elScale + Math.sin(sweepAng) * laserLen);
+            ctx.moveTo(14 * elScale, 4 * elScale);
+            ctx.lineTo(14 * elScale + Math.cos(sweepAng) * laserLen, 4 * elScale + Math.sin(sweepAng) * laserLen);
             ctx.stroke();
+
+            // Floor Laser Impact Reticle (Crosshair on floor)
+            const targetX = 14 * elScale + Math.cos(sweepAng) * laserLen;
+            const targetY = Math.sin(sweepAng) * laserLen;
+            ctx.fillStyle = `rgba(239, 68, 68, ${0.9 * intensity})`;
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, 3.5 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeRect(targetX - 7 * elScale, targetY - 7 * elScale, 14 * elScale, 14 * elScale);
+
+            // Hexagonal Carbon-Fiber Armored Hull
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(16 * elScale, 0);
+            ctx.lineTo(8 * elScale, -14 * elScale);
+            ctx.lineTo(-12 * elScale, -14 * elScale);
+            ctx.lineTo(-18 * elScale, 0);
+            ctx.lineTo(-12 * elScale, 14 * elScale);
+            ctx.lineTo(8 * elScale, 14 * elScale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 4 Corner Rotor Outrigger Spars & Ducted Rotor Pods
+            const propBlur = time * 45 * speed;
+            const pods = [
+                { x: 14 * elScale, y: -16 * elScale },
+                { x: -14 * elScale, y: -16 * elScale },
+                { x: 14 * elScale, y: 16 * elScale },
+                { x: -14 * elScale, y: 16 * elScale }
+            ];
+
+            pods.forEach((p, pIdx) => {
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 2.0 * elScale;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+
+                // Ducted Pod Ring
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 8 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Spinning Propeller Blur Disc
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.45)';
+                ctx.beginPath();
+                ctx.ellipse(p.x, p.y, 7 * elScale, 3 * elScale, propBlur + pIdx * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Port (Red) / Starboard (Green) Navigation LEDs
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.arc(pods[0].x, pods[0].y, 2.0 * elScale, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath(); ctx.arc(pods[2].x, pods[2].y, 2.0 * elScale, 0, Math.PI * 2); ctx.fill();
+
+            // Central 360-deg Sensor Turret Dome & Hazard Strobe
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(0, 0, 7 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            const strobe = Math.sin(time * 12 * speed) > 0.4;
+            ctx.fillStyle = strobe ? '#38bdf8' : '#0369a1';
+            ctx.beginPath();
+            ctx.arc(0, 0, 3.5 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+        // ====================================================================
+        // 4. FEY FOREST SPRITE (Winged Pixie & Golden Stardust Trail)
+        // ====================================================================
+        } else if (variant === 'fey_sprite') {
+            // Golden Pixie Dust Wake
+            for (let p = 0; p < el.particles.length; p++) {
+                const part = el.particles[p];
+                part.life -= dt * part.decay * speed;
+                if (part.life <= 0) {
+                    part.life = 1.0;
+                    part.x = curX - Math.cos(heading) * (10 * elScale) + (Math.random() - 0.5) * 12 * elScale;
+                    part.y = curY - Math.sin(heading) * (10 * elScale) + (Math.random() - 0.5) * 12 * elScale;
+                    part.r = Math.random() * 3 + 1.2;
+                }
+                const pTwinkle = Math.sin(time * 12 + part.seed) * 0.3 + 0.7;
+                ctx.fillStyle = `rgba(253, 224, 71, ${part.life * pTwinkle * intensity})`;
+                ctx.beginPath();
+                ctx.arc(part.x, part.y, part.r * part.life * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.save();
+            ctx.translate(curX, curY);
+            ctx.rotate(heading);
+
+            // 4 Gossamer Dragonfly Wings (High-frequency flutter)
+            const wingFlap = Math.sin(time * 26 * speed);
+            ctx.fillStyle = 'rgba(254, 240, 138, 0.65)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.lineWidth = 0.8 * elScale;
+
+            // Forewings (Longer)
+            ctx.beginPath();
+            ctx.ellipse(2 * elScale, -14 * elScale * Math.abs(wingFlap), 6 * elScale, 18 * elScale * Math.abs(wingFlap), -0.3, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            ctx.beginPath();
+            ctx.ellipse(2 * elScale, 14 * elScale * Math.abs(wingFlap), 6 * elScale, 18 * elScale * Math.abs(wingFlap), 0.3, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            // Hindwings (Slightly shorter)
+            ctx.beginPath();
+            ctx.ellipse(-4 * elScale, -10 * elScale * Math.abs(wingFlap), 4.5 * elScale, 12 * elScale * Math.abs(wingFlap), -0.5, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            ctx.beginPath();
+            ctx.ellipse(-4 * elScale, 10 * elScale * Math.abs(wingFlap), 4.5 * elScale, 12 * elScale * Math.abs(wingFlap), 0.5, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            // Glowing Humanoid Silhouette (Head, torso, shoulders)
+            const feyGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 14 * elScale);
+            feyGrad.addColorStop(0, '#ffffff');
+            feyGrad.addColorStop(0.4, '#fde047');
+            feyGrad.addColorStop(1, '#ca8a04');
+            ctx.fillStyle = feyGrad;
+
+            // Torso
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 7 * elScale, 3.8 * elScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Head
+            ctx.beginPath();
+            ctx.arc(6 * elScale, 0, 4.2 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Flowing Golden Hair Trail
+            ctx.fillStyle = 'rgba(250, 204, 21, 0.75)';
+            ctx.beginPath();
+            ctx.moveTo(3 * elScale, -2 * elScale);
+            ctx.quadraticCurveTo(-8 * elScale, -5 * elScale, -14 * elScale, 0);
+            ctx.quadraticCurveTo(-8 * elScale, 5 * elScale, 3 * elScale, 2 * elScale);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+
+        // ====================================================================
+        // 5. ELDRITCH EYE (Floating Cosmic Eye, Arcane Iris & Writhing Tendrils)
+        // ====================================================================
+        } else {
+            // Writhing optic tendril particles
+            for (let p = 0; p < el.particles.length; p++) {
+                const part = el.particles[p];
+                part.life -= dt * part.decay * speed;
+                if (part.life <= 0) {
+                    part.life = 1.0;
+                    part.x = curX - Math.cos(heading) * (14 * elScale) + (Math.random() - 0.5) * 8 * elScale;
+                    part.y = curY - Math.sin(heading) * (14 * elScale) + (Math.random() - 0.5) * 8 * elScale;
+                    part.r = Math.random() * 5 + 2;
+                }
+                ctx.fillStyle = `rgba(168, 85, 247, ${part.life * 0.45 * intensity})`;
+                ctx.beginPath();
+                ctx.arc(part.x, part.y, part.r * part.life * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Separated creeping void shadow
+            ctx.fillStyle = 'rgba(15, 5, 29, 0.38)';
+            ctx.beginPath();
+            ctx.ellipse(curX + 6 * elScale, curY + 20 * elScale, 22 * elScale, 12 * elScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.save();
+            ctx.translate(curX, curY);
+            ctx.rotate(heading);
+
+            // Trailing writhing optic nerve tendrils behind eyeball
+            ctx.strokeStyle = '#581c87';
+            ctx.lineWidth = 1.8 * elScale;
+            for (let t = 0; t < 5; t++) {
+                const tWiggle = Math.sin(time * 6 * speed + t * 1.4) * (8 * elScale);
+                ctx.beginPath();
+                ctx.moveTo(-10 * elScale, (t - 2) * 3.5 * elScale);
+                ctx.quadraticCurveTo(-22 * elScale, (t - 2) * 5 * elScale + tWiggle, -36 * elScale, (t - 2) * 2 * elScale - tWiggle);
+                ctx.stroke();
+            }
+
+            // Fleshy Cosmic Eyeball (Veined Sclera in dorsal view)
+            const eyeR = 15 * elScale;
+            ctx.fillStyle = '#f5f3ff';
+            ctx.beginPath();
+            ctx.arc(0, 0, eyeR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Branching Red / Purple Capillary Blood Vessels
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 0.9 * elScale;
+            for (let v = 0; v < 6; v++) {
+                const vAng = (v * Math.PI * 2) / 6;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(vAng) * (eyeR * 0.95), Math.sin(vAng) * (eyeR * 0.95));
+                ctx.lineTo(Math.cos(vAng) * (eyeR * 0.55), Math.sin(vAng) * (eyeR * 0.55));
+                ctx.stroke();
+            }
+
+            // Hypnotic Multi-Layer Pulsing Arcane Iris
+            const irisR = 8.5 * elScale;
+            const irisGrad = ctx.createRadialGradient(2 * elScale, 0, 1, 2 * elScale, 0, irisR);
+            irisGrad.addColorStop(0, '#7e22ce');
+            irisGrad.addColorStop(0.5, '#c084fc');
+            irisGrad.addColorStop(1, '#3b0764');
+            ctx.fillStyle = irisGrad;
+            ctx.beginPath();
+            ctx.arc(2 * elScale, 0, irisR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Rotating Arcane Iris Starburst Lines
+            ctx.strokeStyle = '#e9d5ff';
+            ctx.lineWidth = 0.8 * elScale;
+            const rayCount = 8;
+            for (let r = 0; r < rayCount; r++) {
+                const rAng = time * 2 * speed + (r * Math.PI * 2) / rayCount;
+                ctx.beginPath();
+                ctx.moveTo(2 * elScale + Math.cos(rAng) * (irisR * 0.35), Math.sin(rAng) * (irisR * 0.35));
+                ctx.lineTo(2 * elScale + Math.cos(rAng) * (irisR * 0.9), Math.sin(rAng) * (irisR * 0.9));
+                ctx.stroke();
+            }
+
+            // Dilating Void-Black Pupil with Cosmic Star-Glint
+            const pupilPulse = Math.sin(time * 3 * speed) * 0.2 + 0.8;
+            ctx.fillStyle = '#020617';
+            ctx.beginPath();
+            ctx.arc(2.5 * elScale, 0, 4.2 * pupilPulse * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Star-Glint Specular Highlight
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(4.0 * elScale, -1.8 * elScale, 1.4 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
         }
 
         ctx.restore();
     }
 
-    // ------------------------------------------------------------------------
-    // LOCALIZED ATMOSPHERIC WEATHER ZONES (Drop & position directly on maps)
-    // ------------------------------------------------------------------------
 
     drawRealisticLocalRain(el, ctx, W, H, dt) {
         const time = el.stateTime;
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 1.2;
-        const variant = cfg.variant || el.type || 'uni_downpour';
+        const variant = cfg.variant || el.type || 'storm_downpour';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
-        const isNeon = variant === 'sci_neonrain' || variant === 'neon_rain';
-        const isBlood = variant === 'oth_bloodrain' || variant === 'blood_rain';
-        const isHail = variant === 'uni_hailstorm';
-        const isSeaSpume = variant === 'hist_seaspume';
-        const isDrizzle = variant === 'uni_drizzle';
+        const isDrizzle = variant === 'drizzle' || variant === 'uni_drizzle';
+        const isNeon = variant === 'neon_rain' || variant === 'sci_neonrain';
+        const isAcid = variant === 'acid_rain';
 
         if (!el.particles) el.particles = [];
-        const baseTarget = isHail ? 35 : (isDrizzle ? 45 : (isNeon ? 65 : 85));
-        const dropCount = Math.min(140, Math.round(baseTarget * (cfg.quantity || 1.0)));
+        const baseTarget = isDrizzle ? 55 : (isNeon ? 75 : (isAcid ? 65 : 100));
+        const dropCount = Math.min(180, Math.round(baseTarget * (cfg.quantity || 1.0)));
 
         while (el.particles.length < dropCount) {
             el.particles.push({
                 x: Math.random() * W,
                 y: Math.random() * H,
-                len: isHail ? (6 + Math.random() * 5) : (isDrizzle ? (8 + Math.random() * 8) : (14 + Math.random() * 16)),
-                speedMult: 0.75 + Math.random() * 0.5,
-                bounceLife: 0,
-                colorIdx: Math.floor(Math.random() * 2),
+                len: isDrizzle ? (6 + Math.random() * 6) : (isAcid ? (12 + Math.random() * 8) : (16 + Math.random() * 18)),
+                speedMult: 0.8 + Math.random() * 0.4,
+                splashLife: 0,
+                colorIdx: Math.floor(Math.random() * 3),
                 seed: Math.random() * 100
             });
         }
         if (el.particles.length > dropCount) el.particles.length = dropCount;
 
         ctx.save();
+
+        // 1. Storm Ground Ambience Wash
+        if (variant === 'storm_downpour') {
+            ctx.fillStyle = `rgba(15, 23, 42, ${0.12 * intensity})`;
+            ctx.fillRect(0, 0, W, H);
+        } else if (isAcid) {
+            ctx.fillStyle = `rgba(20, 35, 15, ${0.08 * intensity})`;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        const windAngle = isDrizzle ? 0.08 : (isAcid ? 0.15 : 0.22);
+        const cosW = Math.cos(windAngle);
+        const sinW = Math.sin(windAngle);
+
         for (let i = 0; i < el.particles.length; i++) {
             const p = el.particles[i];
 
-            if (isHail) {
-                // Hard bouncing ice hailstones
-                p.y += 340 * p.speedMult * speed * dt;
-                p.x += 45 * speed * dt;
+            // Ground Splash State Handling
+            if (p.splashLife > 0) {
+                p.splashLife -= dt * 3.5 * speed;
+                const splashProg = 1.0 - p.splashLife;
+                const splashR = (isDrizzle ? 4 : (isAcid ? 9 : 14)) * splashProg * elScale;
+                const sAlpha = p.splashLife * 0.65 * intensity;
 
-                if (p.y > H - 10) {
-                    // Ice shatter impact
-                    ctx.strokeStyle = 'rgba(224, 242, 254, 0.85)';
-                    ctx.lineWidth = 1.5;
+                if (isAcid) {
+                    // Sizzling yellow-green acid foam spot on floor
+                    ctx.strokeStyle = `rgba(163, 230, 53, ${sAlpha})`;
+                    ctx.lineWidth = 1.2 * elScale;
                     ctx.beginPath();
-                    ctx.arc(p.x, H - 8, 5, 0, Math.PI * 2);
+                    ctx.arc(p.x, p.y, splashR, 0, Math.PI * 2);
                     ctx.stroke();
 
-                    // Tiny ice shrapnel bits
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.fillRect(p.x - 3, H - 9, 2, 2);
-                    ctx.fillRect(p.x + 3, H - 7, 2, 2);
-
-                    p.y = -10;
-                    p.x = Math.random() * W;
-                }
-
-                // Hail stone sphere
-                const hg = ctx.createRadialGradient(p.x - 1, p.y - 1, 0, p.x, p.y, p.len * 0.45);
-                hg.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
-                hg.addColorStop(0.6, 'rgba(186, 230, 253, 0.88)');
-                hg.addColorStop(1, 'rgba(56, 189, 248, 0.65)');
-                ctx.fillStyle = hg;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.len * 0.45, 0, Math.PI * 2);
-                ctx.fill();
-
-            } else if (isNeon) {
-                // Cyberpunk electric neon cyan & magenta rain
-                p.y += 280 * p.speedMult * speed * dt;
-                p.x += 55 * speed * dt;
-
-                const isCyan = p.colorIdx === 0;
-                const neonColor = isCyan ? 'rgba(34, 211, 238, 0.95)' : 'rgba(244, 63, 94, 0.95)';
-                const glowColor = isCyan ? 'rgba(6, 182, 212, 0.45)' : 'rgba(225, 29, 72, 0.45)';
-
-                if (p.y > H - 8) {
-                    // Expanding neon splash ripples
-                    ctx.strokeStyle = neonColor;
-                    ctx.lineWidth = 1.8;
+                    // Acrid vapor smoke wisp rising
+                    ctx.fillStyle = `rgba(190, 242, 100, ${sAlpha * 0.4})`;
                     ctx.beginPath();
-                    ctx.ellipse(p.x, H - 6, 9, 3.5, 0, 0, Math.PI * 2);
-                    ctx.stroke();
-
-                    p.y = -p.len;
-                    p.x = Math.random() * W;
-                }
-
-                ctx.strokeStyle = neonColor;
-                ctx.lineWidth = 1.8;
-                ctx.beginPath();
-                ctx.moveTo(p.x, p.y);
-                ctx.lineTo(p.x + 4, p.y + p.len * intensity);
-                ctx.stroke();
-
-            } else if (isBlood) {
-                // Viscous dark crimson blood rain
-                p.y += 210 * p.speedMult * speed * dt;
-                p.x += 40 * speed * dt;
-
-                if (p.y > H - 8) {
-                    // Blood splatter puddle
-                    ctx.fillStyle = 'rgba(153, 27, 27, 0.75)';
-                    ctx.beginPath();
-                    ctx.ellipse(p.x, H - 6, 8, 3, 0, 0, Math.PI * 2);
+                    ctx.arc(p.x, p.y - splashProg * 8 * elScale, splashR * 0.7, 0, Math.PI * 2);
                     ctx.fill();
-
-                    p.y = -p.len;
-                    p.x = Math.random() * W;
-                }
-
-                ctx.strokeStyle = 'rgba(185, 28, 28, 0.92)';
-                ctx.lineWidth = 2.0;
-                ctx.beginPath();
-                ctx.moveTo(p.x, p.y);
-                ctx.lineTo(p.x + 3, p.y + p.len * intensity);
-                ctx.stroke();
-
-            } else if (isSeaSpume) {
-                // Coastal ocean salt brine spume blowing horizontally
-                p.y += 120 * p.speedMult * speed * dt;
-                p.x += 160 * speed * dt; // Heavy horizontal gale slant
-
-                if (p.x > W) {
-                    p.x = -10;
-                    p.y = Math.random() * H;
-                }
-                if (p.y > H) p.y = 0;
-
-                ctx.fillStyle = 'rgba(240, 253, 250, 0.85)';
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 2.0 + Math.sin(time * 3 + p.seed) * 1.0, 0, Math.PI * 2);
-                ctx.fill();
-
-            } else {
-                // Natural Rain (Downpour / Drizzle / Noir City Rain)
-                p.y += (isDrizzle ? 180 : 250) * p.speedMult * speed * dt;
-                p.x += (isDrizzle ? 35 : 65) * speed * dt;
-
-                if (p.y > H) {
-                    p.y = 0;
-                    p.x = Math.random() * W;
-
-                    // Ground Splash Ring
-                    ctx.strokeStyle = 'rgba(200, 230, 255, 0.45)';
-                    ctx.lineWidth = 1.2;
+                } else if (isNeon) {
+                    // Luminescent neon splash burst
+                    const nCol = p.colorIdx === 0 ? '6, 182, 212' : (p.colorIdx === 1 ? '217, 70, 239' : '245, 158, 11');
+                    ctx.strokeStyle = `rgba(${nCol}, ${sAlpha})`;
+                    ctx.lineWidth = 1.4 * elScale;
                     ctx.beginPath();
-                    ctx.ellipse(p.x, H - 4, 6, 2.2, 0, 0, Math.PI * 2);
+                    ctx.ellipse(p.x, p.y, splashR * 1.2, splashR * 0.6, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    // Water drop ripple ring on ground
+                    ctx.strokeStyle = isDrizzle ? `rgba(186, 230, 253, ${sAlpha * 0.5})` : `rgba(224, 242, 254, ${sAlpha})`;
+                    ctx.lineWidth = 1.0 * elScale;
+                    ctx.beginPath();
+                    ctx.ellipse(p.x, p.y, splashR, splashR * 0.5, 0, 0, Math.PI * 2);
                     ctx.stroke();
                 }
 
-                ctx.strokeStyle = isDrizzle ? 'rgba(186, 230, 253, 0.65)' : 'rgba(215, 235, 255, 0.82)';
-                ctx.lineWidth = isDrizzle ? 1.0 : 1.5;
-                ctx.beginPath();
-                ctx.moveTo(p.x, p.y);
-                ctx.lineTo(p.x + (isDrizzle ? 2.5 : 4), p.y + p.len * intensity);
-                ctx.stroke();
+                if (p.splashLife <= 0) {
+                    p.x = Math.random() * W;
+                    p.y = -20;
+                }
+                continue;
             }
+
+            // Falling Motion
+            const fallSpd = (isDrizzle ? 240 : (isAcid ? 380 : (isNeon ? 420 : 520))) * p.speedMult * speed;
+            p.x += sinW * fallSpd * dt;
+            p.y += cosW * fallSpd * dt;
+
+            // Trigger ground splash
+            if (p.y >= H * 0.95 || (p.y > 40 && Math.random() < (isDrizzle ? 0.02 : 0.045))) {
+                p.splashLife = 1.0;
+                continue;
+            }
+            if (p.x > W + 40) p.x = -20;
+
+            // Render Rain Streak (Slanting cylinder/line)
+            const pLen = p.len * elScale;
+            const x2 = p.x - sinW * pLen;
+            const y2 = p.y - cosW * pLen;
+
+            if (isAcid) {
+                // Caustic yellow-green sizzling droplet
+                ctx.strokeStyle = `rgba(190, 242, 100, ${0.85 * intensity})`;
+                ctx.lineWidth = 1.5 * elScale;
+            } else if (isNeon) {
+                // Electric neon precipitation
+                const nCol = p.colorIdx === 0 ? '6, 182, 212' : (p.colorIdx === 1 ? '217, 70, 239' : '245, 158, 11');
+                ctx.strokeStyle = `rgba(${nCol}, ${0.88 * intensity})`;
+                ctx.lineWidth = 1.6 * elScale;
+            } else if (isDrizzle) {
+                ctx.strokeStyle = `rgba(186, 230, 253, ${0.45 * intensity})`;
+                ctx.lineWidth = 0.9 * elScale;
+            } else {
+                // Heavy storm streak
+                ctx.strokeStyle = `rgba(224, 242, 254, ${0.75 * intensity})`;
+                ctx.lineWidth = 1.4 * elScale;
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
         }
+
         ctx.restore();
     }
 
     drawRealisticLocalSnow(el, ctx, W, H, dt) {
         const time = el.stateTime;
         const cfg = el.config || {};
-        const speed = cfg.speed || 1.0;
         const intensity = cfg.intensity || 1.0;
-        const variant = cfg.variant || el.type || 'uni_flurry';
+        const speed = cfg.speed || 1.0;
+        const variant = cfg.variant || el.type || 'blizzard_drift';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
-        const isAshBlizzard = variant === 'oth_ashblizzard';
-        const isSleet = variant === 'mod_fallout_sleet';
-        const isGale = variant === 'uni_blizzard';
+        const isBlizzard = variant === 'blizzard_drift';
+        const isAsh = variant === 'ash_storm' || variant === 'volcanic_ash';
 
         if (!el.particles) el.particles = [];
-        const baseCount = isGale ? 95 : (isAshBlizzard ? 80 : 55);
-        const flakeCount = Math.min(130, Math.round(baseCount * (cfg.quantity || 1.0)));
+        const baseTarget = isBlizzard ? 110 : (isAsh ? 70 : 60);
+        const flakeCount = Math.min(180, Math.round(baseTarget * (cfg.quantity || 1.0)));
 
         while (el.particles.length < flakeCount) {
             el.particles.push({
                 x: Math.random() * W,
                 y: Math.random() * H,
-                r: isGale ? (1.5 + Math.random() * 2.5) : (2.0 + Math.random() * 2.8),
-                sway: Math.random() * Math.PI * 2,
-                speedMult: 0.6 + Math.random() * 0.6,
-                angle: Math.random() * Math.PI * 2,
-                spin: (Math.random() - 0.5) * 3
+                r: (isAsh ? (2.5 + Math.random() * 3.5) : (isBlizzard ? (1.5 + Math.random() * 2.5) : (3.0 + Math.random() * 3.5))) * elScale,
+                speedMult: 0.75 + Math.random() * 0.5,
+                driftPhase: Math.random() * Math.PI * 2,
+                rotAngle: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 4.0,
+                isEmber: isAsh && Math.random() < 0.28
             });
         }
         if (el.particles.length > flakeCount) el.particles.length = flakeCount;
 
         ctx.save();
+
+        // 1. Blizzard Ground Wind-Bust Fog
+        if (isBlizzard) {
+            ctx.fillStyle = `rgba(224, 242, 254, ${0.08 * intensity})`;
+            ctx.fillRect(0, 0, W, H);
+
+            // Sweeping low snowdrifts hugging floor
+            for (let d = 0; d < 3; d++) {
+                const dy = H * (0.3 + d * 0.3) + Math.sin(time * 2 + d) * 12;
+                const dGrad = ctx.createLinearGradient(0, dy - 25, 0, dy + 25);
+                dGrad.addColorStop(0, 'rgba(240, 249, 255, 0)');
+                dGrad.addColorStop(0.5, `rgba(240, 249, 255, ${0.14 * intensity})`);
+                dGrad.addColorStop(1, 'rgba(240, 249, 255, 0)');
+                ctx.fillStyle = dGrad;
+                ctx.fillRect(0, dy - 25, W, 50);
+            }
+        }
+
         for (let i = 0; i < el.particles.length; i++) {
-            const f = el.particles[i];
+            const p = el.particles[i];
 
-            if (isAshBlizzard) {
-                // Sinister Silent Hill dark volcanic soot & ash blizzard
-                f.y += 110 * f.speedMult * speed * dt;
-                f.x += 140 * speed * dt + Math.sin(time * 3 + f.sway) * 28 * dt;
-                f.angle += f.spin * dt;
+            if (isBlizzard) {
+                // Fierce horizontal snow squall
+                const horizSpd = 340 * p.speedMult * speed;
+                const vertSpd = 90 * p.speedMult * speed;
+                p.x += horizSpd * dt;
+                p.y += (vertSpd + Math.sin(time * 6 + p.driftPhase) * 25) * dt;
 
-                if (f.x > W) f.x = -10;
-                if (f.y > H) { f.y = 0; f.x = Math.random() * W; }
+                if (p.x > W + 30) p.x = -30;
+                if (p.y > H + 20) p.y = -20;
 
-                ctx.save();
-                ctx.translate(f.x, f.y);
-                ctx.rotate(f.angle);
-                ctx.fillStyle = i % 3 === 0 ? 'rgba(24, 24, 27, 0.92)' : 'rgba(82, 82, 91, 0.85)';
-                ctx.fillRect(-f.r, -f.r * 0.6, f.r * 2, f.r * 1.2);
-                ctx.restore();
-
-            } else if (isSleet) {
-                // Freezing urban chemical sleet
-                f.y += 240 * f.speedMult * speed * dt;
-                f.x += 75 * speed * dt;
-
-                if (f.y > H) { f.y = 0; f.x = Math.random() * W; }
-
-                ctx.strokeStyle = 'rgba(203, 213, 225, 0.78)';
-                ctx.lineWidth = 1.4;
+                // Blowing snow streak
+                ctx.strokeStyle = `rgba(240, 249, 255, ${0.85 * intensity})`;
+                ctx.lineWidth = 1.5 * elScale;
                 ctx.beginPath();
-                ctx.moveTo(f.x, f.y);
-                ctx.lineTo(f.x + 3, f.y + 7);
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x - 18 * elScale, p.y - 4 * elScale);
                 ctx.stroke();
 
-            } else if (isGale) {
-                // Blinding howling whiteout blizzard
-                f.y += 90 * f.speedMult * speed * dt;
-                f.x += 180 * speed * dt + Math.sin(time * 4 + f.sway) * 35 * dt;
+            } else if (isAsh) {
+                // Volcanic ash flakes & incandescent cinders tumbling
+                p.rotAngle += p.rotSpeed * dt;
+                const aDown = 48 * p.speedMult * speed;
+                p.y += aDown * dt;
+                p.x += Math.sin(time * 2.5 + p.driftPhase) * (28 * speed) * dt;
 
-                if (f.x > W) f.x = -15;
-                if (f.y > H) { f.y = 0; f.x = Math.random() * W; }
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                ctx.beginPath();
-                ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-                ctx.fill();
-
-            } else {
-                // Gentle crystalline 6-pointed snowflakes
-                f.y += 45 * f.speedMult * speed * dt;
-                f.x += Math.sin(time * 2 + f.sway) * 22 * dt;
-                f.angle += f.spin * 0.5 * dt;
-
-                if (f.y > H) { f.y = 0; f.x = Math.random() * W; }
+                if (p.y > H + 20) { p.y = -20; p.x = Math.random() * W; }
+                if (p.x < -20) p.x = W + 20;
+                if (p.x > W + 20) p.x = -20;
 
                 ctx.save();
-                ctx.translate(f.x, f.y);
-                ctx.rotate(f.angle);
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
-                ctx.lineWidth = 1.2;
-                // Hexagonal crystalline arms
-                for (let a = 0; a < 3; a++) {
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotAngle);
+
+                if (p.isEmber) {
+                    // Glowing molten orange cinder
+                    const embGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, p.r * 1.8);
+                    embGrad.addColorStop(0, '#ffffff');
+                    embGrad.addColorStop(0.4, '#fb923c');
+                    embGrad.addColorStop(1, 'rgba(234, 88, 12, 0)');
+                    ctx.fillStyle = embGrad;
                     ctx.beginPath();
-                    ctx.moveTo(-f.r * 1.2, 0);
-                    ctx.lineTo(f.r * 1.2, 0);
-                    ctx.stroke();
-                    ctx.rotate(Math.PI / 3);
+                    ctx.arc(0, 0, p.r * 1.8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ea580c';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.r * 0.7, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Irregular dark charcoal ash flake
+                    ctx.fillStyle = `rgba(71, 85, 105, ${0.85 * intensity})`;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, p.r, p.r * 0.6, 0.4, 0, Math.PI * 2);
+                    ctx.fill();
                 }
+                ctx.restore();
+
+            } else {
+                // Gentle Winter Flurry (6-pointed hexagonal snowflakes)
+                p.rotAngle += p.rotSpeed * dt * 0.5;
+                p.y += 32 * p.speedMult * speed * dt;
+                p.x += Math.sin(time * 1.8 + p.driftPhase) * (20 * speed) * dt;
+
+                if (p.y > H + 20) { p.y = -20; p.x = Math.random() * W; }
+                if (p.x < -20) p.x = W + 20;
+                if (p.x > W + 20) p.x = -20;
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotAngle);
+
+                // 6-Pointed Hexagonal Snowflake
+                ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * intensity})`;
+                ctx.lineWidth = 1.0 * elScale;
+                for (let arm = 0; arm < 3; arm++) {
+                    const aAng = (arm * Math.PI) / 3;
+                    ctx.beginPath();
+                    ctx.moveTo(-Math.cos(aAng) * p.r, -Math.sin(aAng) * p.r);
+                    ctx.lineTo(Math.cos(aAng) * p.r, Math.sin(aAng) * p.r);
+                    ctx.stroke();
+                }
+
                 ctx.restore();
             }
         }
+
         ctx.restore();
     }
 
@@ -13063,426 +15173,176 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 0.8;
-        const variant = cfg.variant || el.type || 'uni_mist';
-        const rough = ctx._fractalRough !== undefined ? ctx._fractalRough : (el.config.fractalRoughness !== undefined ? parseFloat(el.config.fractalRoughness) : 0.75);
-
-        const isGhost = variant === 'oth_ghostfog';
-        const isDungeon = variant === 'hist_dungeonmist';
-        const isDense = variant === 'uni_densefog';
-
-        if (!el.particles) el.particles = [];
-        const puffCount = Math.min(32, Math.round((isDense ? 24 : 16) * (cfg.quantity || 1.0)));
-
-        while (el.particles.length < puffCount) {
-            el.particles.push({
-                x: Math.random() * W,
-                y: Math.random() * H,
-                r: 45 + Math.random() * 45,
-                phase: Math.random() * Math.PI * 2,
-                driftSpeed: 0.5 + Math.random() * 0.5,
-                seed: Math.random() * 100
-            });
-        }
-        if (el.particles.length > puffCount) el.particles.length = puffCount;
+        const variant = cfg.variant || el.type || 'ground_mist';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
-        for (let i = 0; i < el.particles.length; i++) {
-            const p = el.particles[i];
-            p.x += 16 * p.driftSpeed * speed * dt;
-            if (p.x > W + p.r) p.x = -p.r;
 
-            const alpha = (Math.sin(time * 0.8 + p.phase) * 0.12 + (isDense ? 0.34 : 0.22)) * intensity;
+        const lobeCount = 14;
+        const isSwamp = variant === 'swamp_fog';
+        const isToxic = variant === 'toxic_smog';
+        const isCemetery = variant === 'cemetery_shroud';
 
-            let fogColor = '220, 230, 242';
-            if (isGhost) fogColor = '52, 211, 153'; // Eerie luminescent spectral mist
-            else if (isDungeon) fogColor = '165, 185, 175'; // Murky damp greenish-gray crypt mist
-            else if (isDense) fogColor = '210, 218, 226'; // Pea-soup river fog
+        // Palette Definition
+        let c0 = '240, 249, 255';
+        let c1 = '203, 213, 225';
+        let cEdge = '148, 163, 184';
+        if (isSwamp) {
+            c0 = '236, 252, 203';
+            c1 = '163, 230, 53';
+            cEdge = '101, 163, 13';
+        } else if (isToxic) {
+            c0 = '217, 249, 157';
+            c1 = '132, 204, 22';
+            cEdge = '77, 124, 15';
+        } else if (isCemetery) {
+            c0 = '224, 242, 254';
+            c1 = '96, 165, 250';
+            cEdge = '30, 58, 138';
+        }
 
-            const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-            grad.addColorStop(0, `rgba(${fogColor}, ${alpha})`);
-            grad.addColorStop(0.65, `rgba(${fogColor}, ${alpha * 0.55})`);
-            grad.addColorStop(1, `rgba(${fogColor}, 0)`);
+        // Swirling Volumetric Fog Pillows (Multi-layer smooth Gaussians)
+        for (let i = 0; i < lobeCount; i++) {
+            const prog = ((time * 0.08 * speed + i / lobeCount) % 1.0);
+            const lx = W * (0.1 + 0.8 * prog) + Math.sin(time * 0.4 + i * 1.7) * (W * 0.08);
+            const ly = H * (0.2 + (i % 3) * 0.3) + Math.cos(time * 0.5 + i * 2.1) * (H * 0.06);
+            const lRad = (55 + Math.sin(i * 3.1) * 20) * elScale;
+            const lAlpha = Math.sin(prog * Math.PI) * (isToxic ? 0.38 : (isCemetery ? 0.32 : 0.28)) * intensity;
 
-            ctx.fillStyle = grad;
+            const fogGrad = ctx.createRadialGradient(lx, ly, 4 * elScale, lx, ly, lRad);
+            fogGrad.addColorStop(0, `rgba(${c0}, ${lAlpha})`);
+            fogGrad.addColorStop(0.5, `rgba(${c1}, ${lAlpha * 0.6})`);
+            fogGrad.addColorStop(0.85, `rgba(${cEdge}, ${lAlpha * 0.2})`);
+            fogGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+            ctx.fillStyle = fogGrad;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.arc(lx, ly, lRad, 0, Math.PI * 2);
             ctx.fill();
+        }
 
-            // Fractal ragged mist wisps when rough > 0.05
-            if (rough > 0.05) {
-                const wAngle = time * 0.5 + p.seed;
-                const wx = p.x + Math.cos(wAngle) * p.r * 0.45 * rough;
-                const wy = p.y + Math.sin(wAngle) * p.r * 0.35 * rough;
-                const wr = p.r * (0.45 + rough * 0.25);
-                const wGrad = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
-                wGrad.addColorStop(0, `rgba(${fogColor}, ${alpha * 0.7})`);
-                wGrad.addColorStop(1, `rgba(${fogColor}, 0)`);
-                ctx.fillStyle = wGrad;
+        // Cemetery Shroud Frost Crystals / Swamp Spore Motes
+        if (isCemetery || isSwamp) {
+            const moteCount = 18;
+            for (let m = 0; m < moteCount; m++) {
+                const mx = W * ((m * 0.17 + time * 0.04 * speed) % 1.0);
+                const my = H * ((m * 0.23 + Math.sin(time * 0.8 + m) * 0.1) % 1.0);
+                const mAlpha = (Math.sin(time * 2 + m) * 0.3 + 0.7) * 0.65 * intensity;
+
+                ctx.fillStyle = isCemetery ? `rgba(186, 230, 253, ${mAlpha})` : `rgba(250, 204, 21, ${mAlpha})`;
                 ctx.beginPath();
-                ctx.arc(wx, wy, wr, 0, Math.PI * 2);
+                ctx.arc(mx, my, (isCemetery ? 1.4 : 2.0) * elScale, 0, Math.PI * 2);
                 ctx.fill();
             }
-
-            // Ghostly screaming skull / spectral silhouette subtly appearing in ghost fog
-            if (isGhost && i % 4 === 0) {
-                const sVis = Math.sin(time * 1.5 + p.seed);
-                if (sVis > 0.45) {
-                    const skullAlpha = (sVis - 0.45) * 0.75 * intensity;
-                    ctx.save();
-                    ctx.translate(p.x, p.y);
-                    ctx.fillStyle = `rgba(167, 243, 208, ${skullAlpha})`;
-                    // Ghostly skull dome
-                    ctx.beginPath();
-                    ctx.arc(0, -4, 8, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Jaw
-                    ctx.fillRect(-4, 2, 8, 5);
-                    // Hollow eye sockets
-                    ctx.fillStyle = `rgba(6, 78, 59, ${skullAlpha * 1.2})`;
-                    ctx.beginPath();
-                    ctx.arc(-3, -4, 2, 0, Math.PI * 2);
-                    ctx.arc(3, -4, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                }
-            }
         }
+
         ctx.restore();
     }
 
     drawRealisticLocalDust(el, ctx, W, H, dt) {
         const time = el.stateTime;
         const cfg = el.config || {};
-        const speed = cfg.speed || 1.2;
         const intensity = cfg.intensity || 1.0;
-        const variant = cfg.variant || el.type || 'uni_dustmotes';
+        const speed = cfg.speed || 1.0;
+        const variant = cfg.variant || el.type || 'sandstorm_eddy';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
-        if (!el.particles) el.particles = [];
-        const baseTarget = variant === 'mod_dustdevil' ? 45 : (variant === 'uni_sandstorm' ? 75 : (variant === 'mod_trash' ? 24 : 50));
-        const moteCount = Math.min(90, Math.round(baseTarget * (cfg.quantity || 1.0)));
-
-        while (el.particles.length < moteCount) {
-            el.particles.push({
-                x: Math.random() * W,
-                y: Math.random() * H,
-                r: Math.random() * 2.2 + 0.8,
-                phase: Math.random() * Math.PI * 2,
-                spin: (Math.random() - 0.5) * 3,
-                angle: Math.random() * Math.PI * 2,
-                speedMult: 0.7 + Math.random() * 0.6,
-                colorIdx: Math.floor(Math.random() * 4),
-                seed: Math.random() * 100
-            });
-        }
-        if (el.particles.length > moteCount) el.particles.length = moteCount;
+        const isSandstorm = variant === 'sandstorm_eddy';
+        const isAshFall = variant === 'ash_fall';
 
         ctx.save();
 
-        if (variant === 'uni_leaves' || variant === 'hist_leaves' || variant === 'autumn_maple') {
-            // Detailed 5-lobed autumn leaves (crimson, scarlet, amber, russet) fluttering in 3D
-            const leafColors = ['#dc2626', '#ea580c', '#f59e0b', '#b45309'];
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                m.x += (Math.cos(time * 1.5 + m.phase) * 24 + 32) * speed * dt;
-                m.y += (Math.sin(time * 1.8 + m.phase) * 18 + 14) * speed * dt;
-                m.angle += m.spin * dt;
+        // ====================================================================
+        // 1. RAGING DESERT SANDSTORM (Swirling Vortex Dust Devil & Grit Rays)
+        // ====================================================================
+        if (isSandstorm) {
+            // Desert Ochre Ambience
+            ctx.fillStyle = `rgba(180, 83, 9, ${0.12 * intensity})`;
+            ctx.fillRect(0, 0, W, H);
 
-                if (m.x > W + 15) m.x = -15;
-                if (m.y > H + 15) { m.y = -15; m.x = Math.random() * W; }
+            // Swirling Archimedean Sandstorm Vortex
+            const cx = W * 0.5 + Math.sin(time * 0.6 * speed) * (W * 0.15);
+            const cy = H * 0.5 + Math.cos(time * 0.5 * speed) * (H * 0.12);
 
-                ctx.save();
-                ctx.translate(m.x, m.y);
-                ctx.rotate(m.angle);
-                const flutter = Math.sin(time * 4 + m.phase);
-                ctx.scale(1, Math.max(0.25, Math.abs(flutter))); // 3D tumbling perspective
-
-                const lr = 7 * intensity;
-                ctx.fillStyle = leafColors[m.colorIdx % leafColors.length];
+            const spiralArms = 3;
+            for (let s = 0; s < spiralArms; s++) {
+                const sOffset = (s * Math.PI * 2) / spiralArms;
+                ctx.strokeStyle = `rgba(217, 119, 6, ${0.28 * intensity})`;
+                ctx.lineWidth = 12 * elScale;
                 ctx.beginPath();
-                // 5-point maple silhouette
-                ctx.moveTo(0, -lr * 1.2);
-                ctx.lineTo(lr * 0.45, -lr * 0.45);
-                ctx.lineTo(lr * 1.1, -lr * 0.3);
-                ctx.lineTo(lr * 0.6, lr * 0.35);
-                ctx.lineTo(lr * 0.85, lr * 1.0);
-                ctx.lineTo(0, lr * 0.65);
-                ctx.lineTo(-lr * 0.85, lr * 1.0);
-                ctx.lineTo(-lr * 0.6, lr * 0.35);
-                ctx.lineTo(-lr * 1.1, -lr * 0.3);
-                ctx.lineTo(-lr * 0.45, -lr * 0.45);
-                ctx.closePath();
-                ctx.fill();
-
-                // Leaf stem & central vein
-                ctx.strokeStyle = '#451a03';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(0, -lr * 1.2);
-                ctx.lineTo(0, lr * 1.3);
-                ctx.stroke();
-
-                ctx.restore();
-            }
-
-        } else if (variant === 'uni_petals' || variant === 'cherry_blossom') {
-            // Delicate pink & blush white sakura cherry blossom petals
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                m.x += (Math.cos(time * 1.8 + m.phase) * 20 + 26) * speed * dt;
-                m.y += (Math.sin(time * 2.1 + m.phase) * 14 + 18) * speed * dt;
-                m.angle += m.spin * 0.8 * dt;
-
-                if (m.x > W + 10) m.x = -10;
-                if (m.y > H + 10) { m.y = -10; m.x = Math.random() * W; }
-
-                ctx.save();
-                ctx.translate(m.x, m.y);
-                ctx.rotate(m.angle);
-                const flutter = Math.sin(time * 3.5 + m.phase);
-                ctx.scale(1, Math.max(0.3, Math.abs(flutter)));
-
-                const pr = 5 * intensity;
-                ctx.fillStyle = m.colorIdx % 2 === 0 ? 'rgba(251, 207, 232, 0.95)' : 'rgba(244, 114, 182, 0.90)';
-                ctx.beginPath();
-                ctx.ellipse(0, 0, pr * 1.2, pr * 0.7, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-
-        } else if (variant === 'uni_dandelion') {
-            // White feathery starburst dandelion seed down
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                m.x += (Math.cos(time * 1.2 + m.phase) * 18 + 20) * speed * dt;
-                m.y += (Math.sin(time * 1.5 + m.phase) * 12 + 8) * speed * dt;
-                m.angle += m.spin * 0.4 * dt;
-
-                if (m.x > W + 10) m.x = -10;
-                if (m.y > H + 10) { m.y = -10; m.x = Math.random() * W; }
-
-                ctx.save();
-                ctx.translate(m.x, m.y);
-                ctx.rotate(m.angle);
-
-                // Tiny seed kernel
-                ctx.fillStyle = '#78350f';
-                ctx.beginPath();
-                ctx.ellipse(0, 4, 1.2, 2.5, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Slender stalk
-                ctx.strokeStyle = 'rgba(245, 245, 244, 0.85)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(0, 4);
-                ctx.lineTo(0, -2);
-                ctx.stroke();
-
-                // Radiating white parachute filaments (pappus starburst)
-                for (let f = 0; f < 7; f++) {
-                    const fa = (f / 7) * Math.PI - Math.PI;
-                    ctx.beginPath();
-                    ctx.moveTo(0, -2);
-                    ctx.lineTo(Math.cos(fa) * 6, -2 + Math.sin(fa) * 5);
-                    ctx.stroke();
+                for (let a = 0; a < Math.PI * 4; a += 0.2) {
+                    const theta = a + time * 4 * speed + sOffset;
+                    const r = a * 18 * elScale;
+                    const x = cx + Math.cos(theta) * r;
+                    const y = cy + Math.sin(theta) * (r * 0.65);
+                    if (a === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
                 }
-                ctx.restore();
-            }
-
-        } else if (variant === 'hist_battleash') {
-            // Siege battlefield war cinders: tumbling scorched charcoal flakes with glowing orange ember cores!
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                m.x += (Math.cos(time * 2.2 + m.phase) * 32 + 42) * speed * dt;
-                m.y += (Math.sin(time * 2.8 + m.phase) * 22 - 12) * speed * dt; // Rising updrafts!
-                m.angle += m.spin * dt;
-
-                if (m.x > W + 15) m.x = -15;
-                if (m.y < -15) { m.y = H + 15; m.x = Math.random() * W; }
-
-                ctx.save();
-                ctx.translate(m.x, m.y);
-                ctx.rotate(m.angle);
-
-                // Scorched charcoal flake
-                ctx.fillStyle = '#18181b';
-                ctx.beginPath();
-                ctx.fillRect(-3, -2, 6, 4);
-
-                // Incandescent glowing ember core
-                const pulse = Math.sin(time * 6 + m.phase) * 0.5 + 0.5;
-                ctx.fillStyle = `rgba(255, ${Math.floor(80 + pulse * 120)}, 20, ${0.75 + pulse * 0.25})`;
-                ctx.beginPath();
-                ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.restore();
-            }
-
-        } else if (variant === 'mod_dustdevil') {
-            // Animated rotating 3D dust devil vortex!
-            const cx = W * 0.5;
-            const cy = H * 0.5;
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                // Spiraling vortex around center cone
-                const heightProg = (i / el.particles.length); // 0 at base, 1 at wide top
-                const coneR = (20 + heightProg * 75) * intensity;
-                const vAngle = time * (4.5 - heightProg * 1.8) * speed + m.phase;
-
-                const vx = cx + Math.cos(vAngle) * coneR + Math.sin(time * 2) * 15;
-                const vy = cy + (heightProg - 0.5) * (H * 0.75) + Math.sin(vAngle * 2) * 8;
-
-                ctx.fillStyle = `rgba(217, 185, 135, ${0.45 + (1 - heightProg) * 0.45})`;
-                ctx.beginPath();
-                ctx.arc(vx, vy, 2.2 + heightProg * 3.5, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-        } else if (variant === 'mod_trash') {
-            // Blowing city street litter: tumbling newspapers, crushed soda cans, plastic bags
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                m.x += (Math.cos(time * 1.7 + m.phase) * 28 + 48) * speed * dt;
-                m.y += (Math.sin(time * 2.2 + m.phase) * 16 + 12) * speed * dt;
-                m.angle += m.spin * 1.5 * dt;
-
-                if (m.x > W + 20) m.x = -20;
-                if (m.y > H + 20) { m.y = -20; m.x = Math.random() * W; }
-
-                ctx.save();
-                ctx.translate(m.x, m.y);
-                ctx.rotate(m.angle);
-
-                if (m.colorIdx === 0) {
-                    // Fluttering newspaper sheet
-                    ctx.fillStyle = '#f1f5f9';
-                    ctx.fillRect(-7, -5, 14, 10);
-                    ctx.fillStyle = '#64748b';
-                    ctx.fillRect(-5, -3, 10, 1.5);
-                    ctx.fillRect(-5, 0, 10, 1.5);
-                    ctx.fillRect(-5, 3, 6, 1.5);
-                } else if (m.colorIdx === 1) {
-                    // Crushed soda can
-                    ctx.fillStyle = '#ef4444';
-                    ctx.fillRect(-5, -3, 10, 6);
-                    ctx.fillStyle = '#e2e8f0';
-                    ctx.fillRect(-5, -3, 3, 6);
-                } else {
-                    // Translucent crumpled plastic bag
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-                    ctx.strokeStyle = 'rgba(203, 213, 225, 0.65)';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, 8, 5, time * 2, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
-                }
-                ctx.restore();
-            }
-
-        } else if (variant === 'sci_ash') {
-            // Radioactive fallout ash drift with glowing Cherenkov green/cyan halos
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                m.x += (Math.cos(time * 1.4 + m.phase) * 20 + 26) * speed * dt;
-                m.y += 32 * speed * dt;
-
-                if (m.x > W + 10) m.x = -10;
-                if (m.y > H + 10) { m.y = -10; m.x = Math.random() * W; }
-
-                // Eerie glowing halo
-                const pulse = Math.sin(time * 4 + m.phase) * 0.4 + 0.6;
-                const rg = ctx.createRadialGradient(m.x, m.y, 1, m.x, m.y, 6);
-                rg.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-                rg.addColorStop(0.4, `rgba(52, 211, 153, ${0.75 * pulse})`);
-                rg.addColorStop(1, 'rgba(52, 211, 153, 0)');
-                ctx.fillStyle = rg;
-                ctx.beginPath();
-                ctx.arc(m.x, m.y, 6, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-        } else if (variant === 'sci_nanites') {
-            // Scintillating cybernetic nanite swarm with dynamic vector connections!
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                m.x += (Math.cos(time * 2.8 + m.phase) * 35 + Math.sin(time * 4) * 15) * speed * dt;
-                m.y += (Math.sin(time * 2.5 + m.phase) * 30 + Math.cos(time * 3.5) * 15) * speed * dt;
-
-                if (m.x > W) m.x = 0;
-                if (m.x < 0) m.x = W;
-                if (m.y > H) m.y = 0;
-                if (m.y < 0) m.y = H;
-
-                // Microscopic glowing cyan diamond
-                ctx.fillStyle = '#22d3ee';
-                ctx.beginPath();
-                ctx.moveTo(m.x, m.y - 3);
-                ctx.lineTo(m.x + 3, m.y);
-                ctx.lineTo(m.x, m.y + 3);
-                ctx.lineTo(m.x - 3, m.y);
-                ctx.closePath();
-                ctx.fill();
-
-                // Telemetry vector line to nearest neighbour
-                if (i > 0 && i % 3 === 0) {
-                    const prev = el.particles[i - 1];
-                    const dist = Math.hypot(m.x - prev.x, m.y - prev.y);
-                    if (dist < 45) {
-                        ctx.strokeStyle = `rgba(34, 211, 238, ${(1 - dist / 45) * 0.75})`;
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(m.x, m.y);
-                        ctx.lineTo(prev.x, prev.y);
-                        ctx.stroke();
-                    }
-                }
-            }
-
-        } else if (variant === 'uni_sandstorm' || variant === 'mod_sandstorm') {
-            // Violent desert sandstorm: high-speed horizontal streaks of sand & grit
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                m.x += 240 * m.speedMult * speed * dt;
-                m.y += Math.sin(time * 3 + m.phase) * 15 * speed * dt;
-
-                if (m.x > W) { m.x = -15; m.y = Math.random() * H; }
-
-                ctx.strokeStyle = i % 2 === 0 ? 'rgba(234, 179, 8, 0.85)' : 'rgba(245, 158, 11, 0.75)';
-                ctx.lineWidth = 1.6;
-                ctx.beginPath();
-                ctx.moveTo(m.x, m.y);
-                ctx.lineTo(m.x + 14 * intensity, m.y + 2);
                 ctx.stroke();
             }
 
+            // High-speed grit streamlines cutting across map
+            ctx.strokeStyle = `rgba(251, 191, 36, ${0.65 * intensity})`;
+            ctx.lineWidth = 1.6 * elScale;
+            for (let g = 0; g < 22; g++) {
+                const gx = ((time * 420 * speed + g * 75) % (W + 200)) - 100;
+                const gy = (g * 33 + Math.sin(time * 2 + g) * 20) % H;
+                ctx.beginPath();
+                ctx.moveTo(gx, gy);
+                ctx.lineTo(gx - 32 * elScale, gy - 12 * elScale);
+                ctx.stroke();
+            }
+
+        // ====================================================================
+        // 2. POST-APOCALYPTIC ASH FALL (Silent Falling Soot & Burnt Paper Flakes)
+        // ====================================================================
+        } else if (isAshFall) {
+            ctx.fillStyle = `rgba(15, 23, 42, ${0.15 * intensity})`;
+            ctx.fillRect(0, 0, W, H);
+
+            const flakeCount = 45;
+            for (let f = 0; f < flakeCount; f++) {
+                const prog = ((time * 0.18 * speed + f / flakeCount) % 1.0);
+                const fx = (f * 47 + Math.sin(time * 1.5 + f) * 35) % W;
+                const fy = prog * (H + 40) - 20;
+                const fRot = time * 2 + f;
+
+                ctx.save();
+                ctx.translate(fx, fy);
+                ctx.rotate(fRot);
+                ctx.fillStyle = `rgba(100, 116, 139, ${0.75 * intensity})`;
+                ctx.beginPath();
+                ctx.rect(-3 * elScale, -2 * elScale, 6 * elScale, 4 * elScale);
+                ctx.fill();
+                ctx.restore();
+            }
+
+        // ====================================================================
+        // 3. WARM AMBIENT DUST MOTES (Serene Sunlit Golden Motes Floating in Air)
+        // ====================================================================
         } else {
-            // Floating Sunlit Dust Motes & Volcanic Ash Fall
-            const isAsh = variant === 'ash_fall' || variant === 'uni_ashfall';
-            ctx.fillStyle = isAsh ? 'rgba(161, 161, 170, 0.85)' : 'rgba(254, 240, 138, 0.85)';
+            const moteCount = 38;
+            for (let m = 0; m < moteCount; m++) {
+                const mx = (m * 53 + Math.sin(time * 0.8 + m * 2.3) * 25) % W;
+                const my = (m * 41 + Math.cos(time * 0.7 + m * 1.9) * 20) % H;
+                const mR = (1.8 + Math.sin(m * 4.7) * 0.8) * elScale;
+                const mTwinkle = Math.sin(time * 2.5 + m) * 0.35 + 0.65;
 
-            for (let i = 0; i < el.particles.length; i++) {
-                const m = el.particles[i];
-                m.x += (Math.cos(time * 1.5 + m.phase) * 20 + 24) * speed * dt;
-                m.y += (Math.sin(time * 1.8 + m.phase) * 14 + (isAsh ? 22 : 6)) * speed * dt;
-
-                if (m.x > W) m.x = 0;
-                if (m.y > H) m.y = 0;
-                if (m.y < 0) m.y = H;
-
+                // Luminous warm golden aura
+                const motGrad = ctx.createRadialGradient(mx, my, 0.5, mx, my, mR * 3.0);
+                motGrad.addColorStop(0, `rgba(254, 240, 138, ${0.95 * mTwinkle * intensity})`);
+                motGrad.addColorStop(0.4, `rgba(250, 204, 21, ${0.5 * mTwinkle * intensity})`);
+                motGrad.addColorStop(1, 'rgba(234, 179, 8, 0)');
+                ctx.fillStyle = motGrad;
                 ctx.beginPath();
-                ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+                ctx.arc(mx, my, mR * 3.0, 0, Math.PI * 2);
                 ctx.fill();
 
-                if (!isAsh) {
-                    // Sunlit luminous halo
-                    ctx.fillStyle = 'rgba(254, 240, 138, 0.25)';
-                    ctx.beginPath();
-                    ctx.arc(m.x, m.y, m.r * 2.4, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = 'rgba(254, 240, 138, 0.85)';
-                }
+                // Bright center speck
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(mx, my, mR * 0.7, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 
@@ -13494,33 +15354,130 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 1.0;
+        const variant = cfg.variant || el.type || 'astral_aurora';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
-
         const cx = W * 0.5;
         const cy = H * 0.5;
-        const radius = Math.min(W, H) * 0.45;
+        const minDim = Math.min(W, H);
 
-        // Swirling Astral Aurora Ribbon
-        const ribbons = 4;
-        for (let r = 0; r < ribbons; r++) {
-            const rPhase = time * 1.6 * speed + (r * Math.PI) / ribbons;
-            const grad = ctx.createLinearGradient(0, 0, W, H);
-            grad.addColorStop(0, 'rgba(0, 255, 200, 0.4)');
-            grad.addColorStop(0.5, 'rgba(168, 85, 247, 0.45)');
-            grad.addColorStop(1, 'rgba(59, 130, 246, 0.4)');
+        // ====================================================================
+        // 1. SWIRLING ASTRAL AURORA (Celestial Ribbon Curtains & Constellations)
+        // ====================================================================
+        if (variant === 'astral_aurora') {
+            const ribbons = 5;
+            for (let r = 0; r < ribbons; r++) {
+                const rPhase = time * 1.5 * speed + (r * Math.PI) / ribbons;
+                const rGrad = ctx.createLinearGradient(0, 0, W, H);
+                rGrad.addColorStop(0, `rgba(6, 182, 212, ${0.45 * intensity})`);
+                rGrad.addColorStop(0.5, `rgba(168, 85, 247, ${0.5 * intensity})`);
+                rGrad.addColorStop(1, `rgba(236, 72, 153, ${0.45 * intensity})`);
 
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 14 + r * 4;
-            ctx.beginPath();
-            for (let a = 0; a <= Math.PI * 2; a += 0.2) {
-                const waveR = radius * (0.65 + Math.sin(a * 3 + rPhase) * 0.22);
-                const x = cx + Math.cos(a) * waveR;
-                const y = cy + Math.sin(a) * waveR;
-                if (a === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+                ctx.strokeStyle = rGrad;
+                ctx.lineWidth = (16 + r * 5) * elScale;
+                ctx.beginPath();
+                for (let a = 0; a <= Math.PI * 2; a += 0.15) {
+                    const waveR = minDim * 0.42 * (0.65 + Math.sin(a * 3 + rPhase) * 0.24);
+                    const x = cx + Math.cos(a) * waveR;
+                    const y = cy + Math.sin(a) * (waveR * 0.75);
+                    if (a === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
             }
-            ctx.closePath();
+
+            // Glittering stellar constellation motes
+            for (let s = 0; s < 18; s++) {
+                const sa = (s * Math.PI * 2) / 18 + time * 0.2;
+                const sr = minDim * 0.35 * (0.4 + (s % 3) * 0.28);
+                const sx = cx + Math.cos(sa) * sr;
+                const sy = cy + Math.sin(sa) * sr;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(sx, sy, (1.2 + (s % 2)) * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        // ====================================================================
+        // 2. RELATIVISTIC WARP STARS (Hyper-Drive Radial Star Streaks)
+        // ====================================================================
+        } else if (variant === 'warp_stars') {
+            // Central Blue Doppler Shift Hotspot
+            const coreGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, minDim * 0.35);
+            coreGrad.addColorStop(0, `rgba(255, 255, 255, ${0.95 * intensity})`);
+            coreGrad.addColorStop(0.25, `rgba(56, 189, 248, ${0.75 * intensity})`);
+            coreGrad.addColorStop(0.65, `rgba(3, 105, 161, ${0.25 * intensity})`);
+            coreGrad.addColorStop(1, 'rgba(2, 6, 23, 0)');
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, minDim * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Radial Star Streaks shooting outwards from center
+            const starCount = 48;
+            for (let s = 0; s < starCount; s++) {
+                const ang = (s * Math.PI * 2) / starCount + ((s % 3) * 0.1);
+                const prog = ((time * 2.2 * speed + s / starCount) % 1.0);
+                const rInner = Math.pow(prog, 2.5) * (minDim * 0.55);
+                const rOuter = Math.pow(Math.min(1.0, prog + 0.18), 2.5) * (minDim * 0.55);
+
+                const x1 = cx + Math.cos(ang) * rInner;
+                const y1 = cy + Math.sin(ang) * rInner;
+                const x2 = cx + Math.cos(ang) * rOuter;
+                const y2 = cy + Math.sin(ang) * rOuter;
+
+                ctx.strokeStyle = `rgba(224, 242, 254, ${prog * 0.9 * intensity})`;
+                ctx.lineWidth = (1.0 + prog * 2.5) * elScale;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+
+        // ====================================================================
+        // 3. GRAVITATIONAL VOID RIFT (Event Horizon Singularity & Accretion Disc)
+        // ====================================================================
+        } else {
+            // Inward-Curving Relativistic Accretion Ring
+            const ringR = minDim * 0.42;
+            const accGrad = ctx.createRadialGradient(cx, cy, ringR * 0.3, cx, cy, ringR);
+            accGrad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+            accGrad.addColorStop(0.4, `rgba(147, 51, 234, ${0.85 * intensity})`);
+            accGrad.addColorStop(0.75, `rgba(245, 158, 11, ${0.65 * intensity})`);
+            accGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = accGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inward-Spiraling Accretion Motes
+            const moteCount = 28;
+            for (let m = 0; m < moteCount; m++) {
+                const mProg = 1.0 - ((time * 0.8 * speed + m / moteCount) % 1.0); // spirals inward
+                const mAng = mProg * Math.PI * 6 + m * 1.5;
+                const mDist = ringR * Math.pow(mProg, 1.4);
+                const mx = cx + Math.cos(mAng) * mDist;
+                const my = cy + Math.sin(mAng) * (mDist * 0.7);
+
+                ctx.fillStyle = `rgba(251, 191, 36, ${mProg * 0.9 * intensity})`;
+                ctx.beginPath();
+                ctx.arc(mx, my, (1.2 + mProg * 2.2) * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Central Pitch-Black Event Horizon Void
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(cx, cy, ringR * 0.32, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Event Horizon Violet Photon Ring
+            ctx.strokeStyle = `rgba(216, 70, 239, ${0.95 * intensity})`;
+            ctx.lineWidth = 2.4 * elScale;
+            ctx.beginPath();
+            ctx.arc(cx, cy, ringR * 0.32, 0, Math.PI * 2);
             ctx.stroke();
         }
 
@@ -13528,90 +15485,108 @@ class LivingElementsEngine {
     }
 
 
-    // ========================================================================
-    // 100 ANIMATED FEATURES: CATALOG & SPECIALIZED DRAWING ENGINES
-    // ========================================================================
-
     drawRealisticTentacles(el, ctx, W, H, dt) {
         const time = el.stateTime;
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 1.0;
-        const variant = cfg.variant || 'void_purple';
+        const variant = cfg.variant || el.type || 'abyssal_purple';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
         const cx = W * 0.5;
         const cy = H * 0.5;
+        const minDim = Math.min(W, H);
 
         ctx.save();
 
-        // 1. Abyssal / Root / Flesh Pit Hole
-        const holeR = Math.min(W, H) * 0.22;
-        const holeGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, holeR);
-        if (variant === 'slimy_green') {
-            holeGrad.addColorStop(0, 'rgba(12, 24, 8, 0.98)');
-            holeGrad.addColorStop(0.7, 'rgba(28, 52, 18, 0.92)');
-            holeGrad.addColorStop(1, 'rgba(45, 85, 25, 0.0)');
-        } else if (variant === 'crimson_blood') {
-            holeGrad.addColorStop(0, 'rgba(35, 4, 8, 0.98)');
-            holeGrad.addColorStop(0.7, 'rgba(95, 12, 22, 0.94)');
-            holeGrad.addColorStop(1, 'rgba(145, 18, 30, 0.0)');
+        const isAcid = variant === 'slimy_green';
+        const isBlood = variant === 'crimson_blood';
+
+        // 1. Central Abyssal Portal / Pit Crater
+        const pitR = minDim * 0.28 * elScale;
+        const pitGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, pitR);
+        if (isAcid) {
+            pitGrad.addColorStop(0, '#022c22');
+            pitGrad.addColorStop(0.65, '#064e3b');
+            pitGrad.addColorStop(1, 'rgba(6, 78, 59, 0)');
+        } else if (isBlood) {
+            pitGrad.addColorStop(0, '#450a0a');
+            pitGrad.addColorStop(0.65, '#7f1d1d');
+            pitGrad.addColorStop(1, 'rgba(127, 29, 29, 0)');
         } else {
-            holeGrad.addColorStop(0, 'rgba(5, 0, 10, 0.98)');
-            holeGrad.addColorStop(0.7, 'rgba(25, 5, 38, 0.95)');
-            holeGrad.addColorStop(1, 'rgba(68, 12, 95, 0.0)');
+            pitGrad.addColorStop(0, '#090514');
+            pitGrad.addColorStop(0.65, '#2e1065');
+            pitGrad.addColorStop(1, 'rgba(46, 16, 101, 0)');
         }
-        ctx.fillStyle = holeGrad;
+        ctx.fillStyle = pitGrad;
         ctx.beginPath();
-        ctx.arc(cx, cy, holeR, 0, Math.PI * 2);
+        ctx.arc(cx, cy, pitR, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. 6 Writhing Tentacles / Briar Vines / Sinew Tendrils
-        const tentacleCount = 6;
-        for (let t = 0; t < tentacleCount; t++) {
-            const baseAngle = (t / tentacleCount) * Math.PI * 2 + time * 0.15;
-            const segments = 10;
-            const segLen = (Math.min(W, H) * 0.38) / segments;
+        // 2. Writhing Emergent Tentacles in 90-deg Top-Down Overhead View
+        const armCount = isBlood ? 7 : 5;
+        for (let a = 0; a < armCount; a++) {
+            const baseAng = (a * Math.PI * 2) / armCount;
+            const wPhase = time * 2.2 * speed + a * 1.6;
+            const armLen = minDim * (0.35 + Math.sin(wPhase * 0.7) * 0.12) * elScale;
 
-            let currX = cx + Math.cos(baseAngle) * (holeR * 0.5);
-            let currY = cy + Math.sin(baseAngle) * (holeR * 0.5);
+            // Tentacle Tip Position
+            const curlAng = baseAng + Math.sin(wPhase) * 0.85;
+            const midAng = baseAng + Math.cos(wPhase * 1.2) * 0.5;
 
-            const points = [{ x: currX, y: currY, w: 14 }];
+            const midR = armLen * 0.55;
+            const mx = cx + Math.cos(midAng) * midR;
+            const my = cy + Math.sin(midAng) * (midR * 0.85);
 
-            for (let s = 1; s <= segments; s++) {
-                const sAngle = baseAngle + Math.sin(time * 2.2 * speed + s * 0.6 + t) * 0.45 * intensity;
-                currX += Math.cos(sAngle) * segLen;
-                currY += Math.sin(sAngle) * segLen;
-                const width = Math.max(2, 14 * (1 - s / segments));
-                points.push({ x: currX, y: currY, w: width });
+            const tx = cx + Math.cos(curlAng) * armLen;
+            const ty = cy + Math.sin(curlAng) * (armLen * 0.85);
+
+            // Ground Cast Shadow
+            ctx.strokeStyle = 'rgba(2, 6, 23, 0.45)';
+            ctx.lineWidth = (isBlood ? 7 : 12) * elScale;
+            ctx.beginPath();
+            ctx.moveTo(cx + 6 * elScale, cy + 8 * elScale);
+            ctx.quadraticCurveTo(mx + 6 * elScale, my + 8 * elScale, tx + 6 * elScale, ty + 8 * elScale);
+            ctx.stroke();
+
+            // Main Tentacle Body
+            if (isAcid) {
+                ctx.strokeStyle = `rgba(34, 197, 94, ${0.92 * intensity})`;
+            } else if (isBlood) {
+                ctx.strokeStyle = `rgba(220, 38, 38, ${0.95 * intensity})`;
+            } else {
+                ctx.strokeStyle = `rgba(147, 51, 234, ${0.95 * intensity})`;
             }
-
-            // Draw Body
+            ctx.lineWidth = (isBlood ? 6 : 10) * elScale;
             ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            for (let p = 1; p < points.length; p++) {
-                ctx.beginPath();
-                if (variant === 'slimy_green') {
-                    ctx.strokeStyle = `rgba(${35 + p * 4}, ${95 + p * 8}, ${25 + p * 3}, 0.94)`;
-                } else if (variant === 'crimson_blood') {
-                    ctx.strokeStyle = `rgba(${145 + p * 8}, ${18 + p * 3}, ${32 + p * 4}, 0.94)`;
-                } else {
-                    ctx.strokeStyle = `rgba(${120 + p * 8}, 28, ${160 + p * 8}, 0.92)`;
-                }
-                ctx.lineWidth = points[p].w * intensity;
-                ctx.moveTo(points[p - 1].x, points[p - 1].y);
-                ctx.lineTo(points[p].x, points[p].y);
-                ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.quadraticCurveTo(mx, my, tx, ty);
+            ctx.stroke();
 
-                // Suckers / Thorns / Nodes along inner curve
-                if (p % 2 === 0 && points[p].w > 4) {
-                    if (variant === 'slimy_green') {
-                        ctx.fillStyle = 'rgba(185, 220, 130, 0.9)';
-                    } else if (variant === 'crimson_blood') {
-                        ctx.fillStyle = 'rgba(255, 140, 150, 0.88)';
-                    } else {
-                        ctx.fillStyle = 'rgba(230, 180, 255, 0.85)';
-                    }
+            // Dorsal Highlight Spine / Texture
+            if (isAcid) {
+                ctx.strokeStyle = '#bbf7d0';
+            } else if (isBlood) {
+                ctx.strokeStyle = '#fca5a5';
+            } else {
+                ctx.strokeStyle = '#e9d5ff';
+            }
+            ctx.lineWidth = (isBlood ? 1.5 : 2.5) * elScale;
+            ctx.beginPath();
+            ctx.moveTo(cx + (mx - cx) * 0.2, cy + (my - cy) * 0.2);
+            ctx.quadraticCurveTo(mx, my, tx, ty);
+            ctx.stroke();
+
+            // Sucker Discs along the tentacle
+            if (!isBlood) {
+                const suckers = 4;
+                ctx.fillStyle = isAcid ? '#86efac' : '#d8b4fe';
+                for (let s = 1; s <= suckers; s++) {
+                    const st = s / (suckers + 1);
+                    const sx = (1 - st) * (1 - st) * cx + 2 * (1 - st) * st * mx + st * st * tx;
+                    const sy = (1 - st) * (1 - st) * cy + 2 * (1 - st) * st * my + st * st * ty;
                     ctx.beginPath();
-                    ctx.arc(points[p].x + 3, points[p].y + 3, points[p].w * 0.25, 0, Math.PI * 2);
+                    ctx.arc(sx, sy, 2.2 * elScale, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
@@ -13625,86 +15600,85 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 1.0;
-        const variant = cfg.variant || 'clear_water';
+        const variant = cfg.variant || el.type || 'crystal_clear';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
         const cx = W * 0.5;
         const cy = H * 0.5;
-        const radius = Math.min(W, H) * 0.42;
+        const radius = Math.min(W, H) * 0.42 * elScale;
 
         ctx.save();
 
-        // 1. Stone / Copper / Obsidian Basin Outer Rim
-        ctx.fillStyle = variant === 'blood_fount' ? 'rgba(45, 20, 24, 0.96)' : 'rgba(75, 85, 95, 0.95)';
+        const isBlood = variant === 'blood_fount';
+        const isAlch = variant === 'alchemical_glow';
+
+        // 1. Granite / Obsidian / Brass Outer Basin Rim
+        ctx.fillStyle = isBlood ? '#1c1917' : (isAlch ? '#1e293b' : '#475569');
+        ctx.strokeStyle = isBlood ? '#7f1d1d' : (isAlch ? '#059669' : '#94a3b8');
+        ctx.lineWidth = 4 * elScale;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fill();
+        ctx.stroke();
 
-        ctx.fillStyle = variant === 'blood_fount' ? 'rgba(70, 28, 32, 0.95)' : 'rgba(100, 115, 130, 0.95)';
+        // Basin Inner Shadow
+        ctx.fillStyle = '#0f172a';
         ctx.beginPath();
         ctx.arc(cx, cy, radius * 0.92, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. Basin Liquid Pool
-        const poolGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.88);
-        if (variant === 'blood_fount') {
-            poolGrad.addColorStop(0, 'rgba(220, 20, 40, 0.92)');
-            poolGrad.addColorStop(0.7, 'rgba(155, 10, 25, 0.95)');
-            poolGrad.addColorStop(1, 'rgba(90, 5, 15, 0.98)');
-        } else if (variant === 'alchemical_glow') {
-            poolGrad.addColorStop(0, 'rgba(74, 222, 128, 0.90)');
-            poolGrad.addColorStop(0.7, 'rgba(22, 163, 74, 0.94)');
-            poolGrad.addColorStop(1, 'rgba(20, 83, 45, 0.96)');
+        // 2. Liquid Pool Surface
+        const poolGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, radius * 0.88);
+        if (isBlood) {
+            poolGrad.addColorStop(0, '#dc2626');
+            poolGrad.addColorStop(0.65, '#991b1b');
+            poolGrad.addColorStop(1, '#450a0a');
+        } else if (isAlch) {
+            poolGrad.addColorStop(0, '#34d399');
+            poolGrad.addColorStop(0.65, '#059669');
+            poolGrad.addColorStop(1, '#064e3b');
         } else {
-            poolGrad.addColorStop(0, 'rgba(14, 165, 233, 0.88)');
-            poolGrad.addColorStop(0.7, 'rgba(2, 132, 199, 0.92)');
-            poolGrad.addColorStop(1, 'rgba(3, 105, 161, 0.95)');
+            poolGrad.addColorStop(0, '#38bdf8');
+            poolGrad.addColorStop(0.65, '#0284c7');
+            poolGrad.addColorStop(1, '#0c4a6e');
         }
         ctx.fillStyle = poolGrad;
         ctx.beginPath();
         ctx.arc(cx, cy, radius * 0.88, 0, Math.PI * 2);
         ctx.fill();
 
-        // 3. Concentric Expanding Liquid Ripples
-        const rippleCount = 4;
-        ctx.lineWidth = 1.4;
-        for (let r = 0; r < rippleCount; r++) {
-            const ripR = ((time * 30 * speed + r * (radius * 0.2)) % (radius * 0.8));
-            const ripAlpha = (1 - ripR / (radius * 0.8)) * 0.55 * intensity;
-            if (variant === 'blood_fount') {
-                ctx.strokeStyle = `rgba(255, 130, 140, ${ripAlpha})`;
-            } else if (variant === 'alchemical_glow') {
-                ctx.strokeStyle = `rgba(187, 247, 208, ${ripAlpha})`;
-            } else {
-                ctx.strokeStyle = `rgba(224, 242, 254, ${ripAlpha})`;
-            }
+        // 3. Expanding Concentric Ripple Rings
+        const ripCount = 4;
+        ctx.lineWidth = 1.4 * elScale;
+        for (let r = 0; r < ripCount; r++) {
+            const ripR = ((time * 35 * speed + r * (radius * 0.22)) % (radius * 0.85));
+            const ripAlpha = (1 - ripR / (radius * 0.85)) * 0.6 * intensity;
+            ctx.strokeStyle = isBlood ? `rgba(254, 202, 202, ${ripAlpha})` : (isAlch ? `rgba(167, 243, 208, ${ripAlpha})` : `rgba(224, 242, 254, ${ripAlpha})`);
             ctx.beginPath();
             ctx.arc(cx, cy, ripR, 0, Math.PI * 2);
             ctx.stroke();
         }
 
-        // 4. Central Ornate Pedestal
-        ctx.fillStyle = variant === 'blood_fount' ? 'rgba(35, 12, 16, 0.98)' : 'rgba(55, 65, 75, 0.98)';
+        // 4. Central Carved Ornate Font Spout / Pedestal
+        ctx.fillStyle = isBlood ? '#292524' : (isAlch ? '#0f172a' : '#334155');
+        ctx.strokeStyle = isBlood ? '#991b1b' : (isAlch ? '#10b981' : '#64748b');
+        ctx.lineWidth = 2 * elScale;
         ctx.beginPath();
-        ctx.arc(cx, cy, radius * 0.24, 0, Math.PI * 2);
+        ctx.arc(cx, cy, radius * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // 5. Active Upward Water Spurt & Splashing Droplets
+        ctx.fillStyle = isBlood ? '#fca5a5' : (isAlch ? '#6ee7b7' : '#ffffff');
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.1, 0, Math.PI * 2);
         ctx.fill();
 
-        // 5. Upward Jet & Splashing Droplets
-        if (variant === 'blood_fount') {
-            ctx.fillStyle = 'rgba(255, 90, 105, 0.92)';
-        } else if (variant === 'alchemical_glow') {
-            ctx.fillStyle = 'rgba(220, 255, 230, 0.92)';
-        } else {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-        }
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius * 0.12, 0, Math.PI * 2);
-        ctx.fill();
-
-        const dropCount = 14;
+        const dropCount = 10;
         for (let d = 0; d < dropCount; d++) {
-            const dAng = (d / dropCount) * Math.PI * 2 + time * 0.8;
-            const dDist = radius * (0.28 + 0.35 * Math.sin(time * 3 * speed + d * 1.5));
+            const dAng = (d * Math.PI * 2) / dropCount + time * 3;
+            const dDist = radius * (0.28 + 0.15 * Math.sin(time * 6 + d));
             ctx.beginPath();
-            ctx.arc(cx + Math.cos(dAng) * dDist, cy + Math.sin(dAng) * dDist, 2.2, 0, Math.PI * 2);
+            ctx.arc(cx + Math.cos(dAng) * dDist, cy + Math.sin(dAng) * dDist, 1.8 * elScale, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -13715,73 +15689,99 @@ class LivingElementsEngine {
         const time = el.stateTime;
         const cfg = el.config || {};
         const speed = cfg.speed || 1.0;
+        const variant = cfg.variant || el.type || 'metal_duct';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
         const cx = W * 0.5;
         const cy = H * 0.5;
-        const radius = Math.min(W, H) * 0.42;
+        const radius = Math.min(W, H) * 0.42 * elScale;
 
         ctx.save();
 
-        // 1. Metal Duct Housing
-        ctx.fillStyle = 'rgba(35, 40, 48, 0.95)';
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.fill();
+        const isHazard = variant === 'warning_hazard';
 
-        ctx.strokeStyle = 'rgba(100, 110, 125, 0.95)';
-        ctx.lineWidth = 4;
-        ctx.stroke();
+        // 1. Square Hazard Flange Frame vs Round Metal Duct Housing
+        if (isHazard) {
+            // Industrial Square Steel Flange with Yellow/Black Chevrons
+            const boxHalf = radius * 1.05;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(cx - boxHalf, cy - boxHalf, boxHalf * 2, boxHalf * 2);
 
-        // 2. Interior Shadow
-        ctx.fillStyle = 'rgba(15, 18, 22, 0.95)';
+            // Diagonal Hazard Stripes along border
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(cx - boxHalf, cy - boxHalf, boxHalf * 2, boxHalf * 2);
+            ctx.arc(cx, cy, radius * 0.95, 0, Math.PI * 2, true); // Donut cutout
+            ctx.clip();
+
+            const stripeW = 14 * elScale;
+            for (let s = -boxHalf * 2; s < boxHalf * 2; s += stripeW * 2) {
+                ctx.fillStyle = '#eab308';
+                ctx.beginPath();
+                ctx.moveTo(cx - boxHalf + s, cy - boxHalf);
+                ctx.lineTo(cx - boxHalf + s + stripeW, cy - boxHalf);
+                ctx.lineTo(cx - boxHalf + s + stripeW + boxHalf * 2, cy + boxHalf);
+                ctx.lineTo(cx - boxHalf + s + boxHalf * 2, cy + boxHalf);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+        } else {
+            // Circular Brushed Duct Frame
+            ctx.fillStyle = '#334155';
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 4 * elScale;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // 2. Interior Duct Void Shadow
+        ctx.fillStyle = '#090d16';
         ctx.beginPath();
         ctx.arc(cx, cy, radius * 0.88, 0, Math.PI * 2);
         ctx.fill();
 
-        // 3. Four Rotating Aerodynamic Fan Blades
-        const bladeAngle = time * 18 * speed;
-        for (let b = 0; b < 4; b++) {
-            const ang = bladeAngle + (b * Math.PI) / 2;
+        // 3. Rotating Turbine Aerofoil Blades
+        const bladeAngle = time * 22 * speed;
+        const bladeCount = isHazard ? 6 : 4;
+        for (let b = 0; b < bladeCount; b++) {
+            const ang = bladeAngle + (b * Math.PI * 2) / bladeCount;
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(ang);
 
-            // Blade Shadow
-            ctx.fillStyle = 'rgba(5, 5, 8, 0.45)';
+            // Metal Blade
+            ctx.fillStyle = isHazard ? '#475569' : '#94a3b8';
             ctx.beginPath();
-            ctx.ellipse(radius * 0.45 + 4, 4, radius * 0.42, radius * 0.18, 0.25, 0, Math.PI * 2);
+            ctx.ellipse(radius * 0.45, 0, radius * 0.42, radius * (isHazard ? 0.12 : 0.18), 0.25, 0, Math.PI * 2);
             ctx.fill();
 
-            // Metal Blade
-            const bladeGrad = ctx.createLinearGradient(0, -radius * 0.15, radius * 0.85, radius * 0.15);
-            bladeGrad.addColorStop(0, 'rgba(160, 175, 190, 0.95)');
-            bladeGrad.addColorStop(0.5, 'rgba(215, 225, 235, 0.98)');
-            bladeGrad.addColorStop(1, 'rgba(110, 125, 140, 0.92)');
-            ctx.fillStyle = bladeGrad;
-            ctx.beginPath();
-            ctx.ellipse(radius * 0.45, 0, radius * 0.42, radius * 0.18, 0.25, 0, Math.PI * 2);
-            ctx.fill();
+            // Blade Edge Specular Highlight
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1.0 * elScale;
+            ctx.stroke();
 
             ctx.restore();
         }
 
-        // 4. Central Hub & Motor Cap
-        ctx.fillStyle = 'rgba(65, 75, 85, 0.98)';
+        // 4. Heavy Steel Center Hub
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2 * elScale;
         ctx.beginPath();
         ctx.arc(cx, cy, radius * 0.22, 0, Math.PI * 2);
         ctx.fill();
-
-        ctx.strokeStyle = 'rgba(200, 210, 225, 0.85)';
-        ctx.lineWidth = 2;
         ctx.stroke();
 
-        // 5. Protective Steel Wire Grille
-        ctx.strokeStyle = 'rgba(140, 150, 165, 0.55)';
-        ctx.lineWidth = 1.2;
+        // 5. Protective Wire Grill
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+        ctx.lineWidth = 1.2 * elScale;
         for (let g = 0; g < 6; g++) {
             const gAng = (g / 6) * Math.PI;
             ctx.beginPath();
-            ctx.moveTo(cx + Math.cos(gAng) * radius, cy + Math.sin(gAng) * radius);
-            ctx.lineTo(cx - Math.cos(gAng) * radius, cy - Math.sin(gAng) * radius);
+            ctx.moveTo(cx + Math.cos(gAng) * (radius * 0.88), cy + Math.sin(gAng) * (radius * 0.88));
+            ctx.lineTo(cx - Math.cos(gAng) * (radius * 0.88), cy - Math.sin(gAng) * (radius * 0.88));
             ctx.stroke();
         }
 
@@ -13793,90 +15793,108 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 1.0;
-        const variant = cfg.variant || 'arcane_violet';
+        const variant = cfg.variant || el.type || 'amethyst_gem';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
         const cx = W * 0.5;
         const cy = H * 0.5;
 
         ctx.save();
 
-        // Vertical bobbing
-        const bob = Math.sin(time * 2.2 * speed) * 8;
+        const isFel = variant === 'emerald_fel';
+        const isPlasma = variant === 'plasma_shard';
 
-        let auraTop = '192, 132, 252';
-        let auraMid = '147, 51, 234';
-        let auraBot = '107, 33, 168';
-        let crysLight = '233, 213, 255';
-        let crysMid = '192, 132, 252';
-        let crysDark = '126, 34, 206';
-        if (variant === 'sapphire_mana') {
-            auraTop = '56, 189, 248';
-            auraMid = '14, 165, 233';
-            auraBot = '3, 105, 161';
-            crysLight = '224, 242, 254';
-            crysMid = '56, 189, 248';
-            crysDark = '2, 132, 199';
-        } else if (variant === 'emerald_fel') {
-            auraTop = '74, 222, 128';
-            auraMid = '22, 163, 74';
-            auraBot = '20, 83, 45';
-            crysLight = '220, 252, 231';
-            crysMid = '74, 222, 128';
-            crysDark = '21, 128, 61';
-        }
+        // Hover bobbing along Z-axis
+        const bob = Math.sin(time * 2.5 * speed) * (7 * elScale);
 
-        // 1. Soft Pulsing Ground Glow Aura
-        const auraGrad = ctx.createRadialGradient(cx, cy + 20, 0, cx, cy + 20, 70 * intensity);
-        auraGrad.addColorStop(0, `rgba(${auraTop}, 0.65)`);
-        auraGrad.addColorStop(0.5, `rgba(${auraMid}, 0.28)`);
-        auraGrad.addColorStop(1, `rgba(${auraBot}, 0.0)`);
-        ctx.fillStyle = auraGrad;
+        // 1. Ground Light Aura & Drop Shadow
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
         ctx.beginPath();
-        ctx.ellipse(cx, cy + 20, 70 * intensity, 40 * intensity, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy + 18 * elScale, 28 * elScale, 14 * elScale, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. Revolving Orbital Energy Motes
-        const motes = 4;
-        for (let m = 0; m < motes; m++) {
-            const mAng = time * 2.5 * speed + (m * Math.PI * 2) / motes;
-            const mx = cx + Math.cos(mAng) * 45;
-            const my = (cy + bob) + Math.sin(mAng) * 22;
-            ctx.fillStyle = `rgba(${crysLight}, 0.95)`;
+        const auraGrad = ctx.createRadialGradient(cx, cy + bob, 2, cx, cy + bob, 65 * intensity * elScale);
+        if (isFel) {
+            auraGrad.addColorStop(0, `rgba(34, 197, 94, ${0.75 * intensity})`);
+            auraGrad.addColorStop(0.5, `rgba(22, 101, 52, ${0.3 * intensity})`);
+            auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        } else if (isPlasma) {
+            auraGrad.addColorStop(0, `rgba(6, 182, 212, ${0.85 * intensity})`);
+            auraGrad.addColorStop(0.5, `rgba(3, 105, 161, ${0.35 * intensity})`);
+            auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        } else {
+            auraGrad.addColorStop(0, `rgba(168, 85, 247, ${0.75 * intensity})`);
+            auraGrad.addColorStop(0.5, `rgba(107, 33, 168, ${0.3 * intensity})`);
+            auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        }
+        ctx.fillStyle = auraGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy + bob, 65 * intensity * elScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Revolving Gyroscopic Stabilizer Rings (Plasma Shard) vs Orbiting Runes (Amethyst / Fel)
+        if (isPlasma) {
+            ctx.strokeStyle = `rgba(186, 230, 253, ${0.85 * intensity})`;
+            ctx.lineWidth = 1.6 * elScale;
+            for (let g = 0; g < 3; g++) {
+                const gAng = time * 2.2 * speed + (g * Math.PI) / 3;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy + bob, 38 * elScale, 14 * elScale, gAng, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        } else {
+            const moteCount = 4;
+            for (let m = 0; m < moteCount; m++) {
+                const mAng = time * 2.5 * speed + (m * Math.PI * 2) / moteCount;
+                const mx = cx + Math.cos(mAng) * (34 * elScale);
+                const my = (cy + bob) + Math.sin(mAng) * (18 * elScale);
+                ctx.fillStyle = isFel ? '#86efac' : '#d8b4fe';
+                ctx.beginPath();
+                ctx.arc(mx, my, 2.5 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 3. Faceted Gemstone Monolith in 90-deg Top-Down Overhead View
+        ctx.save();
+        ctx.translate(cx, cy + bob);
+        const crysR = 26 * elScale;
+
+        // Faceted Hexagonal Crystal Cap in Top-Down view
+        ctx.fillStyle = isFel ? '#15803d' : (isPlasma ? '#0284c7' : '#7e22ce');
+        ctx.beginPath();
+        for (let p = 0; p < 6; p++) {
+            const pAng = (p * Math.PI * 2) / 6;
+            const px = Math.cos(pAng) * crysR;
+            const py = Math.sin(pAng) * (crysR * 0.85);
+            if (p === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // Illuminated Facets
+        for (let p = 0; p < 6; p++) {
+            const pAng1 = (p * Math.PI * 2) / 6;
+            const pAng2 = ((p + 1) * Math.PI * 2) / 6;
+            ctx.fillStyle = (p % 2 === 0) ? (isFel ? '#4ade80' : (isPlasma ? '#38bdf8' : '#c084fc')) : (isFel ? '#22c55e' : (isPlasma ? '#0ea5e9' : '#a855f7'));
             ctx.beginPath();
-            ctx.arc(mx, my, 2.5, 0, Math.PI * 2);
+            ctx.moveTo(0, 0); // Apex point
+            ctx.lineTo(Math.cos(pAng1) * crysR, Math.sin(pAng1) * (crysR * 0.85));
+            ctx.lineTo(Math.cos(pAng2) * crysR, Math.sin(pAng2) * (crysR * 0.85));
+            ctx.closePath();
             ctx.fill();
         }
 
-        // 3. Faceted Gemstone / Monolith
-        ctx.save();
-        ctx.translate(cx, cy + bob);
-
-        const crystalGrad = ctx.createLinearGradient(-25, -45, 25, 45);
-        crystalGrad.addColorStop(0, `rgba(${crysLight}, 0.98)`);
-        crystalGrad.addColorStop(0.4, `rgba(${crysMid}, 0.95)`);
-        crystalGrad.addColorStop(1, `rgba(${crysDark}, 0.92)`);
-
-        ctx.fillStyle = crystalGrad;
-        ctx.beginPath();
-        ctx.moveTo(0, -45);
-        ctx.lineTo(24, -10);
-        ctx.lineTo(0, 45);
-        ctx.lineTo(-24, -10);
-        ctx.closePath();
-        ctx.fill();
-
-        // Top Left Highlight Facet
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.beginPath();
-        ctx.moveTo(0, -45);
-        ctx.lineTo(0, 45);
-        ctx.lineTo(-24, -10);
-        ctx.closePath();
-        ctx.fill();
-
-        // Facet Bevel Edges
-        ctx.strokeStyle = `rgba(${crysLight}, 0.85)`;
-        ctx.lineWidth = 1.4;
-        ctx.stroke();
+        // Facet Bevel Ridge Lines
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.2 * elScale;
+        for (let p = 0; p < 6; p++) {
+            const pAng = (p * Math.PI * 2) / 6;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(pAng) * crysR, Math.sin(pAng) * (crysR * 0.85));
+            ctx.stroke();
+        }
 
         ctx.restore();
         ctx.restore();
@@ -13887,70 +15905,68 @@ class LivingElementsEngine {
         const cfg = el.config || {};
         const intensity = cfg.intensity || 1.0;
         const speed = cfg.speed || 1.0;
-        const variant = cfg.variant || 'warm_halogen';
+        const variant = cfg.variant || el.type || 'halogen_pair';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
 
         const beamSpacing = W * 0.32;
         const leftX = W * 0.5 - beamSpacing * 0.5;
         const rightX = W * 0.5 + beamSpacing * 0.5;
-        const sourceY = 10;
-        const targetY = H * 0.88;
+        const sourceY = 12 * elScale;
+        const targetY = H * 0.92;
         const spread = W * 0.28;
 
+        const isXenon = variant === 'xenon_blue';
+        const isAmber = variant === 'amber_fog';
+
         let c0 = '255, 255, 235';
-        let c1 = '255, 245, 200';
-        let c2 = '255, 240, 180';
-        if (variant === 'xenon_white') {
-            c0 = '235, 248, 255';
-            c1 = '195, 230, 255';
-            c2 = '150, 210, 255';
-        } else if (variant === 'tactical_amber') {
-            c0 = '255, 235, 190';
-            c1 = '255, 195, 100';
-            c2 = '245, 158, 11';
+        let c1 = '254, 240, 138';
+        let c2 = '234, 179, 8';
+        if (isXenon) {
+            c0 = '240, 249, 255';
+            c1 = '56, 189, 248';
+            c2 = '2, 132, 199';
+        } else if (isAmber) {
+            c0 = '254, 243, 199';
+            c1 = '245, 158, 11';
+            c2 = '180, 83, 9';
         }
 
         const drawCone = (sx) => {
-            const sweepShift = variant === 'xenon_white' ? Math.sin(time * 1.4 * speed) * (W * 0.14) : 0;
-            const tx = sx + (sx - W * 0.5) * 0.3 + sweepShift;
-            const coneGrad = ctx.createLinearGradient(sx, sourceY, tx, targetY);
-            coneGrad.addColorStop(0, `rgba(${c0}, ${0.52 * intensity})`);
-            coneGrad.addColorStop(0.7, `rgba(${c1}, ${0.14 * intensity})`);
-            coneGrad.addColorStop(1, `rgba(${c2}, 0.0)`);
+            const coneGrad = ctx.createLinearGradient(sx, sourceY, sx, targetY);
+            coneGrad.addColorStop(0, `rgba(${c0}, ${0.65 * intensity})`);
+            coneGrad.addColorStop(0.5, `rgba(${c1}, ${0.22 * intensity})`);
+            coneGrad.addColorStop(1, `rgba(${c2}, 0)`);
 
             ctx.fillStyle = coneGrad;
             ctx.beginPath();
-            ctx.moveTo(sx - 5, sourceY);
-            ctx.lineTo(tx - spread, targetY);
-            ctx.lineTo(tx + spread, targetY);
-            ctx.lineTo(sx + 5, sourceY);
+            ctx.moveTo(sx - 8 * elScale, sourceY);
+            ctx.lineTo(sx - spread, targetY);
+            ctx.lineTo(sx + spread, targetY);
+            ctx.lineTo(sx + 8 * elScale, sourceY);
             ctx.closePath();
             ctx.fill();
 
-            // Floor illumination pool
-            const poolGrad = ctx.createRadialGradient(tx, targetY, 0, tx, targetY, spread);
+            // Floor illumination hotspot puddle
+            const poolGrad = ctx.createRadialGradient(sx, targetY, 4 * elScale, sx, targetY, spread);
             poolGrad.addColorStop(0, `rgba(${c0}, ${0.85 * intensity})`);
-            poolGrad.addColorStop(0.6, `rgba(${c1}, ${0.35 * intensity})`);
-            poolGrad.addColorStop(1, `rgba(${c2}, 0.0)`);
+            poolGrad.addColorStop(0.5, `rgba(${c1}, ${0.35 * intensity})`);
+            poolGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
             ctx.fillStyle = poolGrad;
             ctx.beginPath();
-            ctx.ellipse(tx, targetY, spread, spread * 0.45, 0, 0, Math.PI * 2);
+            ctx.ellipse(sx, targetY, spread, spread * 0.45, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Lamp lens glow
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
+            // Headlight Lamp Housing Lens Glow
+            ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            ctx.arc(sx, sourceY, 6, 0, Math.PI * 2);
+            ctx.arc(sx, sourceY, 6 * elScale, 0, Math.PI * 2);
             ctx.fill();
         };
 
-        if (variant === 'xenon_white') {
-            drawCone(W * 0.5);
-        } else {
-            drawCone(leftX);
-            drawCone(rightX);
-        }
+        drawCone(leftX);
+        drawCone(rightX);
 
         ctx.restore();
     }
@@ -13959,38 +15975,43 @@ class LivingElementsEngine {
         const time = el.stateTime;
         const cfg = el.config || {};
         const speed = cfg.speed || 1.2;
-        const variant = cfg.variant || 'cyan_chevron';
+        const variant = cfg.variant || el.type || 'cyan_chevrons';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
 
-        // 1. Floor Base Track (Transparent ground with guide lines)
-        ctx.strokeStyle = `rgba(75, 85, 100, 0.5)`;
-        ctx.lineWidth = 1.5;
+        const isHazard = variant === 'amber_hazard';
+        const isRedAlert = variant === 'red_alert';
+
+        // 1. Recessed Floor Conduit Guide Rails
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 2 * elScale;
         ctx.beginPath();
-        ctx.moveTo(0, H * 0.3); ctx.lineTo(W, H * 0.3);
-        ctx.moveTo(0, H * 0.7); ctx.lineTo(W, H * 0.7);
+        ctx.moveTo(0, H * 0.28); ctx.lineTo(W, H * 0.28);
+        ctx.moveTo(0, H * 0.72); ctx.lineTo(W, H * 0.72);
         ctx.stroke();
 
-        // 2. Running Neon Chevrons >>>
+        // 2. Running Illuminated Chevrons >>>
         const chevronCount = 8;
         const spacing = W / chevronCount;
-        const runOffset = (time * 65 * speed) % spacing;
-        const chevronColor = variant === 'amber_warning' ? '250, 204, 21' : '0, 255, 200';
+        const runOffset = (time * 75 * speed) % spacing;
+
+        const col = isHazard ? '245, 158, 11' : (isRedAlert ? '239, 68, 68' : '6, 182, 212');
 
         for (let c = -1; c <= chevronCount + 1; c++) {
             const cx = c * spacing + runOffset;
             const cy = H * 0.5;
             const pulse = (Math.sin(time * 6 * speed + c) * 0.3 + 0.7);
 
-            ctx.strokeStyle = `rgba(${chevronColor}, ${pulse * 0.9})`;
-            ctx.lineWidth = 3.5;
+            ctx.strokeStyle = `rgba(${col}, ${pulse})`;
+            ctx.lineWidth = 4 * elScale;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
             ctx.beginPath();
-            ctx.moveTo(cx - 10, cy - 14);
-            ctx.lineTo(cx + 6, cy);
-            ctx.lineTo(cx - 10, cy + 14);
+            ctx.moveTo(cx - 12 * elScale, cy - 14 * elScale);
+            ctx.lineTo(cx + 8 * elScale, cy);
+            ctx.lineTo(cx - 12 * elScale, cy + 14 * elScale);
             ctx.stroke();
         }
 
@@ -13999,47 +16020,78 @@ class LivingElementsEngine {
 
     drawRealisticPitTrap(el, ctx, W, H, dt) {
         const time = el.stateTime;
+        const cfg = el.config || {};
+        const variant = cfg.variant || el.type || 'iron_spikes';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
         const cx = W * 0.5;
         const cy = H * 0.5;
-        const radius = Math.min(W, H) * 0.42;
+        const radius = Math.min(W, H) * 0.42 * elScale;
 
         ctx.save();
 
-        // 1. Broken Stone Perimeter Edge
-        ctx.fillStyle = 'rgba(38, 30, 24, 0.95)';
+        const isChasm = variant === 'abyssal_chasm';
+
+        // 1. Broken Jagged Perimeter Stone Lip
+        ctx.fillStyle = '#1c1917';
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. Pitch Black Bottom Pit
-        const pitGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.88);
-        pitGrad.addColorStop(0, 'rgba(5, 5, 8, 0.98)');
-        pitGrad.addColorStop(0.8, 'rgba(15, 12, 10, 0.95)');
-        pitGrad.addColorStop(1, 'rgba(45, 35, 28, 0.85)');
-        ctx.fillStyle = pitGrad;
+        // 2. Sunken Deep Void Pit Interior
+        ctx.fillStyle = '#020617';
         ctx.beginPath();
-        ctx.arc(cx, cy, radius * 0.88, 0, Math.PI * 2);
+        ctx.arc(cx, cy, radius * 0.9, 0, Math.PI * 2);
         ctx.fill();
 
-        // 3. Sharpened Iron Spikes pointing upward
-        const spikeCount = 9;
-        ctx.fillStyle = 'rgba(160, 165, 175, 0.95)';
-        ctx.strokeStyle = 'rgba(40, 45, 50, 0.95)';
-        ctx.lineWidth = 1;
+        // ====================================================================
+        // A. IRON SPIKES (Sharp Rusty Spikes in 90-deg Top-Down View)
+        // ====================================================================
+        if (!isChasm) {
+            const spikeRows = 4;
+            const spikeCols = 4;
+            const cellW = (radius * 1.5) / spikeCols;
+            const cellH = (radius * 1.5) / spikeRows;
 
-        for (let s = 0; s < spikeCount; s++) {
-            const ang = (s / spikeCount) * Math.PI * 2;
-            const dist = radius * (s % 2 === 0 ? 0.45 : 0.25);
-            const sx = cx + Math.cos(ang) * dist;
-            const sy = cy + Math.sin(ang) * dist;
+            for (let r = 0; r < spikeRows; r++) {
+                for (let c = 0; c < spikeCols; c++) {
+                    const sx = cx - radius * 0.75 + (c + 0.5) * cellW;
+                    const sy = cy - radius * 0.75 + (r + 0.5) * cellH;
 
-            ctx.beginPath();
-            ctx.moveTo(sx, sy - 8);
-            ctx.lineTo(sx + 3, sy + 6);
-            ctx.lineTo(sx - 3, sy + 6);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
+                    // Spike Conical Body (Circular base in top-down plan view)
+                    ctx.fillStyle = '#334155';
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 5 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Sharp Conical Tip Shadow
+                    ctx.fillStyle = '#0f172a';
+                    ctx.beginPath();
+                    ctx.arc(sx + 2 * elScale, sy + 2 * elScale, 4 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Gleaming Metallic Spike Tip Apex Point
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 1.8 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        // ====================================================================
+        // B. ABYSSAL CHASM (Bottomless Void Fissure & Tumbling Rock Pebbles)
+        // ====================================================================
+        } else {
+            // Tumbling falling rock debris into the depths
+            for (let p = 0; p < 7; p++) {
+                const pProg = ((time * 0.5 + p / 7) % 1.0);
+                const px = cx + Math.sin(p * 2.3 + time * 0.3) * (radius * 0.5 * (1 - pProg));
+                const py = cy + Math.cos(p * 2.3 + time * 0.3) * (radius * 0.5 * (1 - pProg));
+                const pAlpha = (1 - pProg) * 0.85;
+
+                ctx.fillStyle = `rgba(100, 116, 139, ${pAlpha})`;
+                ctx.beginPath();
+                ctx.arc(px, py, (3.0 * (1 - pProg * 0.6)) * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         ctx.restore();
@@ -14049,47 +16101,75 @@ class LivingElementsEngine {
         const time = el.stateTime;
         const cfg = el.config || {};
         const speed = cfg.speed || 1.2;
+        const variant = cfg.variant || el.type || 'hazard_track';
+        const elScale = Math.max(0.3, Math.min(3.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
 
         ctx.save();
 
         const trackY = H * 0.15;
         const trackH = H * 0.70;
+        const isCargo = variant === 'cargo_belt';
 
-        // Industrial Conveyor Guide Rails (Transparent Ground)
-        ctx.strokeStyle = 'rgba(100, 116, 139, 0.7)';
-        ctx.lineWidth = 2;
+        // 1. Heavy Industrial / Freight Guide Rails
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 3 * elScale;
         ctx.beginPath();
         ctx.moveTo(0, trackY); ctx.lineTo(W, trackY);
         ctx.moveTo(0, trackY + trackH); ctx.lineTo(W, trackY + trackH);
         ctx.stroke();
 
-        // Slats moving continuously
-        const slatWidth = 24;
-        const offset = (time * 50 * speed) % slatWidth;
+        // 2. Moving Conveyor Slats
+        const slatW = 24 * elScale;
+        const offset = (time * 60 * speed) % slatW;
 
-        ctx.strokeStyle = 'rgba(55, 62, 72, 0.85)';
-        ctx.lineWidth = 2;
-        for (let x = -slatWidth; x < W + slatWidth; x += slatWidth) {
+        ctx.strokeStyle = isCargo ? '#334155' : '#1e293b';
+        ctx.lineWidth = 2 * elScale;
+        for (let x = -slatW; x < W + slatW; x += slatW) {
             const sx = x + offset;
             ctx.beginPath();
-            ctx.moveTo(sx, trackY + 8);
-            ctx.lineTo(sx, trackY + trackH - 8);
+            ctx.moveTo(sx, trackY + 8 * elScale);
+            ctx.lineTo(sx, trackY + trackH - 8 * elScale);
             ctx.stroke();
         }
 
-        // Top and bottom yellow/black hazard stripes
-        const stripeW = 16;
-        for (let sx = -stripeW; sx < W + stripeW; sx += stripeW * 2) {
-            ctx.fillStyle = '#facc15';
-            ctx.fillRect(sx, trackY, stripeW, 8);
-            ctx.fillRect(sx, trackY + trackH - 8, stripeW, 8);
-            ctx.fillStyle = '#111827';
-            ctx.fillRect(sx + stripeW, trackY, stripeW, 8);
-            ctx.fillRect(sx + stripeW, trackY + trackH - 8, stripeW, 8);
+        // 3. Yellow/Black Hazard Stripes (hazard_track) vs Magnetic Cargo Canisters (cargo_belt)
+        if (isCargo) {
+            // Moving Magnetic Cargo Crates
+            const cratePitch = 120 * elScale;
+            for (let c = -cratePitch; c < W + cratePitch; c += cratePitch) {
+                const cx = c + (time * 60 * speed) % cratePitch;
+                const cy = trackY + trackH * 0.5;
+
+                // Cargo Crate in 90-deg Top-Down View
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(cx - 24 * elScale, cy - 16 * elScale, 48 * elScale, 32 * elScale);
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 1.5 * elScale;
+                ctx.strokeRect(cx - 24 * elScale, cy - 16 * elScale, 48 * elScale, 32 * elScale);
+
+                // Magnetic latch locks
+                ctx.fillStyle = '#38bdf8';
+                ctx.beginPath();
+                ctx.arc(cx - 16 * elScale, cy, 2.5 * elScale, 0, Math.PI * 2);
+                ctx.arc(cx + 16 * elScale, cy, 2.5 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else {
+            // Yellow / Black Hazard Chevron Borders along top & bottom rails
+            const stripeW = 16 * elScale;
+            for (let sx = -stripeW; sx < W + stripeW; sx += stripeW * 2) {
+                ctx.fillStyle = '#eab308';
+                ctx.fillRect(sx, trackY, stripeW, 8 * elScale);
+                ctx.fillRect(sx, trackY + trackH - 8 * elScale, stripeW, 8 * elScale);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(sx + stripeW, trackY, stripeW, 8 * elScale);
+                ctx.fillRect(sx + stripeW, trackY + trackH - 8 * elScale, stripeW, 8 * elScale);
+            }
         }
 
         ctx.restore();
     }
+
 
     // ------------------------------------------------------------------------
     // BESPOKE PROCEDURAL RENDERER FOR SPECIALIZED CATALOG FEATURES

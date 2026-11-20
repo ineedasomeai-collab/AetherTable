@@ -28,16 +28,26 @@
             const cfg = el.config || {};
             const id = cfg.variant || el.type;
             if (id && typeof registry[id] === 'function') return registry[id];
+
+            // If the user explicitly chose a variant (e.g. from the inspector dropdown)
+            // that differs from this catalog element's default type and variant,
+            // do NOT fall back to registry[el.type] (which would ignore the user's variant)!
+            // Instead, return null so livingElementsEngine renders the bespoke variant
+            // via its dedicated procedural renderer for the base type!
+            const cat = (typeof window !== 'undefined' && window.FEATURE_CATALOG)
+                ? (window.FEATURE_CATALOG[el.type] || window.FEATURE_CATALOG[id])
+                : null;
+            const defaultVariant = cat ? (cat.variant || el.type) : el.type;
+            if (cfg.variant && cfg.variant !== defaultVariant && cfg.variant !== el.type && cfg.variant !== 'default') {
+                return null;
+            }
+
             if (el.type && typeof registry[el.type] === 'function') return registry[el.type];
             if (cfg.num && typeof registry['item_' + cfg.num] === 'function') return registry['item_' + cfg.num];
             if (el.num && typeof registry['item_' + el.num] === 'function') return registry['item_' + el.num];
-            // Also check catalog lookup if available
-            if (typeof window !== 'undefined' && window.FEATURE_CATALOG) {
-                const cat = window.FEATURE_CATALOG[el.type] || window.FEATURE_CATALOG[id];
-                if (cat) {
-                    if (cat.variant && typeof registry[cat.variant] === 'function') return registry[cat.variant];
-                    if (cat.num && typeof registry['item_' + cat.num] === 'function') return registry['item_' + cat.num];
-                }
+            if (cat) {
+                if (cat.variant && typeof registry[cat.variant] === 'function') return registry[cat.variant];
+                if (cat.num && typeof registry['item_' + cat.num] === 'function') return registry['item_' + cat.num];
             }
             return null;
         },

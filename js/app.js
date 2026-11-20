@@ -546,6 +546,12 @@ class BattlemapApp {
                     { value: 'necrotic_rift', label: '\u{1FA78} Dimensional Void Tear (Reality Fracture Seam & Reaching Claws)' },
                     { value: 'golden_holy', label: '\u2728 Sanctified Sunburst (12-Ray Sunburst Mandala & Sacred Rings)' }
                 ];
+            case 'tumbleweed':
+                return [
+                    { value: 'desert_thistle', label: '\u{1F33E} Desert Thistle (Dried Briar Cage & Dust Trail)' },
+                    { value: 'flaming_tumbleweed', label: '\u{1F525} Flaming Tumbleweed (Ember Core & Scorch Trail)' },
+                    { value: 'barbed_wire', label: '\u{1FA78} Barbed Wire Tangle (Rusted Steel Coils & Friction Sparks)' }
+                ];
             case 'campfire':
                 return [
                     { value: 'wildfire', label: '\u{1F525} Campsite Hearth (12 Fieldstones & Criss-Cross Timber Logs)' },
@@ -685,6 +691,7 @@ class BattlemapApp {
             case 'rats':
                 return [
                     { value: 'sewer_rats', label: '\u{1F400} Skittering Sewer Dungeon Rats' },
+                    { value: 'bounding_deer', label: '\u{1F98C} Bounding Deer Herd (Pure 90\u00B0 Overhead Stags & Does)' },
                     { value: 'swarming_spiders', label: '\u{1F577}\uFE0F Swarming 8-Legged Spiders' },
                     { value: 'robo_scuttlers', label: '\u{1F916} Cybernetic Brass Robo-Beetles' },
                     { value: 'shadow_crawlers', label: '\u{1F311} Shadow Miasma Crawlers' },
