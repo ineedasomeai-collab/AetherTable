@@ -29,8 +29,8 @@
     --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
 
-    /* 64px Bottom Safe Margin to prevent UI from overlapping web publication ad banner */
-    --ad-dead-space: 64px;
+    /* 0px Bottom Safe Margin (Full edge-to-edge projector display) */
+    --ad-dead-space: 0px;
 }
 
 * {
@@ -176,7 +176,7 @@ body {
 }
 
 .living-element.element-locked.selected .element-tag::before {
-    content: '🔒 ';
+    content: '\1F512  ';
 }
 
 /* ---- Pan Mode (left-drag on empty map pans the view) ---- */
@@ -888,7 +888,7 @@ kbd {
 }
 
 .panel-title::before {
-    content: '⠿';
+    content: '\283F ';
     font-size: 13px;
     color: var(--primary);
     opacity: 0.65;
@@ -1334,7 +1334,7 @@ kbd {
 
 .fx-group-card > .setting-label::after,
 .fx-collapsible-extra > .setting-label::after {
-    content: '▾';
+    content: '\25BE ';
     font-size: 13px;
     color: var(--text-muted);
     transition: transform 0.18s ease, color 0.15s ease;
@@ -1687,17 +1687,10 @@ kbd {
     z-index: 9999;
 }
 
-/* 64px Web Ad Safe-Zone (Reserved dead space at bottom of screen) */
+/* Web Ad Safe-Zone (Zero dead space) */
 #ad-banner-safe-zone {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: var(--ad-dead-space, 64px);
-    pointer-events: none;
-    z-index: 9990;
-    display: block;
-    background: transparent;
+    display: none !important;
+    height: 0 !important;
 }
 
 .unhide-hint.visible {

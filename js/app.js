@@ -142,8 +142,8 @@ class BattlemapApp {
                     const targetH = (window.aiMapGenerator && window.aiMapGenerator.state) ? window.aiMapGenerator.state.h : 2160;
                     const isExactTarget = (nw === targetW && nh === targetH);
                     dimsEl.textContent = isExactTarget
-                        ? `${nw} × ${nh} px (Target Match ✓)`
-                        : `${nw} × ${nh} px`;
+                        ? `${nw} \u00D7 ${nh} px (Target Match \u2713)`
+                        : `${nw} \u00D7 ${nh} px`;
                     dimsEl.style.color = isExactTarget ? 'var(--primary)' : '#fbbf24';
                     if (upscaleBtn) {
                         upscaleBtn.style.display = isExactTarget ? 'none' : 'inline-flex';
@@ -182,7 +182,7 @@ class BattlemapApp {
             window.aiMapGenerator.addToHistory({
                 id: `map_${Date.now()}`,
                 prompt: label,
-                provider: processed.wasAdjusted ? `${provider} (${processed.width}×${processed.height})` : provider,
+                provider: processed.wasAdjusted ? `${provider} (${processed.width}\u00D7${processed.height})` : provider,
                 url: finalUrl
             });
             return processed;
@@ -278,7 +278,7 @@ class BattlemapApp {
         if (this.dom.container) this.dom.container.classList.toggle('pan-mode-active', this.panMode);
         const fxBtn = document.getElementById('btn-fx-pan-mode');
         if (fxBtn) {
-            fxBtn.textContent = this.panMode ? '✋ Pan Mode: ON' : '✋ Pan Mode: Off';
+            fxBtn.textContent = this.panMode ? '\u270B Pan Mode: ON' : '\u270B Pan Mode: Off';
             fxBtn.classList.toggle('active', this.panMode);
         }
         const hudBtn = document.getElementById('hud-btn-pan');
@@ -517,263 +517,271 @@ class BattlemapApp {
         switch (baseType) {
             case 'inferno':
                 return [
-                    { value: 'wildfire', label: '🔥 Blazing Wildfire (Orange/Gold)' },
-                    { value: 'hellfire', label: '🌋 Hellfire & Brimstone (Crimson)' },
-                    { value: 'alchemical', label: '🧪 Alchemical Wildfire (Emerald Green)' },
-                    { value: 'arcane_fire', label: '✨ Arcane Flame (Cobalt & Violet)' }
+                    { value: 'wildfire', label: '\u{1F525} Forest Inferno (Charred Timber Boughs & Licking Flames)' },
+                    { value: 'hellfire', label: '\u{1F30B} Tectonic Hellscape (Basalt Crust Plates & Erupting Spires)' },
+                    { value: 'alchemical', label: '\u{1F9EA} Corrosive Chemical Fire (Dissolved Floor & Frothing Acid Pools)' },
+                    { value: 'arcane_fire', label: '\u2728 Summoning Mandala (Arcane Sigil Geometry & Orbiting Polyhedra)' }
                 ];
             case 'smoke':
                 return [
-                    { value: 'black_smoke', label: '💨 Thick Black Soot & Fire Smoke' },
-                    { value: 'ash_fog', label: '🌫️ Dense Gray Battlefield Smoke / Fog' },
-                    { value: 'poison_gas', label: '☠️ Toxic Poison / Chlorine Gas (Green)' },
-                    { value: 'acid_fumes', label: '🧪 Caustic Acid Vapors (Teal-Green)' },
-                    { value: 'spore_cloud', label: '🍄 Swirling Fungal Spore Miasma (Amber)' },
-                    { value: 'shadow_miasma', label: '🌑 Abyssal Shadow / Necrotic Mist (Purple)' }
+                    { value: 'black_smoke', label: '\u{1F4A8} Carbon Soot Plume (Charcoal Firebed & Turbulent Cumulus Billows)' },
+                    { value: 'ash_fog', label: '\u{1F32B}\uFE0F Stratified Ash Haze (Horizontal Fog Layers & Tumbling Flakes)' },
+                    { value: 'poison_gas', label: '\u2620\uFE0F Marsh Gas Blanket (Bubbling Mud Vents & Creeping Tendrils)' },
+                    { value: 'acid_fumes', label: '\u{1F9EA} Caustic Vitriol Wisps (Dissolving Limestone Crater & Sizzling Foam)' },
+                    { value: 'spore_cloud', label: '\u{1F344} Fungal Spore Miasma (5 Fleshy Rooted Pods & Spore Puffs)' },
+                    { value: 'shadow_miasma', label: '\u{1F311} Abyssal Void Miasma (Reality Void Tear, Claw Tendrils & Flies)' }
                 ];
             case 'mud':
                 return [
-                    { value: 'mud_bog', label: '🫧 Bubbling Swamp Mud & Sucking Mire' },
-                    { value: 'tar_pit', label: '🖤 Boiling Black Tar / Sticky Oil Pit' },
-                    { value: 'quicksand', label: '🏜️ Churning Desert Quicksand Sinkhole' },
-                    { value: 'acid_sludge', label: '🧪 Bubbling Caustic Acid Sludge / Ooze' },
-                    { value: 'sticky_webs', label: '🕸️ Sticky Glistening Spiderweb Mire' }
+                    { value: 'mud_bog', label: '\u{1FAE7} Viscous Sucking Mire (Organic Mud Lobes & Bursting Domes)' },
+                    { value: 'tar_pit', label: '\u{1F5A4} Inky Pitch Pit (Iridescent Petroleum Sheen & Sunken Bones)' },
+                    { value: 'quicksand', label: '\u{1F3DC}\uFE0F Granular Vortex (Archimedean Sand Funnel & Sinkhole Motes)' },
+                    { value: 'acid_sludge', label: '\u{1F9EA} Caustic Ooze Pit (Chemical Erosion Banks & Sizzling Foam)' },
+                    { value: 'sticky_webs', label: '\u{1F578}\uFE0F Orb-Weaver Web (Radial Tensile Lines, Catenary Rings & Trapped Prey)' }
                 ];
             case 'sparks':
                 return [
-                    { value: 'storm_lightning', label: '⚡ Electric Storm Lightning (Cyan-White)' },
-                    { value: 'arcane_surge', label: '🔮 Wild Magic Arcane Rift (Violet)' },
-                    { value: 'necrotic_rift', label: '🩸 Blood & Shadow Surge (Crimson)' },
-                    { value: 'golden_holy', label: '✨ Radiant Celestial Ground Ward (Gold)' }
+                    { value: 'storm_lightning', label: '\u26A1 Forked Lightning (Acute Branching Arcs & Stepped Leaders)' },
+                    { value: 'arcane_surge', label: '\u{1F52E} Arcane Rune Array (Concentric Rune Circles, Heptagram & Polyhedra)' },
+                    { value: 'necrotic_rift', label: '\u{1FA78} Dimensional Void Tear (Reality Fracture Seam & Reaching Claws)' },
+                    { value: 'golden_holy', label: '\u2728 Sanctified Sunburst (12-Ray Sunburst Mandala & Sacred Rings)' }
                 ];
             case 'campfire':
+                return [
+                    { value: 'wildfire', label: '\u{1F525} Campsite Hearth (12 Fieldstones & Criss-Cross Timber Logs)' },
+                    { value: 'hellfire', label: '\u{1F30B} Brimstone Altar (8 Obsidian Fang Teeth & Cracked Basalt Slabs)' },
+                    { value: 'alchemical', label: '\u{1F9EA} Alchemist\'s Crucible (Iron Tripod, Transmutation Sigil & Alembic)' },
+                    { value: 'arcane_fire', label: '\u2728 Runic Hearth (6 Levitating Mana Crystals & Dual Rune Rings)' },
+                    { value: 'mod_fire', label: '\u{1F6E2}\uFE0F Burn Barrel (55-Gal Steel Drum & Side Vent Flame Jets)' }
+                ];
             case 'torch':
                 return [
-                    { value: 'wildfire', label: '🔥 Natural Wood Flame (Warm Orange)' },
-                    { value: 'hellfire', label: '🌋 Deep Crimson Coal & Ember Fire' },
-                    { value: 'alchemical', label: '🧪 Witchfire / Alchemical Green Flame' },
-                    { value: 'arcane_fire', label: '✨ Blue Spirit / Arcane Flame' }
+                    { value: 'wildfire', label: '\u{1F525} Pitch Stake Torch (Carved Timber Stake & Charred Burlap Wrap)' },
+                    { value: 'hellfire', label: '\u{1F30B} Demon Claw Sconce (4 Iron Talons & Basalt Ember Core)' },
+                    { value: 'alchemical', label: '\u{1F9EA} Phosphor Burner (Coiled Copper Condenser & Boiling Glass Vial)' },
+                    { value: 'arcane_fire', label: '\u2728 Floating Mana Shard (Hovering Faceted Crystal & Mini Rune Aura)' },
+                    { value: 'mod_fire', label: '\u{1F527} Industrial Gas Jet (Steel Wall Flange & Brass Burner Nozzle)' }
                 ];
             case 'river':
             case 'pond':
                 return [
-                    { value: 'pond_lily', label: '💧 Crystal Forest Pond & Lily Pads' },
-                    { value: 'cavern_pool', label: '💎 Glowing Subterranean Crystal Pool' },
-                    { value: 'blood_pool', label: '🩸 Sacrificial Runic Blood Pool' },
-                    { value: 'stream', label: '🌊 Clear Mountain Stream' },
-                    { value: 'ocean', label: '🌊 Deep Azure Rapids Current' },
-                    { value: 'swamp', label: '🌿 Murky Bayou & Duckweed Water' },
-                    { value: 'moat_stakes', label: '🏰 Castle Moat & Palisade Stakes' },
-                    { value: 'concrete_canal', label: '🏙️ Concrete Storm-Drain Canal' },
-                    { value: 'lava', label: '🌋 Molten Volcanic Magma Flow' },
-                    { value: 'blood_river', label: '🩸 Sanguine River of Blood' },
-                    { value: 'acid', label: '🧪 Bio-Mutagen Coolant / Acid' }
+                    { value: 'pond_lily', label: '\u{1F4A7} Lily Pond (Lily Pads, Lotus Blossoms & Shimmering Waters)' },
+                    { value: 'cavern_pool', label: '\u{1F48E} Cavern Pool (Subterranean Stalagmites & Glowing Crystal Basins)' },
+                    { value: 'blood_pool', label: '\u{1FA78} Sacrificial Pool (Runic Basin & Coagulated Blood)' },
+                    { value: 'stream', label: '\u{1F30A} Alpine Stream (Rippling Shallows & Riverbed Stones)' },
+                    { value: 'ocean', label: '\u{1F30A} Rapids River (Heavy Whitewater Crests & High-Speed Current)' },
+                    { value: 'swamp', label: '\u{1F33F} Bayou Channel (Murky Duckweed Mats & Mangrove Stems)' },
+                    { value: 'moat_stakes', label: '\u{1F3F0} Fortress Moat (Defensive Palisade Stakes & Murky Water)' },
+                    { value: 'concrete_canal', label: '\u{1F3D9}\uFE0F Drainage Canal (Reinforced Concrete Slopes & Grate Outflow)' },
+                    { value: 'lava', label: '\u{1F30B} Magma River (Cooling Basalt Crusts & Roaring Molten Channels)' },
+                    { value: 'blood_river', label: '\u{1FA78} River of Blood (Viscous Crimson Fluid & Bone Flotsam)' },
+                    { value: 'acid', label: '\u{1F9EA} Industrial Sluice (Corrosive Chemical Effluent & Metal Baffles)' }
                 ];
             case 'waterfall':
                 return [
-                    { value: 'mountain_falls', label: '🌊 Roaring Mountain Waterfall' },
-                    { value: 'cavern_falls', label: '💎 Subterranean Cavern Cascade' },
-                    { value: 'swamp_spillway', label: '🌿 Mossy Bayou Spillway' },
-                    { value: 'lava_falls', label: '🌋 Molten Magma / Lava Falls' }
+                    { value: 'mountain_falls', label: '\u{1F30A} Alpine Cataract (Granite Rock Shelves & Foaming Plunge)' },
+                    { value: 'cavern_falls', label: '\u{1F48E} Crystal Cavern Veil (Subterranean Stalactites & Biolum Basin)' },
+                    { value: 'swamp_spillway', label: '\u{1F33F} Timber Sluice Weir (Heavy Wooden Pilings & Baffle Gates)' },
+                    { value: 'lava_falls', label: '\u{1F30B} Molten Magma Cataract (Basalt Lips & Floating Slag Crusts)' }
                 ];
             case 'lava_seam':
                 return [
-                    { value: 'magma_seam', label: '🌋 Pulsing Volcanic Magma Fissure' },
-                    { value: 'hell_crack', label: '🩸 Hellfire Brimstone Fault' },
-                    { value: 'leyline_seam', label: '🔮 Glowing Arcane Leyline Fracture' },
-                    { value: 'acid_fault', label: '🧪 Bubbling Acid / Necrotic Fissure' }
+                    { value: 'magma_seam', label: '\u{1F30B} Basalt Magma Trench (Cooling Crust Plates & Molten Surges)' },
+                    { value: 'hell_crack', label: '\u{1FA78} Obsidian Brimstone Chasm (10 Razor Spikes & Sulfurous Geysers)' },
+                    { value: 'leyline_seam', label: '\u{1F52E} Leyline Mana Fracture (Geometric Crystal Prisms & Prismatic Core)' },
+                    { value: 'acid_fault', label: '\u{1F9EA} Vitriol Erosion Fault (Dissolving Limestone & Sizzling Seep)' }
                 ];
             case 'canopy':
                 return [
-                    { value: 'oak_canopy', label: '🌳 Sunlit Summer Oak Canopy' },
-                    { value: 'autumn_maple', label: '🍁 Golden Crimson Autumn Maple' },
-                    { value: 'pine_crown', label: '🌲 Deep Evergreen Pine Crown' },
-                    { value: 'jungle_palm', label: '🌴 Lush Tropical Jungle Canopy' },
-                    { value: 'dead_willow', label: '🥀 Haunted Deadwood Boughs' }
+                    { value: 'oak_canopy', label: '\u{1F333} Summer Oak (Rounded Deciduous Lobes & Dappled Sunlight)' },
+                    { value: 'autumn_maple', label: '\u{1F341} Autumn Maple (5-Pointed Serrated Star Clumps & Crimson Flakes)' },
+                    { value: 'pine_crown', label: '\u{1F332} Conifer Pine Crown (Concentric Star-Burst Needle Whorls & Cones)' },
+                    { value: 'jungle_palm', label: '\u{1F334} Tropical Palm (9 Radiating Arching Fronds & Coconut Hub)' },
+                    { value: 'dead_willow', label: '\u{1F940} Weeping Deadwood (Gnarled Bare Skeletal Boughs & Hanging Vines)' }
                 ];
             case 'sunbeams':
                 return [
-                    { value: 'golden_sun', label: '☀️ Warm Golden Sunbeams & Dust Motes' },
-                    { value: 'moonbeams', label: '🌙 Silvery-Blue Midnight Moonbeams' },
+                    { value: 'golden_sun', label: '\u2600\uFE0F Warm Golden Sunbeams & Dust Motes' },
+                    { value: 'moonbeams', label: '\u{1F319} Silvery-Blue Midnight Moonbeams' },
                     { value: 'cathedral_rays', label: ' stained-glass Amber Cathedral Rays' },
-                    { value: 'cavern_skylight', label: '💎 Emerald-Cyan Cavern Skylight Shafts' }
+                    { value: 'cavern_skylight', label: '\u{1F48E} Emerald-Cyan Cavern Skylight Shafts' }
                 ];
             case 'hologram':
                 return [
-                    { value: 'tactical_planet', label: '🪐 Rotating Planetary Sphere' },
-                    { value: 'reticle', label: '🎯 Targeting Reticle & Weapon Lock' },
-                    { value: 'beacon', label: '📡 Distress Beacon / Holo-Relay' },
-                    { value: 'skull_hazard', label: '☠️ Cyber Hazard / Containment Warning' },
-                    { value: 'starship_schematic', label: '🚀 Starship Blueprint Schematic' }
+                    { value: 'tactical_planet', label: '\u{1FA90} Rotating Planetary Sphere' },
+                    { value: 'reticle', label: '\u{1F3AF} Targeting Reticle & Weapon Lock' },
+                    { value: 'beacon', label: '\u{1F4E1} Distress Beacon / Holo-Relay' },
+                    { value: 'skull_hazard', label: '\u2620\uFE0F Cyber Hazard / Containment Warning' },
+                    { value: 'starship_schematic', label: '\u{1F680} Starship Blueprint Schematic' }
                 ];
             case 'forcefield':
                 return [
-                    { value: 'hex_barrier', label: '🛡️ Hexagonal Energy Shield Matrix (Cyan)' },
-                    { value: 'laser_grid', label: '🔴 High-Voltage Laser Grid (Crimson)' },
-                    { value: 'plasma_curtain', label: '🟣 Ionized Plasma Curtain (Violet)' },
-                    { value: 'void_containment', label: '⚡ Void Singularity Containment (Gold)' }
+                    { value: 'hex_barrier', label: '\u{1F6E1}\uFE0F Hexagonal Energy Shield Matrix (Cyan)' },
+                    { value: 'laser_grid', label: '\u{1F534} High-Voltage Laser Grid (Crimson)' },
+                    { value: 'plasma_curtain', label: '\u{1F7E3} Ionized Plasma Curtain (Violet)' },
+                    { value: 'void_containment', label: '\u26A1 Void Singularity Containment (Gold)' }
                 ];
             case 'plasma_leak':
                 return [
-                    { value: 'fusion_vent', label: '🔷 Fusion Coolant Breach & Mach Diamonds' },
-                    { value: 'warp_overload', label: '🟣 Warp Core Radiation Overload' },
-                    { value: 'superheated_jet', label: '⚡ Superheated Plasma Jet (Gold)' }
+                    { value: 'fusion_vent', label: '\u{1F537} Fusion Coolant Breach & Mach Diamonds' },
+                    { value: 'warp_overload', label: '\u{1F7E3} Warp Core Radiation Overload' },
+                    { value: 'superheated_jet', label: '\u26A1 Superheated Plasma Jet (Gold)' }
                 ];
             case 'teleporter':
                 return [
-                    { value: 'transmat_pad', label: '💠 Quantum Transmat Pad & Light Pillar' },
-                    { value: 'warp_gate', label: '🌀 Swirling Hyperspace Vortex Gate' },
-                    { value: 'precursor_ring', label: '✨ Alien Precursor Resonator (Emerald)' },
-                    { value: 'disintegration_field', label: '🩸 Matter Deconstruction Field (Crimson)' }
+                    { value: 'transmat_pad', label: '\u{1F4A0} Quantum Transmat Pad & Light Pillar' },
+                    { value: 'warp_gate', label: '\u{1F300} Swirling Hyperspace Vortex Gate' },
+                    { value: 'precursor_ring', label: '\u2728 Alien Precursor Resonator (Emerald)' },
+                    { value: 'disintegration_field', label: '\u{1FA78} Matter Deconstruction Field (Crimson)' }
                 ];
             case 'cyber_terminal':
                 return [
-                    { value: 'tactical_hud', label: '🖥️ Tactical HUD & Radar Sweep' },
-                    { value: 'cyber_workstation', label: '⌨️ Cyber Console & Data Stream' },
-                    { value: 'neon_sign', label: '🏮 Cyberpunk Neon Sign (RESTRICTED)' },
-                    { value: 'reactor_terminal', label: '⚠️ Reactor Core Warning Console' }
+                    { value: 'tactical_hud', label: '\u{1F5A5}\uFE0F Tactical HUD & Radar Sweep' },
+                    { value: 'cyber_workstation', label: '\u2328\uFE0F Cyber Console & Data Stream' },
+                    { value: 'neon_sign', label: '\u{1F3EE} Cyberpunk Neon Sign (RESTRICTED)' },
+                    { value: 'reactor_terminal', label: '\u26A0\uFE0F Reactor Core Warning Console' }
                 ];
             case 'toxic_spill':
                 return [
-                    { value: 'radioactive_sludge', label: '☢️ Radioactive Waste (Neon Toxic Green)' },
-                    { value: 'alien_mutagen', label: '🧪 Alien Mutagen Xenoblood (Violet)' },
-                    { value: 'caustic_acid', label: '⚗️ Sizzling High-Density Acid Pool' },
-                    { value: 'cryo_coolant', label: '❄️ Sub-Zero Liquid Nitrogen Spill (Cyan Fog)' }
+                    { value: 'radioactive_sludge', label: '\u2622\uFE0F Radioactive Waste (Neon Toxic Green)' },
+                    { value: 'alien_mutagen', label: '\u{1F9EA} Alien Mutagen Xenoblood (Violet)' },
+                    { value: 'caustic_acid', label: '\u2697\uFE0F Sizzling High-Density Acid Pool' },
+                    { value: 'cryo_coolant', label: '\u2744\uFE0F Sub-Zero Liquid Nitrogen Spill (Cyan Fog)' }
                 ];
             case 'ocean_waves':
                 return [
-                    { value: 'tropical_reef', label: '🏝️ Tropical Turquoise Reef Surf' },
-                    { value: 'deep_atlantic', label: '🌊 Deep Atlantic Storm Swell' },
-                    { value: 'stormy_tempest', label: '⛈️ Stormy Tempest & Spindrift' },
-                    { value: 'bioluminescent_night', label: '✨ Bioluminescent Neon Night Tide' },
-                    { value: 'abyssal_eldritch', label: '🐙 Abyssal Eldritch Purple Surge' }
+                    { value: 'tropical_reef', label: '\u{1F3DD}\uFE0F Tropical Turquoise Reef Surf' },
+                    { value: 'deep_atlantic', label: '\u{1F30A} Deep Atlantic Storm Swell' },
+                    { value: 'stormy_tempest', label: '\u26C8\uFE0F Stormy Tempest & Spindrift' },
+                    { value: 'bioluminescent_night', label: '\u2728 Bioluminescent Neon Night Tide' },
+                    { value: 'abyssal_eldritch', label: '\u{1F419} Abyssal Eldritch Purple Surge' }
                 ];
             case 'forest':
                 return [
-                    { value: 'ancient_oak', label: '🌳 Ancient Oak & Summer Leaves' },
-                    { value: 'autumn_maple', label: '🍁 Golden Autumn Maple Canopy' },
-                    { value: 'boreal_pine', label: '🌲 Boreal Pine Evergreen Taiga' },
-                    { value: 'tropical_jungle', label: '🌴 Lush Tropical Jungle Palms' },
-                    { value: 'cherry_blossom', label: '🌸 Blooming Cherry Blossom Grove' },
-                    { value: 'haunted_deadwood', label: '🥀 Haunted Deadwood Thicket' },
-                    { value: 'alien_fungal', label: '🍄 Bioluminescent Fungal Canopy' }
+                    { value: 'ancient_oak', label: '\u{1F333} Ancient Oak & Summer Leaves' },
+                    { value: 'autumn_maple', label: '\u{1F341} Golden Autumn Maple Canopy' },
+                    { value: 'boreal_pine', label: '\u{1F332} Boreal Pine Evergreen Taiga' },
+                    { value: 'tropical_jungle', label: '\u{1F334} Lush Tropical Jungle Palms' },
+                    { value: 'cherry_blossom', label: '\u{1F338} Blooming Cherry Blossom Grove' },
+                    { value: 'haunted_deadwood', label: '\u{1F940} Haunted Deadwood Thicket' },
+                    { value: 'alien_fungal', label: '\u{1F344} Bioluminescent Fungal Canopy' }
                 ];
             case 'spotlight':
                 return [
-                    { value: 'prison_searchlight', label: '🔦 Prison Watchtower Searchlight' },
-                    { value: 'tactical_flashlight', label: '🚨 Tactical SWAT LED Flashlight' },
-                    { value: 'cyber_spotlight', label: '🛸 Cyber Security Drone Beam' },
-                    { value: 'stage_spotlight', label: '🎭 Warm Amber Followspot' },
-                    { value: 'red_alert_siren', label: '🔴 Red Alert Rotating Beacon' }
+                    { value: 'prison_searchlight', label: '\u{1F526} Prison Watchtower Searchlight' },
+                    { value: 'tactical_flashlight', label: '\u{1F6A8} Tactical SWAT LED Flashlight' },
+                    { value: 'cyber_spotlight', label: '\u{1F6F8} Cyber Security Drone Beam' },
+                    { value: 'stage_spotlight', label: '\u{1F3AD} Warm Amber Followspot' },
+                    { value: 'red_alert_siren', label: '\u{1F534} Red Alert Rotating Beacon' }
                 ];
             case 'bats':
                 return [
-                    { value: 'dungeon_bats', label: '🦇 Swarming Dungeon Cave Bats' },
-                    { value: 'cemetery_crows', label: '🦅 Murder of Cemetery Crows / Ravens' },
-                    { value: 'desert_vultures', label: '🦅 Circling Desert Vultures' },
-                    { value: 'harbor_gulls', label: '🕊️ Gliding Coastal Seagulls' },
-                    { value: 'surveillance_drones', label: '🛰️ Micro Surveillance Drone Swarm' }
+                    { value: 'dungeon_bats', label: '\u{1F987} Swarming Dungeon Cave Bats' },
+                    { value: 'cemetery_crows', label: '\u{1F985} Murder of Cemetery Crows / Ravens' },
+                    { value: 'desert_vultures', label: '\u{1F985} Circling Desert Vultures' },
+                    { value: 'harbor_gulls', label: '\u{1F54A}\uFE0F Gliding Coastal Seagulls' },
+                    { value: 'surveillance_drones', label: '\u{1F6F0}\uFE0F Micro Surveillance Drone Swarm' }
                 ];
             case 'rats':
                 return [
-                    { value: 'sewer_rats', label: '🐀 Skittering Sewer Dungeon Rats' },
-                    { value: 'swarming_spiders', label: '🕷️ Swarming 8-Legged Spiders' },
-                    { value: 'robo_scuttlers', label: '🤖 Cybernetic Brass Robo-Beetles' },
-                    { value: 'shadow_crawlers', label: '🌑 Shadow Miasma Crawlers' },
-                    { value: 'cave_scorpions', label: '🦂 Dungeon Cave Scorpions' }
+                    { value: 'sewer_rats', label: '\u{1F400} Skittering Sewer Dungeon Rats' },
+                    { value: 'swarming_spiders', label: '\u{1F577}\uFE0F Swarming 8-Legged Spiders' },
+                    { value: 'robo_scuttlers', label: '\u{1F916} Cybernetic Brass Robo-Beetles' },
+                    { value: 'shadow_crawlers', label: '\u{1F311} Shadow Miasma Crawlers' },
+                    { value: 'cave_scorpions', label: '\u{1F982} Dungeon Cave Scorpions' }
                 ];
             case 'fish':
                 return [
-                    { value: 'koi_pond', label: '🎏 Ornate Swimming Koi Pond' },
-                    { value: 'ocean_sharks', label: '🦈 Predatory Ocean Sharks & Reef Fish' },
-                    { value: 'river_trout', label: '🐟 Speckled Brook River Trout' },
-                    { value: 'abyssal_biolum', label: '✨ Abyssal Bioluminescent Anglers' },
-                    { value: 'drone_minnows', label: '🛸 Cybernetic Aquatic Scout Minnows' }
+                    { value: 'koi_pond', label: '\u{1F38F} Ornate Swimming Koi Pond' },
+                    { value: 'ocean_sharks', label: '\u{1F988} Predatory Ocean Sharks & Reef Fish' },
+                    { value: 'river_trout', label: '\u{1F41F} Speckled Brook River Trout' },
+                    { value: 'abyssal_biolum', label: '\u2728 Abyssal Bioluminescent Anglers' },
+                    { value: 'drone_minnows', label: '\u{1F6F8} Cybernetic Aquatic Scout Minnows' }
                 ];
             case 'patrol_actor':
                 return [
-                    { value: 'will_o_wisp', label: '✨ Wandering Will-o\'-the-Wisp' },
-                    { value: 'gothic_ghost', label: '👻 Floating Spectral Phantom' },
-                    { value: 'patrol_drone', label: '🛸 Sentry Security Patrol Drone' },
-                    { value: 'fey_sprite', label: '🧚 Glowing Fey Forest Sprite' },
-                    { value: 'eldritch_eye', label: '👁️ Floating Eldritch Arcane Eye' }
+                    { value: 'will_o_wisp', label: '\u2728 Wandering Will-o\'-the-Wisp' },
+                    { value: 'gothic_ghost', label: '\u{1F47B} Floating Spectral Phantom' },
+                    { value: 'patrol_drone', label: '\u{1F6F8} Sentry Security Patrol Drone' },
+                    { value: 'fey_sprite', label: '\u{1F9DA} Glowing Fey Forest Sprite' },
+                    { value: 'eldritch_eye', label: '\u{1F441}\uFE0F Floating Eldritch Arcane Eye' }
                 ];
             case 'rain':
                 return [
-                    { value: 'storm_downpour', label: '🌧️ Heavy Downpour & Ground Splashes' },
-                    { value: 'drizzle', label: '🌦️ Gentle Atmospheric Drizzle' },
-                    { value: 'neon_rain', label: '🏮 Cyberpunk Neon Rain' },
-                    { value: 'acid_rain', label: '🧪 Caustic Toxic Acid Rain' }
+                    { value: 'storm_downpour', label: '\u{1F327}\uFE0F Heavy Downpour & Ground Splashes' },
+                    { value: 'drizzle', label: '\u{1F326}\uFE0F Gentle Atmospheric Drizzle' },
+                    { value: 'neon_rain', label: '\u{1F3EE} Cyberpunk Neon Rain' },
+                    { value: 'acid_rain', label: '\u{1F9EA} Caustic Toxic Acid Rain' }
                 ];
             case 'snow':
                 return [
-                    { value: 'blizzard_drift', label: '❄️ Mountain Snow Blizzard' },
-                    { value: 'flurry', label: '🌨️ Gentle Winter Flurry' },
-                    { value: 'ash_storm', label: '🌋 Volcanic Ash & Cinder Drift' }
+                    { value: 'blizzard_drift', label: '\u2744\uFE0F Mountain Snow Blizzard' },
+                    { value: 'flurry', label: '\u{1F328}\uFE0F Gentle Winter Flurry' },
+                    { value: 'ash_storm', label: '\u{1F30B} Volcanic Ash & Cinder Drift' }
                 ];
             case 'fog':
                 return [
-                    { value: 'ground_mist', label: '🌫️ Low Rolling Ground Mist' },
-                    { value: 'swamp_fog', label: '🌿 Murky Bayou Swamp Fog' },
-                    { value: 'toxic_smog', label: '☣️ Virulent Green Toxic Smog' },
-                    { value: 'cemetery_shroud', label: '⚰️ Gothic Cemetery Shroud' }
+                    { value: 'ground_mist', label: '\u{1F32B}\uFE0F Low Rolling Ground Mist' },
+                    { value: 'swamp_fog', label: '\u{1F33F} Murky Bayou Swamp Fog' },
+                    { value: 'toxic_smog', label: '\u2623\uFE0F Virulent Green Toxic Smog' },
+                    { value: 'cemetery_shroud', label: '\u26B0\uFE0F Gothic Cemetery Shroud' }
                 ];
             case 'dust':
                 return [
-                    { value: 'sandstorm_eddy', label: '🏜️ Raging Desert Sandstorm' },
-                    { value: 'dust_motes', label: '✨ Floating Ambient Dust Motes' },
-                    { value: 'ash_fall', label: '🌋 Post-Apocalyptic Ash Fall' }
+                    { value: 'sandstorm_eddy', label: '\u{1F3DC}\uFE0F Raging Desert Sandstorm' },
+                    { value: 'dust_motes', label: '\u2728 Floating Ambient Dust Motes' },
+                    { value: 'ash_fall', label: '\u{1F30B} Post-Apocalyptic Ash Fall' }
                 ];
             case 'hyperspace':
                 return [
-                    { value: 'astral_aurora', label: '🌌 Swirling Astral Aurora' },
-                    { value: 'warp_stars', label: '🚀 Hyperspace Warp Stars' },
-                    { value: 'void_rift', label: '🌀 Dimensional Void Rift' }
+                    { value: 'astral_aurora', label: '\u{1F30C} Swirling Astral Aurora' },
+                    { value: 'warp_stars', label: '\u{1F680} Hyperspace Warp Stars' },
+                    { value: 'void_rift', label: '\u{1F300} Dimensional Void Rift' }
                 ];
             case 'tentacles':
                 return [
-                    { value: 'abyssal_purple', label: '🐙 Abyssal Purple Void Tentacles' },
-                    { value: 'slimy_green', label: '🧪 Slimy Acid Tentacles' },
-                    { value: 'crimson_blood', label: '🩸 Crimson Flesh Tendrils' }
+                    { value: 'abyssal_purple', label: '\u{1F419} Abyssal Purple Void Tentacles' },
+                    { value: 'slimy_green', label: '\u{1F9EA} Slimy Acid Tentacles' },
+                    { value: 'crimson_blood', label: '\u{1FA78} Crimson Flesh Tendrils' }
                 ];
             case 'fountain':
                 return [
-                    { value: 'crystal_clear', label: '⛲ Crystal Clear Basin Fountain' },
-                    { value: 'blood_fount', label: '🩸 Sanguine Blood Fountain' },
-                    { value: 'alchemical_glow', label: '✨ Luminescent Alchemical Font' }
+                    { value: 'crystal_clear', label: '\u26F2 Crystal Clear Basin Fountain' },
+                    { value: 'blood_fount', label: '\u{1FA78} Sanguine Blood Fountain' },
+                    { value: 'alchemical_glow', label: '\u2728 Luminescent Alchemical Font' }
                 ];
             case 'fan':
                 return [
-                    { value: 'metal_duct', label: '💨 Industrial Duct Fan' },
-                    { value: 'warning_hazard', label: '⚠️ Caution Striped Extraction Vent' }
+                    { value: 'metal_duct', label: '\u{1F4A8} Industrial Duct Fan' },
+                    { value: 'warning_hazard', label: '\u26A0\uFE0F Caution Striped Extraction Vent' }
                 ];
             case 'crystal':
                 return [
-                    { value: 'amethyst_gem', label: '💎 Floating Amethyst Crystal' },
-                    { value: 'emerald_fel', label: '💚 Glowing Fel Emerald' },
-                    { value: 'plasma_shard', label: '🔷 Hyper-Space Warp Shard' }
+                    { value: 'amethyst_gem', label: '\u{1F48E} Floating Amethyst Crystal' },
+                    { value: 'emerald_fel', label: '\u{1F49A} Glowing Fel Emerald' },
+                    { value: 'plasma_shard', label: '\u{1F537} Hyper-Space Warp Shard' }
                 ];
             case 'headlights':
                 return [
-                    { value: 'halogen_pair', label: '💡 Twin Halogen Vehicle Beams' },
-                    { value: 'xenon_blue', label: '🚙 Xenon High-Beams' },
-                    { value: 'amber_fog', label: '🟨 Amber Heavy-Duty Foglights' }
+                    { value: 'halogen_pair', label: '\u{1F4A1} Twin Halogen Vehicle Beams' },
+                    { value: 'xenon_blue', label: '\u{1F699} Xenon High-Beams' },
+                    { value: 'amber_fog', label: '\u{1F7E8} Amber Heavy-Duty Foglights' }
                 ];
             case 'lightstrip':
                 return [
-                    { value: 'cyan_chevrons', label: '🟢 Cyan Running Chevrons' },
-                    { value: 'amber_hazard', label: '🟡 Caution Emergency Running Strip' },
-                    { value: 'red_alert', label: '🔴 Red Alert Evacuation Guide' }
+                    { value: 'cyan_chevrons', label: '\u{1F7E2} Cyan Running Chevrons' },
+                    { value: 'amber_hazard', label: '\u{1F7E1} Caution Emergency Running Strip' },
+                    { value: 'red_alert', label: '\u{1F534} Red Alert Evacuation Guide' }
                 ];
             case 'pit_trap':
                 return [
-                    { value: 'iron_spikes', label: '🕳️ Concealed Spike Pit Trap' },
-                    { value: 'abyssal_chasm', label: '🌑 Bottomless Abyssal Chasm' }
+                    { value: 'iron_spikes', label: '\u{1F573}\uFE0F Concealed Spike Pit Trap' },
+                    { value: 'abyssal_chasm', label: '\u{1F311} Bottomless Abyssal Chasm' }
                 ];
             case 'conveyor':
                 return [
-                    { value: 'hazard_track', label: '⚙️ Industrial Hazard Conveyor Track' },
-                    { value: 'cargo_belt', label: '📦 Starship Cargo Slat Belt' }
+                    { value: 'hazard_track', label: '\u2699\uFE0F Industrial Hazard Conveyor Track' },
+                    { value: 'cargo_belt', label: '\u{1F4E6} Starship Cargo Slat Belt' }
                 ];
             default:
                 return [];
@@ -867,7 +875,7 @@ class BattlemapApp {
             if (curVariant && !variants.some(v => v.value === curVariant)) {
                 variants.unshift({
                     value: curVariant,
-                    label: `✨ ${(catDef && catDef.name) || curVariant} (Default)`
+                    label: `\u2728 ${(catDef && catDef.name) || curVariant} (Default)`
                 });
             }
             if (variants.length > 0) {
@@ -896,24 +904,24 @@ class BattlemapApp {
 
             if (effectiveBase === 'forest') {
                 if (shapeHint) {
-                    shapeHint.innerHTML = `🌳 <b style="color: var(--primary);">Forest Shape Handles Active:</b> Drag <b>cyan circles</b> on the map to shape the forest around roads or clearings, click <b>+</b> to add corners, or use <b>Entity Quantity</b> above to add/remove trees!`;
+                    shapeHint.innerHTML = `\u{1F333} <b style="color: var(--primary);">Forest Shape Handles Active:</b> Drag <b>cyan circles</b> on the map to shape the forest around roads or clearings, click <b>+</b> to add corners, or use <b>Entity Quantity</b> above to add/remove trees!`;
                 }
                 if (shapeLabel) shapeLabel.textContent = 'Forest Shape Mode';
                 if (shapeSelect) {
                     shapeSelect.innerHTML = `
-                        <option value="polygon">🌳 Custom Forest Grove Fill (Perimeter Handles)</option>
-                        <option value="spline">🌲 Curved Treeline / Hedgerow (Path &amp; Width Handles)</option>
+                        <option value="polygon">\u{1F333} Custom Forest Grove Fill (Perimeter Handles)</option>
+                        <option value="spline">\u{1F332} Curved Treeline / Hedgerow (Path &amp; Width Handles)</option>
                     `;
                 }
             } else {
                 if (shapeHint) {
-                    shapeHint.innerHTML = `💧 <b style="color: var(--primary);">Water Shape Handles Active:</b> Drag <b>cyan circles</b> on the map to shape the pond/river, <b>amber diamonds</b> to widen banks, or click <b>+</b> to add handles!`;
+                    shapeHint.innerHTML = `\u{1F4A7} <b style="color: var(--primary);">Water Shape Handles Active:</b> Drag <b>cyan circles</b> on the map to shape the pond/river, <b>amber diamonds</b> to widen banks, or click <b>+</b> to add handles!`;
                 }
                 if (shapeLabel) shapeLabel.textContent = 'Water / Pond Shape Mode';
                 if (shapeSelect) {
                     shapeSelect.innerHTML = `
-                        <option value="polygon">💧 Custom Pond / Pool / Lake (Perimeter Handles)</option>
-                        <option value="spline">🌊 Curved River / Stream Path (Bend &amp; Width Handles)</option>
+                        <option value="polygon">\u{1F4A7} Custom Pond / Pool / Lake (Perimeter Handles)</option>
+                        <option value="spline">\u{1F30A} Curved River / Stream Path (Bend &amp; Width Handles)</option>
                     `;
                 }
             }
@@ -931,7 +939,7 @@ class BattlemapApp {
             const sizeSlider = inspector.querySelector('#inspector-size');
             const sizeVal = inspector.querySelector('#inspector-size-val');
             if (sizeSlider) sizeSlider.value = Math.max(30, Math.min(4000, avgSize));
-            if (sizeVal) sizeVal.textContent = `${el.width}×${el.height}px`;
+            if (sizeVal) sizeVal.textContent = `${el.width}\u00D7${el.height}px`;
 
             const aspectSlider = inspector.querySelector('#inspector-aspect');
             const aspectVal = inspector.querySelector('#inspector-aspect-val');
@@ -952,17 +960,17 @@ class BattlemapApp {
         const tiltXSlider = inspector.querySelector('#inspector-tilt-x');
         const tiltXVal = inspector.querySelector('#inspector-tilt-x-val');
         if (tiltXSlider) tiltXSlider.value = tiltX;
-        if (tiltXVal) tiltXVal.textContent = `${tiltX}°`;
+        if (tiltXVal) tiltXVal.textContent = `${tiltX}\u00B0`;
 
         const tiltYSlider = inspector.querySelector('#inspector-tilt-y');
         const tiltYVal = inspector.querySelector('#inspector-tilt-y-val');
         if (tiltYSlider) tiltYSlider.value = tiltY;
-        if (tiltYVal) tiltYVal.textContent = `${tiltY}°`;
+        if (tiltYVal) tiltYVal.textContent = `${tiltY}\u00B0`;
 
         const rotSlider = inspector.querySelector('#inspector-rotation');
         const rotVal = inspector.querySelector('#inspector-rotation-val');
         if (rotSlider) rotSlider.value = rot;
-        if (rotVal) rotVal.textContent = `${rot}°`;
+        if (rotVal) rotVal.textContent = `${rot}\u00B0`;
 
         // Sync Perspective Preset buttons active state
         const presetBtns = inspector.querySelectorAll('.perspective-preset-btn');
@@ -1024,6 +1032,20 @@ class BattlemapApp {
         if (elScaleSlider) elScaleSlider.value = elScale;
         if (elScaleVal) elScaleVal.textContent = `${elScale.toFixed(2)}x (${Math.round(elScale * 100)}%)`;
 
+        // 4C. Sync Path Width Variance (Organic Taper & Jitter)
+        const widthVar = (el.config && el.config.widthVariance !== undefined) ? parseFloat(el.config.widthVariance) : 0.0;
+        const widthVarSlider = inspector.querySelector('#inspector-width-variance');
+        const widthVarVal = inspector.querySelector('#inspector-width-variance-val');
+        if (widthVarSlider) widthVarSlider.value = widthVar;
+        if (widthVarVal) {
+            const pct = Math.round(widthVar * 100);
+            widthVarVal.textContent = pct === 0 ? '0% (Uniform)' : `${pct}% (Organic)`;
+        }
+        inspector.querySelectorAll('.inspector-variance-chip').forEach(chip => {
+            const cv = parseFloat(chip.getAttribute('data-variance') || 0);
+            chip.classList.toggle('active', Math.abs(cv - widthVar) < 0.05);
+        });
+
         const twGroup = inspector.querySelector('#inspector-tumbleweed-group');
         const twSlider = inspector.querySelector('#inspector-tumbleweed-count');
         const twVal = inspector.querySelector('#inspector-tumbleweed-count-val');
@@ -1048,7 +1070,7 @@ class BattlemapApp {
         const hueSlider = inspector.querySelector('#inspector-hue');
         const hueVal = inspector.querySelector('#inspector-hue-val');
         if (hueSlider) hueSlider.value = hue;
-        if (hueVal) hueVal.textContent = `${hue > 0 ? '+' : ''}${hue}°`;
+        if (hueVal) hueVal.textContent = `${hue > 0 ? '+' : ''}${hue}\u00B0`;
 
         inspector.querySelectorAll('.inspector-hue-chip').forEach(chip => {
             const chipHue = parseInt(chip.getAttribute('data-hue') || '0', 10);
@@ -1270,14 +1292,14 @@ class BattlemapApp {
         const btnResetKeystone = document.getElementById('btn-reset-keystone');
         if (btnResetKeystone) {
             btnResetKeystone.addEventListener('click', () => {
-                if (confirm('Reset keystone corner pins to touch-safe inset rectangle?')) {
-                    window.keystoneEngine.reset(6.0);
+                if (confirm('Reset keystone corner pins to full edge-to-edge screen?')) {
+                    window.keystoneEngine.reset(0.0);
                     const slider = document.getElementById('keystone-inset-slider');
-                    if (slider) slider.value = 6.0;
+                    if (slider) slider.value = 0.0;
                     const val = document.getElementById('keystone-inset-val');
-                    if (val) val.textContent = '6.0%';
+                    if (val) val.textContent = '0.0%';
                     document.querySelectorAll('.keystone-inset-chip').forEach(c => {
-                        c.classList.toggle('active', c.getAttribute('data-inset') === '6');
+                        c.classList.toggle('active', c.getAttribute('data-inset') === '0');
                     });
                 }
             });
@@ -1628,7 +1650,7 @@ class BattlemapApp {
                 const cur = window.livingElementsEngine.isLocked;
                 window.livingElementsEngine.setLocked(!cur);
                 lockBtn.classList.toggle('active', !cur);
-                lockBtn.innerHTML = !cur ? '🔒 Locked (Touch-Safe)' : '🔓 Unlock Overlays';
+                lockBtn.innerHTML = !cur ? '\u{1F512} Locked (Touch-Safe)' : '\u{1F513} Unlock Overlays';
             });
         }
 
@@ -1706,6 +1728,20 @@ class BattlemapApp {
             chip.addEventListener('click', () => {
                 const w = parseInt(chip.getAttribute('data-width'), 10);
                 if (window.livingElementsEngine) window.livingElementsEngine.setDrawStrokeWidth(w);
+            });
+        });
+
+        const drawVarSlider = document.getElementById('fx-draw-variance-slider');
+        if (drawVarSlider) {
+            drawVarSlider.addEventListener('input', (e) => {
+                if (window.livingElementsEngine) window.livingElementsEngine.setDrawWidthVariance(e.target.value);
+            });
+        }
+
+        document.querySelectorAll('.fx-draw-variance-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const v = parseFloat(chip.getAttribute('data-variance') || 0);
+                if (window.livingElementsEngine) window.livingElementsEngine.setDrawWidthVariance(v);
             });
         });
 
@@ -1915,7 +1951,7 @@ class BattlemapApp {
                     if (activeGenre === 'all') {
                         countDisplay.textContent = `Showing 125 in ${secName} (375 Total)`;
                     } else {
-                        countDisplay.textContent = `Showing 25 in ${secName} (${gName} • 75 Total)`;
+                        countDisplay.textContent = `Showing 25 in ${secName} (${gName} \u2022 75 Total)`;
                     }
                 }
             }
@@ -2111,7 +2147,7 @@ class BattlemapApp {
                     dse.morphState.stateADataUrl = this.currentMap.src;
                     const mapImg = document.getElementById('map-image');
                     if (mapImg) mapImg.src = this.currentMap.src;
-                    btnSetPhaseA.textContent = '✓ Phase A Set';
+                    btnSetPhaseA.textContent = '\u2713 Phase A Set';
                     setTimeout(() => { btnSetPhaseA.textContent = 'Use Current Map'; }, 1500);
                 }
             });
@@ -2127,7 +2163,7 @@ class BattlemapApp {
                         dse.setCustomMorphImage(ev.target.result);
                         dse.setMorphProgress(50);
                         updateDisplay(50);
-                        btnUploadB.textContent = '✓ Custom B Loaded';
+                        btnUploadB.textContent = '\u2713 Custom B Loaded';
                         setTimeout(() => { btnUploadB.textContent = 'Upload Custom B'; }, 2000);
                     };
                     reader.readAsDataURL(e.target.files[0]);
@@ -2240,7 +2276,7 @@ class BattlemapApp {
                 const next = !dse.chaseState.enabled;
                 dse.setChaseEnabled(next);
                 btnToggleChase.classList.toggle('active', next);
-                btnToggleChase.innerHTML = next ? '⏹ Chase Active: ON' : '▶ Start Chase: OFF';
+                btnToggleChase.innerHTML = next ? '\u23F9 Chase Active: ON' : '\u25B6 Start Chase: OFF';
             });
         }
         if (chaseVehicleSelect) {
@@ -2432,7 +2468,7 @@ class BattlemapApp {
                 el.canvas.width = el.width;
                 el.canvas.height = el.height;
             }
-            if (sizeVal) sizeVal.textContent = `${el.width}×${el.height}px`;
+            if (sizeVal) sizeVal.textContent = `${el.width}\u00D7${el.height}px`;
             if (aspectVal) aspectVal.textContent = `${aspectRatio.toFixed(2)}x`;
             if (widthInput) widthInput.value = el.width;
             if (heightInput) heightInput.value = el.height;
@@ -2462,7 +2498,7 @@ class BattlemapApp {
                 if (id && !isNaN(val)) {
                     window.livingElementsEngine.setElementDimensions(id, val, undefined);
                     const el = window.livingElementsEngine.elements.find(x => x.id === id);
-                    if (el && sizeVal) sizeVal.textContent = `${el.width}×${el.height}px`;
+                    if (el && sizeVal) sizeVal.textContent = `${el.width}\u00D7${el.height}px`;
                 }
             });
         }
@@ -2474,7 +2510,7 @@ class BattlemapApp {
                 if (id && !isNaN(val)) {
                     window.livingElementsEngine.setElementDimensions(id, undefined, val);
                     const el = window.livingElementsEngine.elements.find(x => x.id === id);
-                    if (el && sizeVal) sizeVal.textContent = `${el.width}×${el.height}px`;
+                    if (el && sizeVal) sizeVal.textContent = `${el.width}\u00D7${el.height}px`;
                 }
             });
         }
@@ -2534,12 +2570,43 @@ class BattlemapApp {
             });
         }
 
+        const widthVarSlider = inspector.querySelector('#inspector-width-variance');
+        const widthVarVal = inspector.querySelector('#inspector-width-variance-val');
+        if (widthVarSlider) {
+            widthVarSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                const pct = Math.round(val * 100);
+                if (widthVarVal) widthVarVal.textContent = pct === 0 ? '0% (Uniform)' : `${pct}% (Organic)`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { widthVariance: val });
+                inspector.querySelectorAll('.inspector-variance-chip').forEach(chip => {
+                    const cv = parseFloat(chip.getAttribute('data-variance') || 0);
+                    chip.classList.toggle('active', Math.abs(cv - val) < 0.05);
+                });
+            });
+        }
+
+        inspector.querySelectorAll('.inspector-variance-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const val = parseFloat(chip.getAttribute('data-variance') || 0);
+                if (widthVarSlider) widthVarSlider.value = val;
+                const pct = Math.round(val * 100);
+                if (widthVarVal) widthVarVal.textContent = pct === 0 ? '0% (Uniform)' : `${pct}% (Organic)`;
+                const id = window.livingElementsEngine.selectedElementId;
+                if (id) window.livingElementsEngine.updateElementConfig(id, { widthVariance: val });
+                inspector.querySelectorAll('.inspector-variance-chip').forEach(c => {
+                    const cv = parseFloat(c.getAttribute('data-variance') || 0);
+                    c.classList.toggle('active', Math.abs(cv - val) < 0.05);
+                });
+            });
+        });
+
         const btnResetFractal = inspector.querySelector('#btn-reset-el-fractal');
         if (btnResetFractal) {
             btnResetFractal.addEventListener('click', () => {
                 const id = window.livingElementsEngine.selectedElementId;
                 if (id) {
-                    window.livingElementsEngine.updateElementConfig(id, { fractalRoughness: 0.75, elementScale: 1.0, scale: 1.0 });
+                    window.livingElementsEngine.updateElementConfig(id, { fractalRoughness: 0.75, elementScale: 1.0, scale: 1.0, widthVariance: 0.0 });
                     const el = window.livingElementsEngine.elements.find(x => x.id === id);
                     if (el) this.updateElementInspector(el);
                 }
@@ -2552,7 +2619,7 @@ class BattlemapApp {
         if (tiltXSlider) {
             tiltXSlider.addEventListener('input', (e) => {
                 const val = parseInt(e.target.value, 10);
-                if (tiltXVal) tiltXVal.textContent = `${val}°`;
+                if (tiltXVal) tiltXVal.textContent = `${val}\u00B0`;
                 const id = window.livingElementsEngine.selectedElementId;
                 if (id) window.livingElementsEngine.updateElementConfig(id, { tiltX: val });
             });
@@ -2563,7 +2630,7 @@ class BattlemapApp {
         if (tiltYSlider) {
             tiltYSlider.addEventListener('input', (e) => {
                 const val = parseInt(e.target.value, 10);
-                if (tiltYVal) tiltYVal.textContent = `${val}°`;
+                if (tiltYVal) tiltYVal.textContent = `${val}\u00B0`;
                 const id = window.livingElementsEngine.selectedElementId;
                 if (id) window.livingElementsEngine.updateElementConfig(id, { tiltY: val });
             });
@@ -2577,7 +2644,7 @@ class BattlemapApp {
                 const el = window.livingElementsEngine.elements.find(x => x.id === id);
                 if (el) {
                     el.rotation = parseInt(e.target.value, 10);
-                    if (rotVal) rotVal.textContent = `${el.rotation}°`;
+                    if (rotVal) rotVal.textContent = `${el.rotation}\u00B0`;
                     window.livingElementsEngine.applyElementTransform(el);
                     window.livingElementsEngine.notify();
                 }
@@ -2652,7 +2719,7 @@ class BattlemapApp {
         if (hueSlider) {
             hueSlider.addEventListener('input', (e) => {
                 const val = parseInt(e.target.value, 10) || 0;
-                if (hueVal) hueVal.textContent = `${val > 0 ? '+' : ''}${val}°`;
+                if (hueVal) hueVal.textContent = `${val > 0 ? '+' : ''}${val}\u00B0`;
                 inspector.querySelectorAll('.inspector-hue-chip').forEach(chip => {
                     const ch = parseInt(chip.getAttribute('data-hue') || '0', 10);
                     chip.classList.toggle('active', Math.abs(ch - val) <= 4);
@@ -2666,7 +2733,7 @@ class BattlemapApp {
             chip.addEventListener('click', () => {
                 const val = parseInt(chip.getAttribute('data-hue') || '0', 10);
                 if (hueSlider) hueSlider.value = val;
-                if (hueVal) hueVal.textContent = `${val > 0 ? '+' : ''}${val}°`;
+                if (hueVal) hueVal.textContent = `${val > 0 ? '+' : ''}${val}\u00B0`;
                 inspector.querySelectorAll('.inspector-hue-chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 const id = window.livingElementsEngine.selectedElementId;
@@ -2899,7 +2966,7 @@ class BattlemapApp {
                 const chip = document.createElement('div');
                 chip.className = `prompt-toggle-chip ${t.active ? 'active' : ''}`;
                 chip.title = `Toggle prompt modifier: "${t.text}"`;
-                chip.innerHTML = `<span class="chip-check">${t.active ? '✓' : '+'}</span><span>${t.label}</span>`;
+                chip.innerHTML = `<span class="chip-check">${t.active ? '\u2713' : '+'}</span><span>${t.label}</span>`;
                 chip.addEventListener('click', () => {
                     window.aiMapGenerator.togglePromptChip(t.id);
                     renderToggles();
@@ -3008,7 +3075,7 @@ class BattlemapApp {
         const onCustomResChange = () => {
             const w = parseInt(resWInput ? resWInput.value : 3840, 10) || 3840;
             const h = parseInt(resHInput ? resHInput.value : 2160, 10) || 2160;
-            window.aiMapGenerator.setResolution(w, h, `${w}×${h} Custom`);
+            window.aiMapGenerator.setResolution(w, h, `${w}\u00D7${h} Custom`);
             syncResolutionAndFitUI();
             syncPromptBox();
         };
@@ -3033,12 +3100,12 @@ class BattlemapApp {
         if (btnUpscale4K) {
             btnUpscale4K.addEventListener('click', async () => {
                 const st = window.aiMapGenerator.state;
-                showStatus(`⚡ Upscaling & fitting active map to <b>${st.w} × ${st.h} px (${st.fitMode})</b>...`, false, 0);
+                showStatus(`\u26A1 Upscaling & fitting active map to <b>${st.w} \u00D7 ${st.h} px (${st.fitMode})</b>...`, false, 0);
                 const res = await this.reprocessActiveMapToTarget();
                 if (res && res.dataUrl) {
-                    showStatus(`✅ Active map scaled & fitted to <b>${res.width} × ${res.height} px</b>!`, false, 4500);
+                    showStatus(`\u2705 Active map scaled & fitted to <b>${res.width} \u00D7 ${res.height} px</b>!`, false, 4500);
                 } else {
-                    showStatus(`⚠️ Could not reprocess active map.`, true, 4000);
+                    showStatus(`\u26A0\uFE0F Could not reprocess active map.`, true, 4000);
                 }
             });
         }
@@ -3065,7 +3132,7 @@ class BattlemapApp {
                 window.aiMapGenerator.setAllToggles(true, true);
                 renderToggles();
                 syncPromptBox();
-                showStatus(`🔄 Master prompt reset to current studio selections.`, false, 3000);
+                showStatus(`\u{1F504} Master prompt reset to current studio selections.`, false, 3000);
             });
         }
 
@@ -3075,7 +3142,7 @@ class BattlemapApp {
                 try {
                     await navigator.clipboard.writeText(promptInput.value);
                     const oldText = btnCopyPrompt.innerHTML;
-                    btnCopyPrompt.innerHTML = '✅ Copied!';
+                    btnCopyPrompt.innerHTML = '\u2705 Copied!';
                     setTimeout(() => { btnCopyPrompt.innerHTML = oldText; }, 2000);
                 } catch (e) {
                     promptInput.select();
@@ -3090,7 +3157,7 @@ class BattlemapApp {
                 const loc = locationInput ? locationInput.value.trim() : '';
                 const assembled = promptInput ? promptInput.value.trim() : '';
                 await window.aiMapGenerator.openPopoutSearch('gemini', loc, assembled);
-                showStatus(`🌟 <b>Gemini Companion Popup Opened & Prompt Copied!</b> Press <b>Ctrl+V</b> in Gemini to generate your 4K map, then right-click the image &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> right here in AetherTable!`, false, 10000);
+                showStatus(`\u{1F31F} <b>Gemini Companion Popup Opened & Prompt Copied!</b> Press <b>Ctrl+V</b> in Gemini to generate your 4K map, then right-click the image &rarr; <b>"Copy Image"</b> &rarr; press <b>Ctrl+V</b> right here in AetherTable!`, false, 10000);
             });
         }
 
@@ -3099,11 +3166,11 @@ class BattlemapApp {
             const triggerDirectUrl = async () => {
                 const url = directUrlInput.value.trim();
                 if (!url) return;
-                showStatus(`⏳ Loading & processing map URL to target 4K resolution...`, false, 0);
+                showStatus(`\u23F3 Loading & processing map URL to target 4K resolution...`, false, 0);
                 const res = await this.loadAndProcessMapImage(url, 'Direct URL Map', false, 'Direct URL');
                 directUrlInput.value = '';
                 if (res) {
-                    showStatus(`✅ Loaded & fitted map (<b>${res.width}×${res.height} px</b>) onto the tabletop!`, false, 4500);
+                    showStatus(`\u2705 Loaded & fitted map (<b>${res.width}\u00D7${res.height} px</b>) onto the tabletop!`, false, 4500);
                 }
             };
             btnLoadDirectUrl.addEventListener('click', triggerDirectUrl);
@@ -3120,7 +3187,7 @@ class BattlemapApp {
             btnPasteClipboard.addEventListener('click', async () => {
                 try {
                     if (!navigator.clipboard || !navigator.clipboard.read) {
-                        showStatus(`💡 Press <b>Ctrl+V</b> (or Cmd+V) anywhere in this window to paste your copied map image!`, false, 6000);
+                        showStatus(`\u{1F4A1} Press <b>Ctrl+V</b> (or Cmd+V) anywhere in this window to paste your copied map image!`, false, 6000);
                         return;
                     }
                     const items = await navigator.clipboard.read();
@@ -3129,13 +3196,13 @@ class BattlemapApp {
                         if (imgType) {
                             const blob = await item.getType(imgType);
                             this.handleFileUpload(blob, 'Pasted Clipboard Map');
-                            showStatus(`✅ Pasted & auto-fitted clipboard map onto the tabletop!`, false, 4000);
+                            showStatus(`\u2705 Pasted & auto-fitted clipboard map onto the tabletop!`, false, 4000);
                             return;
                         }
                     }
-                    showStatus(`⚠️ No image found on clipboard. Right-click an image in Gemini and choose <b>"Copy Image"</b> first, or press <b>Ctrl+V</b>.`, true, 5000);
+                    showStatus(`\u26A0\uFE0F No image found on clipboard. Right-click an image in Gemini and choose <b>"Copy Image"</b> first, or press <b>Ctrl+V</b>.`, true, 5000);
                 } catch (err) {
-                    showStatus(`💡 Press <b>Ctrl+V</b> on your keyboard anywhere in this window to paste your copied map image!`, false, 6000);
+                    showStatus(`\u{1F4A1} Press <b>Ctrl+V</b> on your keyboard anywhere in this window to paste your copied map image!`, false, 6000);
                 }
             });
         }
@@ -3152,9 +3219,9 @@ class BattlemapApp {
             btnCopyCurrent.addEventListener('click', async () => {
                 const res = await this.copyMapToClipboard();
                 if (res) {
-                    showStatus(`✅ Copied <b>${res.width}×${res.height} px</b> adjusted map image to clipboard!`, false, 4000);
+                    showStatus(`\u2705 Copied <b>${res.width}\u00D7${res.height} px</b> adjusted map image to clipboard!`, false, 4000);
                 } else {
-                    showStatus(`⚠️ Could not copy map image to clipboard. Try <b>💾 Download 4K</b> instead.`, true, 4000);
+                    showStatus(`\u26A0\uFE0F Could not copy map image to clipboard. Try <b>\u{1F4BE} Download 4K</b> instead.`, true, 4000);
                 }
             });
         }
@@ -3164,7 +3231,7 @@ class BattlemapApp {
             btnSaveCurrent.addEventListener('click', () => {
                 this.saveMapToDisk(null, this.currentMap.name);
                 const st = window.aiMapGenerator ? window.aiMapGenerator.state : { w: 3840, h: 2160 };
-                showStatus(`💾 Exported <b>${st.w}×${st.h} px</b> battlemap (with brightness, contrast, saturation & sharpness baked in)!`, false, 4500);
+                showStatus(`\u{1F4BE} Exported <b>${st.w}\u00D7${st.h} px</b> battlemap (with brightness, contrast, saturation & sharpness baked in)!`, false, 4500);
             });
         }
 
@@ -3173,7 +3240,7 @@ class BattlemapApp {
             btnClearHistory.addEventListener('click', () => {
                 if (window.aiMapGenerator) {
                     window.aiMapGenerator.clearHistory();
-                    showStatus(`🗑️ Session map history cleared.`, false, 3000);
+                    showStatus(`\u{1F5D1}\uFE0F Session map history cleared.`, false, 3000);
                 }
             });
         }

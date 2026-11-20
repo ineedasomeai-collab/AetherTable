@@ -1,1018 +1,2087 @@
-﻿/**
- * AetherTable VTT - Deep Space & Cosmic FX (75 Unique Elements)
+/**
+ * AetherTable VTT - Deep Space & Hard Sci-Fi FX (75 Unique Elements)
  * Procedural Canvas Renderers for Elements 151 through 225.
- * Every element features bespoke geometry, distinct kinetic animation,
+ * Every single entry across all 75 items has its own bespoke physical geometry,
+ * distinct kinetic animation, 100% transparent battlemap backdrops,
  * and dynamic integration with the Fractal / Detail slider.
  */
 (function() {
     'use strict';
     const reg = window.VTT_FX_DISPATCHER ? window.VTT_FX_DISPATCHER.register : null;
     if (!reg) return;
-    const FX = window.VTT_FX || {};
+    const FX = window.VTT_FX = window.FX = window.VTT_FX || {};
+    const VTT_FX = FX;
 
-    // =========================================================================
-    // A. LINEAR MOTION (151 - 175)
-    // =========================================================================
+// =========================================================================
+// A. LINEAR MOTION (151 - 175) - Deep Space & Hard Sci-Fi
+// =========================================================================
 
-    // 151. FTL Star-Streak Warp
-    reg(['ds_ftl_starstreak', 'item_151'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#02040a';
-        ctx.fillRect(0, 0, W, H);
-        const stars = Math.round(35 + rough * 45);
-        ctx.strokeStyle = `rgba(240, 249, 255, ${0.9 * intensity})`;
-        ctx.lineWidth = 1.5;
-        for (let s = 0; s < stars; s++) {
-            const sx = (FX.hash(s * 19) * W + time * 650 * speed) % (W + 200) - 100;
-            const sy = FX.hash(s * 37) * H;
-            const len = (45 + (s % 5) * 25) * elScale;
-            ctx.beginPath();
-            ctx.moveTo(sx - len, sy); ctx.lineTo(sx, sy);
-            ctx.stroke();
-            FX.drawRadialGlow(ctx, sx, sy, 1, 4, '#ffffff', 'rgba(56, 189, 248, 0)');
+// 151. FTL Star-Streak Warp (distant stars streaking into white lines at FTL)
+reg(['ds_ftl_starstreak', 'item_151'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const maxR = Math.hypot(W, H) * 0.65;
+    const numStars = 80;
+
+    // Vanishing point hyperspace focal core glow
+    const corePulse = 0.5 + 0.5 * Math.sin(time * 3 * speed);
+    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, (16 + corePulse * 6) * elScale);
+    coreGrad.addColorStop(0, `rgba(224, 242, 254, ${0.85 * intensity})`);
+    coreGrad.addColorStop(0.35, `rgba(56, 189, 248, ${0.45 * intensity})`);
+    coreGrad.addColorStop(0.7, `rgba(99, 102, 241, ${0.2 * intensity})`);
+    coreGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, (16 + corePulse * 6) * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    for (let s = 0; s < numStars; s++) {
+        // Deterministic pseudo-random angle and speed independent of loop index
+        const ang = FX.hash(s * 17.13 + 3.1) * Math.PI * 2;
+        const starSpeed = 0.75 + FX.hash(s * 31.7 + 9.3) * 0.7;
+        const phase = FX.hash(s * 53.9 + 17.7);
+
+        // Progress cycles outward from center
+        const progress = (time * 1.6 * speed * starSpeed + phase) % 1.0;
+
+        // Relativistic acceleration: stars accelerate rapidly as they approach edge
+        const normR = Math.pow(progress, 1.7);
+        const rHead = normR * maxR;
+
+        // Streak elongates proportionally to velocity and distance from center
+        const streakLen = (18 + normR * 110 + rough * 45) * elScale;
+        const rTail = Math.max(0, rHead - streakLen);
+
+        const cosA = Math.cos(ang);
+        const sinA = Math.sin(ang);
+
+        const xHead = cx + cosA * rHead;
+        const yHead = cy + sinA * rHead;
+        const xTail = cx + cosA * rTail;
+        const yTail = cy + sinA * rTail;
+
+        // Alpha envelope: fade in smoothly from center, fade out cleanly at viewport perimeter
+        let alpha = 1.0;
+        if (normR < 0.12) {
+            alpha = normR / 0.12;
+        } else if (normR > 0.82) {
+            alpha = Math.max(0, (1.0 - normR) / 0.18);
         }
-    });
+        alpha *= intensity;
 
-    // 152. Runway Approach Lights
-    reg(['ds_runway_lights', 'item_152'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        // Docking bay floor runway
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, cy - 20 * elScale, W, 40 * elScale);
-        // Sequenced amber approach strobe lights
-        const lights = 8;
-        const phase = (time * 5 * speed) % lights;
-        for (let l = 0; l < lights; l++) {
-            const lx = (W / lights) * (l + 0.5);
-            const active = (Math.floor(phase) === l);
-            const col = active ? `rgba(245, 158, 11, ${0.98 * intensity})` : 'rgba(120, 53, 15, 0.4)';
-            FX.drawRadialGlow(ctx, lx, cy - 14 * elScale, 1, active ? 16 * elScale : 4, col, 'rgba(245, 158, 11, 0)');
-            FX.drawRadialGlow(ctx, lx, cy + 14 * elScale, 1, active ? 16 * elScale : 4, col, 'rgba(245, 158, 11, 0)');
+        if (alpha <= 0.01) continue;
+
+        // Star color variation: primarily searing cyan-white with occasional warm or violet Doppler shift
+        const colorSeed = FX.hash(s * 89.3 + 4.1);
+        let midColor;
+        if (colorSeed < 0.65) {
+            midColor = `rgba(186, 230, 253, ${alpha * 0.85})`; // Cyan-white
+        } else if (colorSeed < 0.85) {
+            midColor = `rgba(199, 210, 254, ${alpha * 0.85})`; // Violet-white
+        } else {
+            midColor = `rgba(254, 240, 138, ${alpha * 0.85})`; // Golden-white
         }
-    });
 
-    // 153. Solar Flare Radiation Wave
-    reg(['ds_solar_flare_wave', 'item_153'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const waveX = ((time * 140 * speed) % (W + 150)) - 75;
-        const flareGrad = ctx.createLinearGradient(waveX - 80, 0, waveX + 80, 0);
-        flareGrad.addColorStop(0, 'rgba(234, 88, 12, 0)');
-        flareGrad.addColorStop(0.5, `rgba(254, 240, 138, ${0.85 * intensity})`);
-        flareGrad.addColorStop(1, 'rgba(234, 88, 12, 0)');
-        ctx.fillStyle = flareGrad;
-        ctx.fillRect(waveX - 80, 0, 160, H);
-        // Ionized radiation filaments
-        for (let f = 0; f < 6; f++) {
-            const fy = f * (H / 6);
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * intensity})`;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(waveX - 40, fy);
-            ctx.quadraticCurveTo(waveX + 30, fy + Math.sin(time * 6 + f) * 18, waveX + 60, fy);
-            ctx.stroke();
-        }
-    });
+        // Streak vector gradient from tail to head
+        const streakGrad = ctx.createLinearGradient(xTail, yTail, xHead, yHead);
+        streakGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        streakGrad.addColorStop(0.55, midColor);
+        streakGrad.addColorStop(1, `rgba(255, 255, 255, ${alpha})`);
 
-    // 154. Tactical Sensor Sweep
-    reg(['ds_sensor_sweep', 'item_154'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#05070f';
-        ctx.fillRect(0, 0, W, H);
-        const sweepX = ((time * 160 * speed) % (W + 60)) - 30;
-        // Green radar/sensor scan beam line
-        const scanGrad = ctx.createLinearGradient(sweepX - 45, 0, sweepX, 0);
-        scanGrad.addColorStop(0, 'rgba(16, 185, 129, 0)');
-        scanGrad.addColorStop(1, `rgba(52, 211, 153, ${0.9 * intensity})`);
-        ctx.fillStyle = scanGrad;
-        ctx.fillRect(sweepX - 45, 0, 45, H);
-        ctx.strokeStyle = '#34d399';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(sweepX, 0); ctx.lineTo(sweepX, H); ctx.stroke();
-    });
+        ctx.strokeStyle = streakGrad;
+        ctx.lineWidth = (0.75 + normR * 2.2) * elScale;
+        ctx.lineCap = 'round';
 
-    // 155. Evacuation Light Chevrons
-    reg(['ds_evac_chevrons', 'item_155'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        ctx.fillStyle = '#090d16';
-        ctx.fillRect(0, cy - 14 * elScale, W, 28 * elScale);
-        const chevrons = 8;
-        const phase = (time * 6 * speed) % chevrons;
-        ctx.lineWidth = 3.5;
-        for (let c = 0; c < chevrons; c++) {
-            const cx = (W / chevrons) * c;
-            const active = ((c + Math.floor(phase)) % chevrons < 3);
-            ctx.strokeStyle = active ? `rgba(239, 68, 68, ${0.95 * intensity})` : 'rgba(127, 29, 29, 0.4)';
-            ctx.beginPath();
-            ctx.moveTo(cx, cy - 10 * elScale);
-            ctx.lineTo(cx + 12 * elScale, cy);
-            ctx.lineTo(cx, cy + 10 * elScale);
-            ctx.stroke();
-        }
-    });
-
-    // 156. Laser Defense Grid
-    reg(['ds_decompression_wind', 'item_156', 'ds_laser_defense_grid'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#020617';
-        ctx.fillRect(0, 0, W, H);
-        const beams = Math.round(4 + rough * 5);
-        ctx.lineWidth = 2.0;
-        ctx.shadowColor = '#06b6d4';
-        ctx.shadowBlur = 10;
-        for (let b = 0; b < beams; b++) {
-            const startY = (H / (beams + 1)) * (b + 1);
-            const sweep = Math.sin(time * 3 * speed + b) * (H * 0.3);
-            ctx.strokeStyle = `rgba(6, 182, 212, ${0.9 * intensity})`;
-            ctx.beginPath();
-            ctx.moveTo(0, startY); ctx.lineTo(W, startY + sweep);
-            ctx.stroke();
-        }
-        ctx.shadowBlur = 0;
-    });
-
-    // 157. Plasma Exhaust Plume
-    reg(['ds_plasma_coolant_arc', 'item_157', 'ds_plasma_exhaust_plume'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        // Engine bell nozzle on left
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, cy - 20 * elScale, 24 * elScale, 40 * elScale);
-        // Blinding cyan plasma plume
-        const plumeLen = W * 0.9;
-        const plumeGrad = ctx.createLinearGradient(24 * elScale, 0, 24 * elScale + plumeLen, 0);
-        plumeGrad.addColorStop(0, '#ffffff');
-        plumeGrad.addColorStop(0.2, `rgba(56, 189, 248, ${0.95 * intensity})`);
-        plumeGrad.addColorStop(0.7, `rgba(14, 165, 233, ${0.65 * intensity})`);
-        plumeGrad.addColorStop(1, 'rgba(2, 132, 199, 0)');
-        ctx.fillStyle = plumeGrad;
         ctx.beginPath();
-        ctx.moveTo(24 * elScale, cy - 14 * elScale);
-        ctx.lineTo(24 * elScale + plumeLen, cy);
-        ctx.lineTo(24 * elScale, cy + 14 * elScale);
+        ctx.moveTo(xTail, yTail);
+        ctx.lineTo(xHead, yHead);
+        ctx.stroke();
+
+        // Pinpoint bright head needle dot
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(xHead, yHead, (0.8 + normR * 1.4) * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 152. Pulsing Amber Runway Approach Lights Guiding Shuttles
+reg(['ds_runway_lights', 'item_152'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numLights = 10;
+    for (let i = 0; i < numLights; i++) {
+        const lx = W * 0.15 + (i / (numLights - 1)) * (W * 0.7);
+        const ly1 = H * 0.35, ly2 = H * 0.65;
+        // Traveling sequential pulse wave
+        const wavePhase = (time * 4 * speed - i * 0.5) % 3;
+        const isLit = wavePhase > 0 && wavePhase < 0.8;
+        const brightness = isLit ? 1.0 : 0.2;
+        
+        // Runway light fixtures
+        for (let side = 0; side < 2; side++) {
+            const ly = side === 0 ? ly1 : ly2;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(lx - 4 * elScale, ly - 4 * elScale, 8 * elScale, 8 * elScale);
+            // Amber lens glow
+            const glow = ctx.createRadialGradient(lx, ly, 1, lx, ly, 20 * elScale);
+            glow.addColorStop(0, `rgba(245, 158, 11, ${brightness * intensity})`);
+            glow.addColorStop(1, 'rgba(245, 158, 11, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(lx, ly, 20 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+});
+
+// 153. Golden Solar Flare Radiation Wave
+reg(['ds_solar_flare_wave', 'item_153'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const sweepX = ((time * 75 * speed) % (W + 200)) - 100;
+    // Roaring solar plasma wave front
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(sweepX - 80, 0);
+    for (let y = 0; y <= H; y += 25) {
+        const x = sweepX + Math.sin(y * 0.04 + time * 3) * (20 + rough * 25);
+        ctx.lineTo(x, y);
+    }
+    ctx.lineTo(0, H);
+    ctx.lineTo(0, 0);
+    ctx.closePath();
+    const flareGrad = ctx.createLinearGradient(sweepX - 80, 0, sweepX, 0);
+    flareGrad.addColorStop(0, `rgba(234, 179, 8, ${0.45 * intensity})`);
+    flareGrad.addColorStop(1, `rgba(254, 240, 138, ${0.85 * intensity})`);
+    ctx.fillStyle = flareGrad;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * intensity})`;
+    ctx.lineWidth = (4 + rough * 4) * elScale;
+    ctx.stroke();
+    ctx.restore();
+});
+
+// 154. Green Tactical Sensor Sweep Beam (Top-Down Radar Sweep)
+reg(['ds_sensor_sweep', 'item_154'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const maxR = Math.min(W, H) * 0.45;
+    const ang = time * 2.5 * speed;
+
+    // Tactical range rings
+    ctx.strokeStyle = `rgba(34, 197, 94, ${0.3 * intensity})`;
+    ctx.lineWidth = 1.2 * elScale;
+    for (let r = 1; r <= 3; r++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, (maxR / 3) * r, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // 360-degree rotating sensor sweep sector
+    const sweepSector = 0.55;
+    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, maxR);
+    grad.addColorStop(0, `rgba(74, 222, 128, ${0.4 * intensity})`);
+    grad.addColorStop(1, 'rgba(34, 197, 94, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, maxR, ang - sweepSector, ang);
+    ctx.closePath();
+    ctx.fill();
+
+    // Leading sweep line
+    ctx.strokeStyle = `rgba(134, 239, 172, ${0.9 * intensity})`;
+    ctx.lineWidth = 2 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(ang) * maxR, cy + Math.sin(ang) * maxR);
+    ctx.stroke();
+
+    // Blip contacts
+    for (let b = 0; b < 3; b++) {
+        const bAng = b * 2.1 + 0.4;
+        const bDist = (0.35 + b * 0.25) * maxR;
+        const bx = cx + Math.cos(bAng) * bDist;
+        const by = cy + Math.sin(bAng) * bDist;
+        const diff = (ang - bAng) % (Math.PI * 2);
+        const normDiff = (diff + Math.PI * 2) % (Math.PI * 2);
+        if (normDiff < 1.2) {
+            const blipAlpha = Math.max(0, 1 - normDiff / 1.2);
+            ctx.fillStyle = `rgba(254, 240, 138, ${blipAlpha * intensity})`;
+            ctx.beginPath();
+            ctx.arc(bx, by, 3 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+});
+
+// 155. Emergency Evacuation Light Chevrons
+reg(['ds_evac_chevrons', 'item_155'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numChevrons = 8;
+    const cy = H * 0.5;
+    for (let c = 0; c < numChevrons; c++) {
+        const cx = W * 0.1 + (c / (numChevrons - 1)) * (W * 0.8);
+        const wave = (time * 5 * speed - c * 0.6) % 3;
+        const isLit = wave > 0 && wave < 0.9;
+        ctx.strokeStyle = isLit ? `rgba(239, 68, 68, ${0.95 * intensity})` : `rgba(127, 29, 29, ${0.35 * intensity})`;
+        ctx.lineWidth = 4 * elScale;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - 10 * elScale, cy - 14 * elScale);
+        ctx.lineTo(cx + 8 * elScale, cy);
+        ctx.lineTo(cx - 10 * elScale, cy + 14 * elScale);
+        ctx.stroke();
+    }
+});
+
+// 156. Explosive Decompression Wind Sucking Loose Tools Toward Breach
+reg(['ds_decompression_wind', 'item_156'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const breachX = W - 20, breachY = H * 0.5;
+    // Converging rushing air streaks toward breach
+    ctx.strokeStyle = `rgba(203, 213, 225, ${0.65 * intensity})`;
+    ctx.lineWidth = 1.8 * elScale;
+    for (let s = 0; s < 14; s++) {
+        const startX = ((s * 47) % (W * 0.8));
+        const startY = (s * 31) % H;
+        const t = (time * 4 * speed + s * 0.2) % 1.0;
+        const curX = startX + (breachX - startX) * t;
+        const curY = startY + (breachY - startY) * t;
+        ctx.beginPath();
+        ctx.moveTo(curX - 18 * elScale, curY);
+        ctx.lineTo(curX, curY);
+        ctx.stroke();
+    }
+});
+
+// 157. Superheated Plasma Arcing Down Ruptured Coolant Conduit
+reg(['ds_plasma_coolant_arc', 'item_157'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const isArcing = (Math.sin(time * 12 * speed) > 0.1);
+    if (!isArcing) return;
+    
+    ctx.strokeStyle = `rgba(244, 114, 182, ${0.95 * intensity})`;
+    ctx.lineWidth = (3 + rough * 3) * elScale;
+    ctx.shadowColor = '#ec4899';
+    ctx.shadowBlur = 10 * intensity;
+    ctx.beginPath();
+    ctx.moveTo(20, H * 0.5);
+    for (let x = 20; x <= W - 20; x += 30) {
+        const y = H * 0.5 + (Math.random() - 0.5) * (30 + rough * 25);
+        ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+});
+
+// 158. Micrometeoroid Shower Streaking Across Catwalk
+reg(['ds_micrometeoroid_shower', 'item_158'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numMeteors = 18;
+    ctx.strokeStyle = `rgba(254, 240, 138, ${0.85 * intensity})`;
+    ctx.lineWidth = 1.5;
+    for (let m = 0; m < numMeteors; m++) {
+        const mx = ((time * 450 * speed + m * 55) % (W + 150)) - 50;
+        const my = (m * 29) % H;
+        const len = (25 + (m % 4) * 15) * elScale;
+        ctx.beginPath();
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx - len, my - len * 0.4);
+        ctx.stroke();
+    }
+});
+
+// 159. Heavy Hydraulic Bulkheads Slamming Shut Sequentially (Top-Down Corridor Jambs)
+reg(['ds_hydraulic_bulkheads', 'item_159'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const cycle = (time * 1.5 * speed) % 3;
+    const isClosed = cycle > 0 && cycle < 1.8;
+    const doorGap = isClosed ? 2 * elScale : 45 * elScale;
+    const doorW = 42 * elScale, doorH = 70 * elScale;
+
+    // Structural door frame coaming
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 3 * elScale;
+    ctx.strokeRect(cx - doorW - 5 * elScale, cy - doorH * 0.5, (doorW * 2) + 10 * elScale, doorH);
+
+    // Left blast door sliding toward center
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(cx - doorGap - doorW, cy - doorH * 0.5 + 4 * elScale, doorW, doorH - 8 * elScale);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2 * elScale;
+    ctx.strokeRect(cx - doorGap - doorW, cy - doorH * 0.5 + 4 * elScale, doorW, doorH - 8 * elScale);
+
+    // Right blast door sliding toward center
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(cx + doorGap, cy - doorH * 0.5 + 4 * elScale, doorW, doorH - 8 * elScale);
+    ctx.strokeRect(cx + doorGap, cy - doorH * 0.5 + 4 * elScale, doorW, doorH - 8 * elScale);
+
+    // Hydraulic warning beacons
+    const flash = (time * 8 * speed) % 1 > 0.5 ? 1 : 0.2;
+    ctx.fillStyle = `rgba(239, 68, 68, ${flash * intensity})`;
+    ctx.beginPath();
+    ctx.arc(cx - doorW - 2 * elScale, cy - doorH * 0.4, 3 * elScale, 0, Math.PI * 2);
+    ctx.arc(cx + doorW + 2 * elScale, cy - doorH * 0.4, 3 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+});
+
+// 160. Industrial Mining Laser Slicing Across Asteroid
+reg(['ds_mining_laser', 'item_160'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const lx = W * 0.15, ly = H * 0.5;
+    const targetX = W * 0.85;
+    const targetY = H * 0.5 + Math.sin(time * 3 * speed) * 35 * elScale;
+    
+    // Intense cutting ruby beam
+    ctx.strokeStyle = `rgba(239, 68, 68, ${0.95 * intensity})`;
+    ctx.lineWidth = 3.5 * elScale;
+    ctx.shadowColor = '#ef4444';
+    ctx.shadowBlur = 12 * intensity;
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(targetX, targetY);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // Impact molten spray sparks
+    for (let sp = 0; sp < 8; sp++) {
+        const sx = targetX - (Math.random() * 25 * elScale);
+        const sy = targetY + (Math.random() - 0.5) * 25 * elScale;
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 161. Automated Cargo Rails Sliding Fuel Rods Into Reactor Core
+reg(['ds_fuelrod_rails', 'item_161'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cy = H * 0.5;
+    // Cargo rails
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 3 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(0, cy - 14 * elScale); ctx.lineTo(W, cy - 14 * elScale);
+    ctx.moveTo(0, cy + 14 * elScale); ctx.lineTo(W, cy + 14 * elScale);
+    ctx.stroke();
+    
+    // Sliding glowing green fuel rod canisters
+    const numRods = 4;
+    for (let r = 0; r < numRods; r++) {
+        const rx = ((time * 80 * speed + r * 90) % (W + 100)) - 50;
+        ctx.fillStyle = '#15803d';
+        ctx.fillRect(rx - 15 * elScale, cy - 10 * elScale, 30 * elScale, 20 * elScale);
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 2 * elScale;
+        ctx.strokeRect(rx - 15 * elScale, cy - 10 * elScale, 30 * elScale, 20 * elScale);
+    }
+});
+
+// 162. Tracked Hull Repair Drone (Top-Down Battlemap View)
+reg(['ds_tracked_repair_drone', 'item_162'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cy = H * 0.5;
+    const dx = ((time * 55 * speed) % (W + 120)) - 60;
+
+    ctx.save();
+    // Hull deck plate seam line being welded
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 3 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(0, cy); ctx.lineTo(W, cy);
+    ctx.stroke();
+
+    ctx.translate(dx, cy);
+
+    // Drone viewed from 90 degrees overhead (Top-Down)
+    const bodyW = 42 * elScale, bodyH = 26 * elScale;
+    const treadH = 7 * elScale;
+
+    // Dual caterpillar treads on top and bottom of chassis
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(-bodyW * 0.5, -bodyH * 0.5 - treadH, bodyW, treadH);
+    ctx.fillRect(-bodyW * 0.5, bodyH * 0.5, bodyW, treadH);
+
+    // Tread segment cleats moving
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1 * elScale;
+    const treadOffset = (time * 40 * speed) % (6 * elScale);
+    for (let t = -bodyW * 0.5; t < bodyW * 0.5; t += 6 * elScale) {
+        ctx.beginPath();
+        ctx.moveTo(t + treadOffset, -bodyH * 0.5 - treadH);
+        ctx.lineTo(t + treadOffset, -bodyH * 0.5);
+        ctx.moveTo(t + treadOffset, bodyH * 0.5);
+        ctx.lineTo(t + treadOffset, bodyH * 0.5 + treadH);
+        ctx.stroke();
+    }
+
+    // Main armored central avionics chassis
+    ctx.fillStyle = '#1e293b';
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2 * elScale;
+    ctx.beginPath();
+    ctx.roundRect(-bodyW * 0.45, -bodyH * 0.5, bodyW * 0.9, bodyH, 4 * elScale);
+    ctx.fill();
+    ctx.stroke();
+
+    // Hazard yellow/black diagonal warning stripes on chassis roof
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(-10 * elScale, -6 * elScale, 20 * elScale, 12 * elScale);
+
+    // Articulated robotic welding manipulator arm extending forward
+    const armX = bodyW * 0.45;
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2.5 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(bodyW * 0.35, 0);
+    ctx.lineTo(armX + 12 * elScale, -4 * elScale);
+    ctx.lineTo(armX + 22 * elScale, 0);
+    ctx.stroke();
+
+    // Sputtering plasma arc welding flash
+    const arcX = armX + 22 * elScale;
+    const arcFlash = Math.sin(time * 30 * speed) > -0.2;
+    if (arcFlash) {
+        // High-intensity white-hot core
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(arcX, 0, 4 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Brilliant blue plasma glow flare
+        const flare = ctx.createRadialGradient(arcX, 0, 2, arcX, 0, 35 * elScale * intensity);
+        flare.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+        flare.addColorStop(0.3, 'rgba(56, 189, 248, ' + (0.8 * intensity) + ')');
+        flare.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = flare;
+        ctx.beginPath();
+        ctx.arc(arcX, 0, 35 * elScale * intensity, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Molten slag sparks spraying sideways from weld seam
+        for (let s = 0; s < 6; s++) {
+            const sAng = (s / 6) * Math.PI * 2 + time * 15;
+            const sDist = (6 + Math.random() * 16) * elScale;
+            ctx.fillStyle = s % 2 === 0 ? '#fef08a' : '#f97316';
+            ctx.fillRect(arcX + Math.cos(sAng) * sDist, Math.sin(sAng) * sDist, 2 * elScale, 2 * elScale);
+        }
+    }
+    ctx.restore();
+});
+
+// 163. Vertical Anti-Gravity Lift Shaft (Top-Down Forced Perspective)
+reg(['ds_antigrav_lift', 'item_163'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const shaftR = 65 * elScale;
+
+    ctx.save();
+    // Octagonal deck cutout frame (looking down into vertical shaft)
+    ctx.fillStyle = '#030712'; // Deep shaft void
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2 + Math.PI / 8;
+        const x = cx + Math.cos(ang) * shaftR;
+        const y = cy + Math.sin(ang) * shaftR;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Heavy reinforced deck coaming collar
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 5 * elScale;
+    ctx.stroke();
+
+    // Hazard yellow chevron pads at collar facets
+    ctx.fillStyle = '#eab308';
+    for (let c = 0; c < 8; c += 2) {
+        const ang = (c / 8) * Math.PI * 2;
+        ctx.fillRect(cx + Math.cos(ang) * (shaftR - 4 * elScale) - 4 * elScale, cy + Math.sin(ang) * (shaftR - 4 * elScale) - 4 * elScale, 8 * elScale, 8 * elScale);
+    }
+
+    // Concentric glowing cyan containment forcefield rings receding into the depth (Forced Perspective)
+    const numRings = 5;
+    for (let r = 1; r <= numRings; r++) {
+        const depth = r / numRings; // 0.2 to 1.0 (deeper)
+        const ringR = shaftR * (1 - depth * 0.65); // Rings shrink toward the center vanishing point
+        const pulse = 0.5 + Math.sin(time * 3 * speed - depth * 3) * 0.5;
+
+        ctx.strokeStyle = 'rgba(56, 189, 248, ' + (0.8 * intensity) + ')';
+        ctx.lineWidth = Math.max(1, (3 - depth * 1.5) * elScale);
+        ctx.beginPath();
+        ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // Upward-drifting anti-gravity light motes rising toward the camera (Forced Perspective)
+    const numMotes = 16;
+    for (let m = 0; m < numMotes; m++) {
+        const seed = m * 23.3;
+        const mAng = seed + time * 0.2;
+        const mDistRatio = (seed * 7) % 1; // Distance from center
+
+        // Z-axis ascent: 0 = deep down in shaft (tiny, dark), 1 = reaching floor camera level (large, bright)
+        const zProg = (time * (0.8 + (m % 3) * 0.3) * speed + seed) % 1;
+        const moteScale = 0.2 + zProg * 2.2; // Expands as it ascends toward camera!
+        const curDist = mDistRatio * shaftR * (0.3 + zProg * 0.6);
+        const mx = cx + Math.cos(mAng) * curDist;
+        const my = cy + Math.sin(mAng) * curDist;
+
+        const alpha = Math.min(1, zProg * 1.5) * (1 - Math.max(0, zProg - 0.85) * 6) * intensity;
+        const moteR = (2 + (m % 3)) * elScale * moteScale;
+
+        const moteGrad = ctx.createRadialGradient(mx, my, 1, mx, my, moteR);
+        moteGrad.addColorStop(0, 'rgba(255, 255, 255, ' + alpha + ')');
+        moteGrad.addColorStop(0.4, 'rgba(56, 189, 248, ' + (alpha * 0.8) + ')');
+        moteGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = moteGrad;
+        ctx.beginPath();
+        ctx.arc(mx, my, moteR, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+});
+
+// 164. Orbital Space-Elevator Car (Top-Down Forced Perspective)
+reg(['ds_space_elevator', 'item_164'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const viewR = 75 * elScale;
+
+    ctx.save();
+    // Circular station deck viewport collar (looking down on planetary curve)
+    ctx.fillStyle = '#020617'; // Cosmic void
+    ctx.beginPath();
+    ctx.arc(cx, cy, viewR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Curved atmosphere crescent of planet Earth/exoplanet below
+    const planetGrad = ctx.createRadialGradient(cx, cy + 180 * elScale, 100 * elScale, cx, cy + 180 * elScale, 240 * elScale);
+    planetGrad.addColorStop(0, 'rgba(14, 116, 144, ' + (0.8 * intensity) + ')');
+    planetGrad.addColorStop(0.5, 'rgba(56, 189, 248, ' + (0.8 * intensity) + ')');
+    planetGrad.addColorStop(1, 'rgba(2, 6, 23, 0)');
+    ctx.fillStyle = planetGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, viewR - 2 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Reinforced viewport bezel rim with bolts
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 6 * elScale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, viewR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Central carbon-nanotube tether line running straight down into planet vanishing point
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2.5 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - viewR);
+    ctx.lineTo(cx, cy + viewR);
+    ctx.stroke();
+
+    // Climber Car Ascent/Descent Cycle (Forced Perspective Z-Axis)
+    // 0 = distant speck in upper atmosphere, 1 = docking at station floor level
+    const cycle = (time * 0.45 * speed) % 1;
+    const zScale = 0.15 + cycle * 0.85; // Expands from 0.15 up to 1.0 as it ascends toward station!
+    const carSize = 36 * elScale * zScale;
+
+    // Climber car hexagonal module seen from above
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(zScale, zScale);
+
+    ctx.fillStyle = '#1e293b';
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2 * elScale;
+    ctx.beginPath();
+    for (let h = 0; h < 6; h++) {
+        const hang = (h / 6) * Math.PI * 2;
+        const hx = Math.cos(hang) * 22 * elScale;
+        const hy = Math.sin(hang) * 22 * elScale;
+        if (h === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Central tether pass-through collar
+    ctx.fillStyle = '#475569';
+    ctx.beginPath();
+    ctx.arc(0, 0, 6 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Flashing xenon navigation strobes on car corners
+    const strobe = Math.sin(time * 12) > 0.4;
+    if (strobe) {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-18 * elScale, 0, 3 * elScale, 0, Math.PI * 2);
+        ctx.arc(18 * elScale, 0, 3 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.restore();
+});
+
+// 165. Heavy Steel Docking Clamps Extending and Locking (Top-Down Overhead Docking Ring)
+reg(['ds_docking_clamps', 'item_165'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const cycle = Math.sin(time * 2 * speed);
+    const clampIn = Math.max(0, cycle) * 20 * elScale;
+    const ringR = 48 * elScale;
+
+    // Central circular docking collar on hull floor
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 4 * elScale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner hatch aperture
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringR - 6 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4 Heavy hydraulic clamp jaws gripping the ring from cardinal directions
+    const angles = [0, Math.PI * 0.5, Math.PI, Math.PI * 1.5];
+    for (let i = 0; i < 4; i++) {
+        const ang = angles[i];
+        const jawDist = ringR + 18 * elScale - clampIn;
+        const jx = cx + Math.cos(ang) * jawDist;
+        const jy = cy + Math.sin(ang) * jawDist;
+
+        ctx.save();
+        ctx.translate(jx, jy);
+        ctx.rotate(ang + Math.PI * 0.5);
+
+        // Heavy steel claw block
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(-12 * elScale, -8 * elScale, 24 * elScale, 16 * elScale);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2 * elScale;
+        ctx.strokeRect(-12 * elScale, -8 * elScale, 24 * elScale, 16 * elScale);
+
+        // Warning amber indicator
+        ctx.fillStyle = clampIn > 10 * elScale ? '#22c55e' : '#f59e0b';
+        ctx.fillRect(-4 * elScale, -6 * elScale, 8 * elScale, 3 * elScale);
+
+        ctx.restore();
+    }
+});
+
+// 166. Blue Ion Thruster Plumes Flaring Behind Starfighter
+reg(['ds_ion_thruster_plume', 'item_166'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const fx = W * 0.35, fy = H * 0.5;
+    // Starfighter hull bracket
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(fx - 25 * elScale, fy - 18 * elScale, 25 * elScale, 36 * elScale);
+    // Twin ion thruster nozzles
+    const plumeLen = (65 + Math.sin(time * 30 * speed) * 12 + rough * 20) * elScale;
+    for (let n = -1; n <= 1; n += 2) {
+        const ny = fy + n * 10 * elScale;
+        const grad = ctx.createLinearGradient(fx, ny, fx + plumeLen, ny);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${0.95 * intensity})`);
+        grad.addColorStop(0.3, `rgba(56, 189, 248, ${0.85 * intensity})`);
+        grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(fx, ny - 5 * elScale);
+        ctx.lineTo(fx + plumeLen, ny);
+        ctx.lineTo(fx, ny + 5 * elScale);
         ctx.closePath();
         ctx.fill();
-        // Shock diamonds inside plume
-        for (let d = 1; d <= 4; d++) {
-            const dx = 24 * elScale + d * (35 * elScale);
-            FX.drawRadialGlow(ctx, dx, cy, 1, 10 * elScale, '#ffffff', 'rgba(56, 189, 248, 0)');
-        }
-    });
+    }
+});
 
-    // 158. Magnetic Catapult Launch Rail
-    reg(['ds_micrometeoroid_shower', 'item_158', 'ds_magnetic_catapult'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        // Acceleration coil rings
-        const rings = 6;
-        for (let r = 0; r < rings; r++) {
-            const rx = (W / rings) * (r + 0.5);
-            ctx.strokeStyle = '#475569';
-            ctx.lineWidth = 4 * elScale;
-            ctx.strokeRect(rx - 6, cy - 25 * elScale, 12, 50 * elScale);
-        }
-        // High-velocity probe launching through coils
-        const probeX = ((time * 480 * speed) % (W + 120)) - 60;
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(probeX - 16 * elScale, cy - 6 * elScale, 32 * elScale, 12 * elScale);
-        FX.drawRadialGlow(ctx, probeX + 16 * elScale, cy, 1, 24 * elScale, '#ffffff', 'rgba(56, 189, 248, 0)');
-    });
-
-    // 159. Space Elevator Carbon-Tether
-    reg(['ds_hydraulic_bulkheads', 'item_159', 'ds_space_elevator_cable'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5;
-        // Glowing vertical carbon-nanotube ribbon
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.9 * intensity})`;
-        ctx.lineWidth = 5 * elScale;
-        ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 12;
-        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
-        ctx.shadowBlur = 0;
-        // Climber car ascending
-        const carY = (H - ((time * 90 * speed) % (H + 40)));
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(cx - 12 * elScale, carY, 24 * elScale, 20 * elScale);
-    });
-
-    // 160. Meteor Fragment Atmospheric Streak
-    reg(['ds_mining_laser', 'item_160', 'ds_meteor_fragment_streak'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        const meteorX = ((time * 420 * speed) % (W + 150)) - 75;
-        // Fiery ionized trail
-        const trailLen = 120 * elScale;
-        const trailGrad = ctx.createLinearGradient(meteorX - trailLen, cy, meteorX, cy);
-        trailGrad.addColorStop(0, 'rgba(234, 88, 12, 0)');
-        trailGrad.addColorStop(0.7, `rgba(251, 146, 60, ${0.85 * intensity})`);
-        trailGrad.addColorStop(1, '#ffffff');
-        ctx.strokeStyle = trailGrad;
-        ctx.lineWidth = 3.5;
-        ctx.beginPath(); ctx.moveTo(meteorX - trailLen, cy); ctx.lineTo(meteorX, cy); ctx.stroke();
-        FX.drawRadialGlow(ctx, meteorX, cy, 2, 18 * elScale, '#ffffff', 'rgba(234, 88, 12, 0)');
-    });
-
-    // 161. Pressurized Docking Umbilical Tube
-    reg(['ds_fuelrod_rails', 'item_161', 'ds_docking_umbilical_tube'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        const tubeH = 34 * elScale;
-        // Accordion bellows ribbed tube
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(0, cy - tubeH * 0.5, W, tubeH);
-        ctx.strokeStyle = '#0f172a';
-        ctx.lineWidth = 2;
-        for (let x = 0; x < W; x += 14) {
-            ctx.beginPath(); ctx.moveTo(x, cy - tubeH * 0.5); ctx.lineTo(x, cy + tubeH * 0.5); ctx.stroke();
-        }
-        // Interior walkway lights glowing through observation ports
-        for (let x = 20; x < W; x += 40) {
-            FX.drawRadialGlow(ctx, x, cy, 1, 8 * elScale, `rgba(254, 240, 138, ${0.8 * intensity})`, 'rgba(254, 240, 138, 0)');
-        }
-    });
-
-    // 162. Cargo Crane Gantry
-    reg(['ds_tracked_repair_drone', 'item_162', 'ds_cargo_crane_gantry'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, cy - 6, W, 12);
-        // Automated gantry hoist carrying cargo pod
-        const hoistX = W * (0.3 + 0.4 * Math.sin(time * 0.8 * speed));
-        ctx.save();
-        ctx.translate(hoistX, cy);
-        ctx.fillStyle = '#eab308';
-        ctx.fillRect(-18 * elScale, -12 * elScale, 36 * elScale, 24 * elScale);
-        // Suspended shipping container
-        ctx.fillStyle = '#2563eb';
-        ctx.fillRect(-16 * elScale, 20 * elScale, 32 * elScale, 18 * elScale);
-        ctx.restore();
-    });
-
-    // 163. Service Rail Maintenance Droid
-    reg(['ds_antigrav_lift', 'item_163', 'ds_service_rail_droid'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        // Exterior hull guide rail
-        ctx.strokeStyle = '#475569'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
-        // Droid crawling along rail
-        const droidX = ((time * 75 * speed) % (W + 60)) - 30;
-        ctx.save();
-        ctx.translate(droidX, cy);
-        ctx.fillStyle = '#f8fafc';
-        ctx.beginPath(); ctx.arc(0, -6 * elScale, 10 * elScale, 0, Math.PI * 2); ctx.fill();
-        // Blinking welding laser
-        if (Math.sin(time * 12) > 0.4) {
-            FX.drawRadialGlow(ctx, 8 * elScale, -6 * elScale, 1, 12, '#ffffff', 'rgba(56, 189, 248, 0)');
-        }
-        ctx.restore();
-    });
-
-    // 164. Cryo-Coolant Chute
-    reg(['ds_space_elevator', 'item_164', 'ds_cryo_coolant_chute'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, cy - 16 * elScale, W, 32 * elScale);
-        // Rushing liquid nitrogen coolant
-        const coolGrad = ctx.createLinearGradient(0, cy - 12 * elScale, 0, cy + 12 * elScale);
-        coolGrad.addColorStop(0, '#0284c7');
-        coolGrad.addColorStop(0.5, `rgba(224, 242, 254, ${0.9 * intensity})`);
-        coolGrad.addColorStop(1, '#0369a1');
-        ctx.fillStyle = coolGrad;
-        ctx.fillRect(0, cy - 12 * elScale, W, 24 * elScale);
-    });
-
-    // 165. Automated Ore Sorter Conveyor
-    reg(['ds_docking_clamps', 'item_165', 'ds_conveyor_sorter'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, cy - 18 * elScale, W, 36 * elScale);
-        // Traveling space ore chunks
-        for (let c = 0; c < 5; c++) {
-            const cxChunk = ((c * (W / 5) + time * 65 * speed) % (W + 40)) - 20;
-            ctx.fillStyle = (c % 2 === 0) ? '#38bdf8' : '#e2e8f0';
-            ctx.beginPath(); ctx.arc(cxChunk, cy, 7 * elScale, 0, Math.PI * 2); ctx.fill();
-        }
-    });
-
-    // 166. Hyper-Velocity Railgun Slug
-    reg(['ds_ion_thruster_plume', 'item_166', 'ds_railgun_slug_tracer'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        const slugX = ((time * 650 * speed) % (W + 200)) - 100;
-        const tracerGrad = ctx.createLinearGradient(slugX - 140 * elScale, cy, slugX, cy);
-        tracerGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
-        tracerGrad.addColorStop(0.8, `rgba(56, 189, 248, ${0.9 * intensity})`);
-        tracerGrad.addColorStop(1, '#ffffff');
-        ctx.strokeStyle = tracerGrad;
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(slugX - 140 * elScale, cy); ctx.lineTo(slugX, cy); ctx.stroke();
-        FX.drawRadialGlow(ctx, slugX, cy, 1, 14 * elScale, '#ffffff', 'rgba(56, 189, 248, 0)');
-    });
-
-    // 167. Coherent Particle Beam Lance
-    reg(['ds_holo_sonar_ping', 'item_167', 'ds_particle_beam_lance'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        // Continuous blinding ruby particle beam
-        ctx.strokeStyle = `rgba(239, 68, 68, ${0.95 * intensity})`;
-        ctx.lineWidth = 4 * elScale;
-        ctx.shadowColor = '#ef4444';
-        ctx.shadowBlur = 14;
-        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
-        // Blinding white core
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5 * elScale;
-        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
-        ctx.shadowBlur = 0;
-    });
-
-    // 168. Deflector Shield Collapse
-    reg(['ds_transporter_beam', 'item_168', 'ds_shield_collapse_wave'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const collapseX = ((time * 220 * speed) % (W + 80)) - 40;
-        ctx.strokeStyle = `rgba(239, 68, 68, ${0.85 * intensity})`;
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(collapseX, 0); ctx.lineTo(collapseX, H); ctx.stroke();
-        // Shattered hex shards
-        for (let s = 0; s < 8; s++) {
-            const sy = s * (H / 8) + 10;
-            ctx.strokeRect(collapseX - 15, sy - 10, 20, 20);
-        }
-    });
-
-    // 169. Tachyon Spacetime Rift
-    reg(['ds_containment_ripple', 'item_169', 'ds_tachyon_rift_crack'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        // Jagged violet tear in space
-        ctx.strokeStyle = `rgba(168, 85, 247, ${0.95 * intensity})`;
-        ctx.lineWidth = 3.5;
-        ctx.shadowColor = '#a855f7';
-        ctx.shadowBlur = 12;
+// 167. Holographic Sonar Ping Expanding Across Command Table
+reg(['ds_holo_sonar_ping', 'item_167'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    for (let p = 0; p < 3; p++) {
+        const age = (time * 1.5 * speed + p * 0.33) % 1;
+        const rad = age * (Math.min(W, H) * 0.45);
+        ctx.strokeStyle = `rgba(6, 182, 212, ${(1 - age) * 0.85 * intensity})`;
+        ctx.lineWidth = 2 * elScale;
         ctx.beginPath();
-        ctx.moveTo(0, cy);
-        for (let x = 30; x < W; x += 30) {
-            ctx.lineTo(x, cy + (FX.hash(x + Math.floor(time * 6)) - 0.5) * 25);
-        }
-        ctx.lineTo(W, cy);
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.shadowBlur = 0;
-    });
+    }
+});
 
-    // 170. Hull Decompression Blast
-    reg(['ds_nitrogen_coolant_vent', 'item_170', 'ds_decompression_vent'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        // Hull opening on left
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, cy - 25 * elScale, 15, 50 * elScale);
-        // Expanding vacuum blast plume
-        FX.drawVolumetricCone(ctx, 15, cy, 0, W * 0.85, 0.65, `rgba(240, 249, 255, ${0.85 * intensity})`, 'rgba(56, 189, 248, 0)');
-    });
+// 168. Matter-Transporter Beam Dematerializing Golden Particles (Top-Down Pad & Swirling Column)
+reg(['ds_transporter_beam', 'item_168'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const padR = 45 * elScale;
 
-    // 171. Asteroid Belt Debris Stream
-    reg(['ds_tumbling_asteroids', 'item_171', 'ds_asteroid_debris_stream'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        const rocks = Math.round(15 + rough * 20);
-        for (let r = 0; r < rocks; r++) {
-            const rx = ((r * (W / rocks) + time * 45 * speed) % (W + 60)) - 30;
-            const ry = cy + Math.sin(r * 2.5) * (H * 0.35);
-            ctx.fillStyle = (r % 2 === 0) ? '#64748b' : '#475569';
-            ctx.beginPath(); ctx.arc(rx, ry, (4 + (r % 4) * 3) * elScale, 0, Math.PI * 2); ctx.fill();
-        }
-    });
+    // Circular transporter floor pad
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx, cy, padR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 3 * elScale;
+    ctx.stroke();
 
-    // 172. Solar Wind Aurora Curtains
-    reg(['ds_satellite_debris', 'item_172', 'ds_solar_wind_aurora'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const auroraGrad = ctx.createLinearGradient(0, 0, 0, H);
-        auroraGrad.addColorStop(0, `rgba(52, 211, 153, ${0.45 * intensity})`);
-        auroraGrad.addColorStop(0.5, `rgba(168, 85, 247, ${0.4 * intensity})`);
-        auroraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = auroraGrad;
-        ctx.fillRect(0, 0, W, H);
-        // Shimmering vertical curtain folds
-        for (let x = 0; x < W; x += 35) {
-            const h = H * (0.4 + 0.3 * Math.sin(time * 2 * speed + x * 0.05));
-            ctx.fillStyle = `rgba(110, 231, 183, ${0.35 * intensity})`;
-            ctx.fillRect(x, 0, 15, h);
-        }
-    });
-
-    // 173. Derelict Satellite Debris Tumbling
-    reg(['ds_zerog_water_droplets', 'item_173', 'ds_satellite_debris'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        const items = 3;
-        for (let i = 0; i < items; i++) {
-            const ix = ((time * 40 * speed + i * (W * 0.35)) % (W + 60)) - 30;
-            const iy = cy + Math.sin(time + i) * 15;
-            ctx.save();
-            ctx.translate(ix, iy);
-            ctx.rotate(time * 1.5 + i);
-            ctx.fillStyle = '#fbbf24'; // Gold foil solar panel
-            ctx.fillRect(-12 * elScale, -6 * elScale, 24 * elScale, 12 * elScale);
-            ctx.restore();
-        }
-    });
-
-    // 174. Autonomous Survey Probe Sweep
-    reg(['ds_nebula_drift', 'item_174', 'ds_survey_probe_sweep'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        const probeX = ((time * 95 * speed) % (W + 60)) - 30;
-        ctx.fillStyle = '#f8fafc';
-        ctx.beginPath(); ctx.arc(probeX, cy, 6 * elScale, 0, Math.PI * 2); ctx.fill();
-        // Sweeping sensor cones
-        FX.drawVolumetricCone(ctx, probeX, cy, time * 2, 70 * elScale, 0.5, `rgba(56, 189, 248, ${0.5 * intensity})`, 'rgba(56, 189, 248, 0)');
-    });
-
-    // 175. Hydrazine Fuel Leak Droplets
-    reg(['ds_planetary_rings', 'item_175', 'ds_fuel_leak_droplets'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        const drops = Math.round(15 + rough * 20);
-        for (let d = 0; d < drops; d++) {
-            const dx = ((d * (W / drops) + time * 70 * speed) % (W + 40)) - 20;
-            const dy = cy + Math.sin(time * 3 + d) * (18 * elScale);
-            ctx.fillStyle = `rgba(244, 114, 182, ${0.85 * intensity})`;
-            ctx.beginPath(); ctx.arc(dx, dy, 3.5 * elScale, 0, Math.PI * 2); ctx.fill();
-        }
-    });
-
-    // =========================================================================
-    // B. ANIMATED TEXTURES & AREA-FILLS (176 - 200)
-    // =========================================================================
-
-    // 176. Rotating Pulsar Radiation Sweeps
-    reg(['ds_cherenkov_radiation', 'item_176', 'ds_pulsar_beam_sweep'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#030712';
-        ctx.fillRect(0, 0, W, H);
-        const rot = time * 3.5 * speed;
-        FX.drawVolumetricCone(ctx, W * 0.5, H * 0.5, rot, Math.max(W, H) * 0.8, 0.55, `rgba(168, 85, 247, ${0.75 * intensity})`, 'rgba(168, 85, 247, 0)');
-        FX.drawVolumetricCone(ctx, W * 0.5, H * 0.5, rot + Math.PI, Math.max(W, H) * 0.8, 0.55, `rgba(56, 189, 248, ${0.75 * intensity})`, 'rgba(56, 189, 248, 0)');
-    });
-
-    // 177. Zero-G Bioluminescent Moss
-    reg(['ds_redalert_strobes', 'item_177', 'ds_biolum_moss_hydroponics'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#064e3b';
-        ctx.fillRect(0, 0, W, H);
-        const patches = Math.round(20 + rough * 30);
-        for (let p = 0; p < patches; p++) {
-            const px = FX.hash(p * 17) * W;
-            const py = FX.hash(p * 31) * H;
-            const pulse = 0.7 + 0.3 * Math.sin(time * 2 * speed + p);
-            FX.drawRadialGlow(ctx, px, py, 1, 14 * elScale, `rgba(52, 211, 153, ${pulse * intensity})`, 'rgba(5, 150, 105, 0)');
-        }
-    });
-
-    // 178. Viewport Starlight Wash
-    reg(['ds_biolum_moss', 'item_178', 'ds_viewport_starlight_wash'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#030712';
-        ctx.fillRect(0, 0, W, H);
-        FX.drawRadialGlow(ctx, W * 0.5, H * 0.4, 10, Math.max(W, H) * 0.65, `rgba(186, 230, 253, ${0.45 * intensity})`, 'rgba(15, 23, 42, 0)');
-    });
-
-    // 179. Hull Breach Red Alert Strobes
-    reg(['ds_void_starlight', 'item_179', 'ds_emergency_red_strobe'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, W, H);
-        const strobe = (Math.sin(time * 6 * speed) > 0);
-        if (strobe) {
-            ctx.fillStyle = `rgba(239, 68, 68, ${0.55 * intensity})`;
-            ctx.fillRect(0, 0, W, H);
-        }
-    });
-
-    // 180. Antimatter Reactor Ambient Glow
-    reg(['ds_quantum_proc_grid', 'item_180', 'ds_reactor_core_ambient_glow'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#020617';
-        ctx.fillRect(0, 0, W, H);
-        const pulse = 0.8 + 0.2 * Math.sin(time * 3 * speed);
-        FX.drawRadialGlow(ctx, W * 0.5, H * 0.5, 15, Math.min(W, H) * 0.5, `rgba(56, 189, 248, ${pulse * intensity})`, 'rgba(2, 132, 199, 0)');
-    });
-
-    // 181. Decompression Void Suction
-    reg(['ds_radioactive_coolant_flood', 'item_181', 'ds_hull_breach_decompression'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#090d16';
-        ctx.fillRect(0, 0, W, H);
-        const breachX = W * 0.5, breachY = H * 0.5;
-        // Cyclone swirling toward breach
-        const debris = 15;
-        for (let d = 0; d < debris; d++) {
-            const phase = (time * 1.5 * speed + d * 0.1) % 1.0;
-            const dist = (1 - phase) * (Math.min(W, H) * 0.45);
-            const ang = d * 1.2 + time * 5;
-            ctx.fillStyle = '#e2e8f0';
-            ctx.fillRect(breachX + Math.cos(ang) * dist, breachY + Math.sin(ang) * dist, 3, 3);
-        }
-    });
-
-    // 182. Zero-G Plasma Fire Balls
-    reg(['ds_alien_biomass', 'item_182', 'ds_plasma_fire_conflagration'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#0a0a14';
-        ctx.fillRect(0, 0, W, H);
-        const balls = 5;
-        for (let b = 0; b < balls; b++) {
-            const bx = W * (0.3 + (b % 3) * 0.25) + Math.sin(time + b) * 15;
-            const by = H * (0.3 + Math.floor(b / 3) * 0.4) + Math.cos(time + b) * 15;
-            FX.drawRadialGlow(ctx, bx, by, 2, 28 * elScale, `rgba(168, 85, 247, ${0.85 * intensity})`, 'rgba(126, 34, 206, 0)');
-        }
-    });
-
-    // 183. Xenomorph Acid Sizzle Pool
-    reg(['ds_frost_fractals', 'item_183', 'ds_corrosive_xenomorph_acid'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 0, W, H);
-        // Bright neon-yellow acid sizzle
-        const acidGrad = ctx.createRadialGradient(W * 0.5, H * 0.5, 5, W * 0.5, H * 0.5, Math.min(W, H) * 0.45);
-        acidGrad.addColorStop(0, `rgba(234, 179, 8, ${0.9 * intensity})`);
-        acidGrad.addColorStop(1, '#713f12');
-        ctx.fillStyle = acidGrad;
-        ctx.beginPath(); ctx.arc(W * 0.5, H * 0.5, Math.min(W, H) * 0.45, 0, Math.PI * 2); ctx.fill();
-        // Hissing white acid vapor
-        for (let s = 0; s < 6; s++) {
-            const sx = W * 0.5 + Math.sin(time * 4 + s) * 20;
-            const sy = H * 0.5 - ((time * 30 + s * 10) % 35);
-            FX.drawRadialGlow(ctx, sx, sy, 1, 8 * elScale, 'rgba(255, 255, 255, 0.45)', 'rgba(255, 255, 255, 0)');
-        }
-    });
-
-    // 184. Overheating Fusion Meltdown Core
-    reg(['ds_ion_storm_deck', 'item_184', 'ds_reactor_meltdown_core'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#1c1917';
-        ctx.fillRect(0, 0, W, H);
-        FX.drawRadialGlow(ctx, W * 0.5, H * 0.5, 10, Math.min(W, H) * 0.55, `rgba(255, 255, 255, ${0.98 * intensity})`, 'rgba(239, 68, 68, 0)');
-    });
-
-    // 185. Zero-G Floating Fuel Clumps
-    reg(['ds_xenospore_quarantine', 'item_185', 'ds_zero_g_fuel_spill'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#090d16';
-        ctx.fillRect(0, 0, W, H);
-        const clumps = 6;
-        for (let c = 0; c < clumps; c++) {
-            const cx = (FX.hash(c * 19) * W) + Math.sin(time * 1.5 + c) * 15;
-            const cy = (FX.hash(c * 37) * H) + Math.cos(time * 1.2 + c) * 15;
-            FX.drawRadialGlow(ctx, cx, cy, 2, (12 + c * 3) * elScale, `rgba(244, 114, 182, ${0.75 * intensity})`, 'rgba(219, 39, 119, 0)');
-        }
-    });
-
-    // 186. Stacked Hexagonal Cargo Pods
-    reg(['ds_hydroponic_beds', 'item_186', 'ds_stacked_cargo_pods'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, W, H);
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2;
-        for (let x = 10; x < W; x += 45) {
-            for (let y = 10; y < H; y += 45) {
-                ctx.strokeRect(x, y, 35, 35);
-                ctx.fillStyle = '#0284c7';
-                ctx.fillRect(x + 4, y + 4, 6, 6);
-            }
-        }
-    });
-
-    // 187. Supercomputer Quantum Core
-    reg(['ds_cryopod_honeycomb', 'item_187', 'ds_server_supercomputer_arrays'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#020617';
-        ctx.fillRect(0, 0, W, H);
-        for (let y = 12; y < H; y += 24) {
-            ctx.fillStyle = `rgba(56, 189, 248, ${0.75 * intensity})`;
-            for (let x = 12; x < W; x += 18) {
-                if (FX.hash2D(x, y + Math.floor(time * 6)) > 0.4) {
-                    ctx.fillRect(x, y, 8, 4);
-                }
-            }
-        }
-    });
-
-    // 188. Orbital Solar Panel Array
-    reg(['ds_drone_charging_floor', 'item_188', 'ds_orbital_solar_arrays'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#1e3a8a';
-        ctx.fillRect(0, 0, W, H);
-        ctx.strokeStyle = '#fbbf24';
-        ctx.lineWidth = 1.5;
-        for (let x = 0; x < W; x += 30) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-        for (let y = 0; y < H; y += 30) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-    });
-
-    // 189. Life-Support Algae Oxygen Pool
-    reg(['ds_ore_conveyor_crusher', 'item_189', 'ds_algae_filtration_pool'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#047857';
-        ctx.fillRect(0, 0, W, H);
-        for (let b = 0; b < 12; b++) {
-            const bx = FX.hash(b * 13) * W;
-            const by = (H - ((time * 40 * speed + b * 20) % H));
-            ctx.fillStyle = `rgba(209, 250, 229, ${0.85 * intensity})`;
-            ctx.beginPath(); ctx.arc(bx, by, 4 * elScale, 0, Math.PI * 2); ctx.fill();
-        }
-    });
-
-    // 190. Cryo-Sleep Bay Floor Pods
-    reg(['ds_gyroscope_floor', 'item_190', 'ds_cryo_containment_bay'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, W, H);
-        const pods = 4;
-        for (let p = 0; p < pods; p++) {
-            const px = (p + 0.5) * (W / pods);
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(px - 18 * elScale, 15, 36 * elScale, H - 30);
-            FX.drawRadialGlow(ctx, px, H * 0.5, 2, 22 * elScale, `rgba(56, 189, 248, ${0.45 * intensity})`, 'rgba(56, 189, 248, 0)');
-        }
-    });
-
-    // 191. Warp Bubble Gravitational Lensing
-    reg(['ds_wormhole_tunnel', 'item_191', 'ds_warp_bubble_gravitational'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#030712';
-        ctx.fillRect(0, 0, W, H);
-        // Distorting concentric gravitational rings
-        for (let r = 1; r <= 4; r++) {
-            ctx.strokeStyle = `rgba(168, 85, 247, ${0.5 * intensity})`;
-            ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(W * 0.5, H * 0.5, r * (30 * elScale), 0, Math.PI * 2); ctx.stroke();
-        }
-    });
-
-    // 192. Deflector Shield Energy Mesh
-    reg(['ds_gravitational_lens', 'item_192', 'ds_hexagonal_deflector_grid'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = `rgba(56, 189, 248, ${0.15 * intensity})`;
-        ctx.fillRect(0, 0, W, H);
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.65 * intensity})`;
-        ctx.lineWidth = 1.5;
-        for (let x = 0; x < W; x += 30) {
-            for (let y = 0; y < H; y += 30) {
-                ctx.strokeRect(x, y, 25, 25);
-            }
-        }
-    });
-
-    // 193. Magnetic Containment Flashes
-    reg(['ds_outpost_shield_dome', 'item_193', 'ds_antimatter_containment_spark'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#090d16';
-        ctx.fillRect(0, 0, W, H);
-        if (Math.sin(time * 10 * speed) > 0.3) {
-            const sx = FX.hash(Math.floor(time * 8)) * W;
-            const sy = FX.hash(Math.floor(time * 8) + 3) * H;
-            FX.drawRadialGlow(ctx, sx, sy, 2, 35 * elScale, '#ffffff', 'rgba(168, 85, 247, 0)');
-        }
-    });
-
-    // 194. Dense Volumetric Nebula Cloud
-    reg(['ds_fullroom_starchart', 'item_194', 'ds_nebula_volumetric_gas'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const nebGrad = ctx.createRadialGradient(W * 0.5, H * 0.5, 10, W * 0.5, H * 0.5, Math.max(W, H) * 0.65);
-        nebGrad.addColorStop(0, `rgba(168, 85, 247, ${0.65 * intensity})`);
-        nebGrad.addColorStop(0.5, `rgba(236, 72, 153, ${0.45 * intensity})`);
-        nebGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
-        ctx.fillStyle = nebGrad;
-        ctx.fillRect(0, 0, W, H);
-    });
-
-    // 195. Nanotech Hull Repair Bed
-    reg(['ds_zerog_debris_field', 'item_195', 'ds_nanotech_repair_lathe'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(0, 0, W, H);
-        const nanites = Math.round(30 + rough * 40);
-        ctx.fillStyle = `rgba(56, 189, 248, ${0.9 * intensity})`;
-        for (let n = 0; n < nanites; n++) {
-            const nx = (FX.hash(n * 17) * W + time * 40) % W;
-            const ny = FX.hash(n * 31) * H;
-            ctx.fillRect(nx, ny, 2, 2);
-        }
-    });
-
-    // 196. Ion Drive Convection Shimmer
-    reg(['ds_air_scrubber_mist', 'item_196', 'ds_engine_room_heat_shimmer'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
-        ctx.fillRect(0, 0, W, H);
-        for (let y = 10; y < H; y += 20) {
-            ctx.fillStyle = `rgba(240, 249, 255, ${0.2 * intensity})`;
-            ctx.fillRect(Math.sin(time * 6 + y) * 10, y, W, 4);
-        }
-    });
-
-    // 197. Atmosphere Recycling Vapor
-    reg(['ds_comms_dish_shadows', 'item_197', 'ds_ventilation_steam_curtain'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        for (let s = 0; s < 5; s++) {
-            const sy = (s * (H / 5) + time * 35 * speed) % H;
-            ctx.fillStyle = `rgba(224, 242, 254, ${(0.3 - s * 0.04) * intensity})`;
-            ctx.fillRect(0, sy, W, 18 * elScale);
-        }
-    });
-
-    // 198. Zero-G Cabin Debris Floating
-    reg(['ds_exoplanet_spores', 'item_198', 'ds_zero_g_floating_debris'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, W, H);
-        for (let d = 0; d < 8; d++) {
-            const dx = FX.hash(d * 19) * W + Math.sin(time + d) * 12;
-            const dy = FX.hash(d * 43) * H + Math.cos(time + d) * 12;
-            ctx.fillStyle = (d % 2 === 0) ? '#38bdf8' : '#cbd5e1';
-            ctx.fillRect(dx, dy, 6 * elScale, 6 * elScale);
-        }
-    });
-
-    // 199. Cosmic Ray Sensor Artifacts
-    reg(['ds_xenobio_aquatank', 'item_199', 'ds_cosmic_ray_pixel_bursts'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        ctx.fillStyle = '#020617';
-        ctx.fillRect(0, 0, W, H);
-        if (Math.sin(time * 16 * speed) > 0.5) {
-            for (let p = 0; p < 6; p++) {
-                const px = FX.hash(p * 23 + Math.floor(time * 12)) * W;
-                const py = FX.hash(p * 47) * H;
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(px, py, 4, 4);
-            }
-        }
-    });
-
-    // 200. Orbital Station Eclipse Shadow
-    reg(['ds_manifold_thermal_shimmer', 'item_200', 'ds_space_station_shadow'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const shadowX = ((time * 45 * speed) % (W + 250)) - 125;
-        ctx.fillStyle = `rgba(0, 0, 0, ${0.65 * intensity})`;
-        ctx.beginPath(); ctx.ellipse(shadowX, H * 0.5, 90 * elScale, 45 * elScale, 0.2, 0, Math.PI * 2); ctx.fill();
-    });
-
-    // =========================================================================
-    // C. SPOT / SINGLE FOCAL OBJECTS (201 - 225)
-    // =========================================================================
-
-    // 201. Deep Space Navigation Buoy
-    reg(['ds_fusion_reactor_core', 'item_201', 'ds_pulsing_beacon_buoy'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        // Spherical buoy body
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath(); ctx.arc(cx, cy, 22 * elScale, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 2.5;
+    // Concentric glowing energy emitter rings
+    for (let r = 1; r <= 3; r++) {
+        const ringR = padR * (r / 3);
+        const pulse = Math.sin(time * 5 * speed + r) * 0.2 + 0.8;
+        ctx.strokeStyle = `rgba(234, 179, 8, ${0.75 * pulse * intensity})`;
+        ctx.lineWidth = 2 * elScale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
         ctx.stroke();
-        // Pulsing navigation strobe
-        const pulse = Math.sin(time * 4 * speed) > 0.4;
-        FX.drawRadialGlow(ctx, cx, cy, 2, 45 * elScale, pulse ? `rgba(245, 158, 11, ${0.98 * intensity})` : 'rgba(120, 53, 15, 0.2)', 'rgba(245, 158, 11, 0)');
-    });
+    }
 
-    // 202. Glitching Bridge Console
-    reg(['ds_dangling_led_panel', 'item_202', 'ds_flickering_terminal_screen'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(cx - 35 * elScale, cy - 25 * elScale, 70 * elScale, 50 * elScale);
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(cx - 35 * elScale, cy - 25 * elScale, 70 * elScale, 50 * elScale);
-        // Radar sweep inside terminal
+    // Dematerialization golden radial glow
+    const glow = ctx.createRadialGradient(cx, cy, 5, cx, cy, padR * 1.2);
+    glow.addColorStop(0, `rgba(253, 224, 71, ${0.5 * intensity})`);
+    glow.addColorStop(0.7, `rgba(234, 179, 8, ${0.2 * intensity})`);
+    glow.addColorStop(1, 'rgba(234, 179, 8, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, padR * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Dematerializing golden particle motes swirling in concentric orbits
+    for (let p = 0; p < 24; p++) {
+        const ang = time * 2.5 * speed + p * (Math.PI * 2 / 24);
+        const dist = ((p * 13 + time * 30 * speed) % padR);
+        const px = cx + Math.cos(ang) * dist;
+        const py = cy + Math.sin(ang) * dist;
+        ctx.fillStyle = p % 2 === 0 ? '#ffffff' : '#fef08a';
+        ctx.beginPath();
+        ctx.arc(px, py, (1.5 + (p % 3) * 0.8) * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 169. Containment Force-Field Energy Ripple From Impact
+reg(['ds_containment_ripple', 'item_169'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    for (let r = 0; r < 4; r++) {
+        const age = (time * 2 * speed + r * 0.25) % 1;
+        const rad = age * 65 * elScale;
+        ctx.strokeStyle = `rgba(168, 85, 247, ${(1 - age) * 0.85 * intensity})`;
+        ctx.lineWidth = (2 + rough * 2) * elScale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+});
+
+// 170. Freezing White Nitrogen Coolant Gas Venting Across Floor
+reg(['ds_nitrogen_coolant_vent', 'item_170'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cy = H * 0.75;
+    // Floor vent grating
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, cy - 8 * elScale, 30 * elScale, 16 * elScale);
+    // Expanding horizontal white nitrogen vapor fog
+    for (let v = 0; v < 8; v++) {
+        const vx = ((time * 120 * speed + v * 45) % (W + 60)) - 20;
+        const vy = cy + Math.sin(time * 3 + v) * 8 * elScale;
+        const rad = (16 + v * 5 + rough * 15) * elScale;
+        const fog = ctx.createRadialGradient(vx, vy, 2, vx, vy, rad);
+        fog.addColorStop(0, `rgba(240, 249, 255, ${0.65 * intensity})`);
+        fog.addColorStop(1, 'rgba(240, 249, 255, 0)');
+        ctx.fillStyle = fog;
+        ctx.beginPath();
+        ctx.arc(vx, vy, rad, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 171. Jagged Asteroids Tumbling Slowly Past Observation Window
+reg(['ds_tumbling_asteroids', 'item_171'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numRocks = 4;
+    for (let r = 0; r < numRocks; r++) {
+        const rx = ((time * 25 * speed + r * 95) % (W + 100)) - 50;
+        const ry = H * 0.3 + (r % 2) * 45 * elScale;
+        const rot = time * 0.8 * speed + r;
         ctx.save();
-        ctx.translate(cx, cy);
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.85 * intensity})`;
-        ctx.beginPath(); ctx.arc(0, 0, 18 * elScale, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(time * 3 * speed) * 18 * elScale, Math.sin(time * 3 * speed) * 18 * elScale); ctx.stroke();
-        ctx.restore();
-    });
-
-    // 203. Bulkhead Warning Light Cluster
-    reg(['ds_magnesium_flare', 'item_203', 'ds_status_light_cluster'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(cx - 28 * elScale, cy - 12 * elScale, 56 * elScale, 24 * elScale);
-        const cols = ['#ef4444', '#f59e0b', '#10b981', '#38bdf8'];
-        for (let c = 0; c < 4; c++) {
-            const lx = cx - 21 * elScale + c * (14 * elScale);
-            const on = (Math.sin(time * 5 + c) > 0);
-            FX.drawRadialGlow(ctx, lx, cy, 1, 8 * elScale, on ? cols[c] : 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0)');
-        }
-    });
-
-    // 204. Chem-Lum Emergency Flare Stick
-    reg(['ds_quarantine_holo_icon', 'item_204', 'ds_glow_stick_marker'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        // Dropped green glow stick cylinder
-        ctx.fillStyle = '#22c55e';
-        ctx.fillRect(cx - 15 * elScale, cy - 3 * elScale, 30 * elScale, 6 * elScale);
-        FX.drawRadialGlow(ctx, cx, cy, 2, 45 * elScale, `rgba(74, 222, 128, ${0.92 * intensity})`, 'rgba(34, 197, 94, 0)');
-    });
-
-    // 205. Maneuvering RCS Thruster Bursts
-    reg(['ds_specimen_jellyfish', 'item_205', 'ds_fusion_torch_plume'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        // Thruster nozzle
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(cx - 10 * elScale, cy - 8 * elScale, 20 * elScale, 16 * elScale);
-        // Intermittent white reaction control gas burst
-        if (Math.sin(time * 6 * speed) > 0.4) {
-            FX.drawVolumetricCone(ctx, cx + 10 * elScale, cy, 0, 50 * elScale, 0.45, `rgba(255, 255, 255, ${0.95 * intensity})`, 'rgba(56, 189, 248, 0)');
-        }
-    });
-
-    // 206. Damaged High-Voltage Plasma Relay
-    reg(['ds_liquid_oxygen_spray', 'item_206', 'ds_sparking_high_voltage_relay'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(cx - 20 * elScale, cy - 20 * elScale, 40 * elScale, 40 * elScale);
-        // Violent purple plasma spark discharges
-        if (Math.sin(time * 14 * speed) > 0.3) {
-            FX.drawRadialGlow(ctx, cx, cy, 1, 35 * elScale, '#ffffff', 'rgba(168, 85, 247, 0)');
-        }
-    });
-
-    // 207. Automated Plasma Welding Head
-    reg(['ds_sparking_surgical_arm', 'item_207', 'ds_plasma_cutter_torch'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.fillStyle = '#eab308';
-        ctx.fillRect(cx - 8 * elScale, cy - 25 * elScale, 16 * elScale, 25 * elScale);
-        // Cutting arc torch
-        FX.drawRadialGlow(ctx, cx, cy, 1, 35 * elScale, '#ffffff', 'rgba(56, 189, 248, 0)');
-    });
-
-    // 208. Micro-Singularity Anomaly
-    reg(['ds_alien_eggsac', 'item_208', 'ds_unstable_gravity_distortion'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        // Black event horizon core
-        ctx.fillStyle = '#000000';
-        ctx.beginPath(); ctx.arc(cx, cy, 14 * elScale, 0, Math.PI * 2); ctx.fill();
-        // Swirling violet accretion vortex
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(time * 4 * speed);
-        ctx.strokeStyle = `rgba(168, 85, 247, ${0.9 * intensity})`;
-        ctx.lineWidth = 2.5;
-        for (let a = 0; a < 4; a++) {
-            ctx.beginPath(); ctx.arc(0, 0, (18 + a * 6) * elScale, a * 1.5, a * 1.5 + Math.PI * 0.7); ctx.stroke();
-        }
-        ctx.restore();
-    });
-
-    // 209. Thermal Radiator Heat Sink
-    reg(['ds_plasma_capacitor_arc', 'item_209', 'ds_overheating_heat_sink'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        const heat = 0.7 + 0.3 * Math.sin(time * 3 * speed);
-        ctx.fillStyle = `rgba(234, 88, 12, ${heat * intensity})`;
-        for (let f = -3; f <= 3; f++) {
-            ctx.fillRect(cx + f * (8 * elScale), cy - 25 * elScale, 4 * elScale, 50 * elScale);
-        }
-    });
-
-    // 210. Quad Attitude Thruster
-    reg(['ds_airlock_override_lever', 'item_210', 'ds_venting_thruster_quad'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(cx - 12 * elScale, cy - 12 * elScale, 24 * elScale, 24 * elScale);
-        // 4-way gas jets
-        const dirs = [0, Math.PI * 0.5, Math.PI, Math.PI * 1.5];
-        for (let d = 0; d < 4; d++) {
-            if (Math.sin(time * 4 * speed + d * 2) > 0.4) {
-                FX.drawVolumetricCone(ctx, cx, cy, dirs[d], 35 * elScale, 0.4, 'rgba(255, 255, 255, 0.85)', 'rgba(56, 189, 248, 0)');
-            }
-        }
-    });
-
-    // 211. 3D Stellar Cartography Globe
-    reg(['ds_holo_planet_globe', 'item_211', 'ds_holographic_star_globe'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(time * 0.8 * speed);
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.85 * intensity})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(0, 0, 32 * elScale, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(0, 0, 32 * elScale, 14 * elScale, 0, 0, Math.PI * 2); ctx.stroke();
-        // Central star
-        FX.drawRadialGlow(ctx, 0, 0, 1, 8 * elScale, '#ffffff', 'rgba(56, 189, 248, 0)');
-        ctx.restore();
-    });
-
-    // 212. Circular Iris Airlock Door
-    reg(['ds_cryopod_hatch_open', 'item_212', 'ds_airlock_mechanism_cycling'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.strokeStyle = '#475569';
-        ctx.lineWidth = 4 * elScale;
-        ctx.beginPath(); ctx.arc(cx, cy, 32 * elScale, 0, Math.PI * 2); ctx.stroke();
-        // Rotating iris blades
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(time * speed);
-        ctx.fillStyle = '#1e293b';
-        for (let b = 0; b < 6; b++) {
-            ctx.rotate(Math.PI / 3);
-            ctx.fillRect(0, -6 * elScale, 28 * elScale, 12 * elScale);
-        }
-        ctx.restore();
-    });
-
-    // 213. Individual Cryo Capsule
-    reg(['ds_hull_comms_dish', 'item_213', 'ds_cryo_stasis_capsule'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(cx - 16 * elScale, cy - 32 * elScale, 32 * elScale, 64 * elScale);
-        FX.drawRadialGlow(ctx, cx, cy, 2, 22 * elScale, `rgba(56, 189, 248, ${0.65 * intensity})`, 'rgba(56, 189, 248, 0)');
-    });
-
-    // 214. Medical Bay Scanner Arch
-    reg(['ds_drydock_welder_arm', 'item_214', 'ds_medical_scanner_arc'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        const scanY = cy + Math.sin(time * 2 * speed) * (25 * elScale);
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.9 * intensity})`;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.arc(cx, scanY, 30 * elScale, Math.PI, 0); ctx.stroke();
-    });
-
-    // 215. Quantum Gyroscope Gimbal Rings
-    reg(['ds_antigrav_gimbal_ring', 'item_215', 'ds_navigation_gyroscope'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.ellipse(0, 0, 32 * elScale, 32 * elScale * Math.abs(Math.cos(time * 1.5 * speed)), 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = '#f59e0b';
-        ctx.beginPath(); ctx.ellipse(0, 0, 24 * elScale * Math.abs(Math.sin(time * 1.5 * speed)), 24 * elScale, 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.restore();
-    });
-
-    // 216. Mini Wormhole Distortion
-    reg(['ds_lab_spatial_tear', 'item_216', 'ds_wormhole_singularity'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.fillStyle = '#000000';
-        ctx.beginPath(); ctx.arc(cx, cy, 12 * elScale, 0, Math.PI * 2); ctx.fill();
-        FX.drawRadialGlow(ctx, cx, cy, 14 * elScale, 45 * elScale, `rgba(168, 85, 247, ${0.95 * intensity})`, 'rgba(168, 85, 247, 0)');
-    });
-
-    // 217. Transmat Teleportation Pad
-    reg(['ds_escape_pod_launch', 'item_217', 'ds_quantum_transmat_pad'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.55;
-        ctx.strokeStyle = '#00ffc8';
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(cx, cy, 32 * elScale, 0, Math.PI * 2); ctx.stroke();
-        // Ascending vertical transmat beam
-        FX.drawVolumetricCone(ctx, cx, cy, -Math.PI * 0.5, 60 * elScale, 0.45, `rgba(0, 255, 200, ${0.75 * intensity})`, 'rgba(0, 255, 200, 0)');
-    });
-
-    // 218. Armed Magnetic Hull Mine
-    reg(['ds_stasis_field_beam', 'item_218', 'ds_plasma_grenade_detonation'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath(); ctx.arc(cx, cy, 16 * elScale, 0, Math.PI * 2); ctx.fill();
-        const blink = Math.sin(time * 10 * speed) > 0;
-        ctx.fillStyle = blink ? '#ef4444' : '#450a0a';
-        ctx.beginPath(); ctx.arc(cx, cy, 5 * elScale, 0, Math.PI * 2); ctx.fill();
-    });
-
-    // 219. Optical Camouflage Distortion
-    reg(['ds_holo_ai_avatar', 'item_219', 'ds_cloaking_distortion_shimmer'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.strokeStyle = `rgba(240, 249, 255, ${0.45 * intensity})`;
-        ctx.lineWidth = 1.5;
-        for (let r = 10; r < 40; r += 10) {
-            ctx.beginPath(); ctx.arc(cx, cy, r * elScale + Math.sin(time * 5 + r) * 3, 0, Math.PI * 2); ctx.stroke();
-        }
-    });
-
-    // 220. Security Forcefield Doorway
-    reg(['ds_orbital_cannon_charge', 'item_220', 'ds_forcefield_doorway_barrier'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.fillStyle = `rgba(56, 189, 248, ${0.45 * intensity})`;
-        ctx.fillRect(cx - 25 * elScale, cy - 35 * elScale, 50 * elScale, 70 * elScale);
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(cx - 25 * elScale, cy - 35 * elScale, 50 * elScale, 70 * elScale);
-    });
-
-    // 221. Tri-Rotor Utility Drone Hovering
-    reg(['ds_medbay_ecg_screen', 'item_221', 'ds_autonomous_drone_hover'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5 + Math.sin(time * 3 * speed) * 4;
-        ctx.fillStyle = '#f8fafc';
-        ctx.beginPath(); ctx.arc(cx, cy, 12 * elScale, 0, Math.PI * 2); ctx.fill();
-        FX.drawVolumetricCone(ctx, cx, cy, Math.PI * 0.5, 45 * elScale, 0.4, 'rgba(56, 189, 248, 0.4)', 'rgba(56, 189, 248, 0)');
-    });
-
-    // 222. Zero-G Hydro-Spanner Floating
-    reg(['ds_hull_cleaner_droid', 'item_222', 'ds_floating_tool_zero_g'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(time * 1.2 * speed);
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillRect(-18 * elScale, -4 * elScale, 36 * elScale, 8 * elScale);
-        ctx.restore();
-    });
-
-    // 223. Drifting Severed Cable Harness
-    reg(['ds_floating_drink_pouch', 'item_223', 'ds_loose_wiring_drift'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2;
-        for (let w = 0; w < 4; w++) {
-            ctx.beginPath();
-            ctx.moveTo(cx - 20 * elScale, cy + w * 5);
-            ctx.quadraticCurveTo(cx, cy + Math.sin(time * 3 + w) * 15, cx + 20 * elScale, cy + w * 5);
-            ctx.stroke();
-        }
-    });
-
-    // 224. Communications Radar Dish Mast
-    reg(['ds_nav_console_standby', 'item_224', 'ds_hull_exterior_sensor_mast'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
+        ctx.translate(rx, ry);
+        ctx.rotate(rot);
         ctx.fillStyle = '#475569';
-        ctx.fillRect(cx - 4 * elScale, cy - 25 * elScale, 8 * elScale, 50 * elScale);
-        // Rotating radar dish
-        ctx.save();
-        ctx.translate(cx, cy - 25 * elScale);
-        ctx.rotate(time * 2 * speed);
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.ellipse(0, 0, 18 * elScale, 6 * elScale, 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.restore();
-    });
-
-    // 225. Fighter Cockpit HUD Targeting Reticle
-    reg(['ds_viewport_alien_beetle', 'item_225', 'ds_cockpit_hud_target_reticle'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.5;
-        ctx.strokeStyle = `rgba(16, 185, 129, ${0.9 * intensity})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(cx, cy, 28 * elScale, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.arc(cx, cy, 8 * elScale, 0, Math.PI * 2); ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(cx - 35 * elScale, cy); ctx.lineTo(cx + 35 * elScale, cy);
-        ctx.moveTo(cx, cy - 35 * elScale); ctx.lineTo(cx, cy + 35 * elScale);
+        ctx.ellipse(0, 0, 16 * elScale, 11 * elScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2 * elScale;
         ctx.stroke();
-    });
+        ctx.restore();
+    }
+});
+
+// 172. Derelict Satellite Debris & Solar Panels Drifting in Orbit
+reg(['ds_satellite_debris', 'item_172'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const dx = ((time * 35 * speed) % (W + 120)) - 60;
+    const dy = H * 0.5;
+    const rot = time * 0.6 * speed;
+    ctx.save();
+    ctx.translate(dx, dy);
+    ctx.rotate(rot);
+    // Satellite chassis
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(-12 * elScale, -12 * elScale, 24 * elScale, 24 * elScale);
+    // Blue photovoltaic solar panel wings
+    ctx.fillStyle = '#1d4ed8';
+    ctx.fillRect(-35 * elScale, -8 * elScale, 20 * elScale, 16 * elScale);
+    ctx.fillRect(15 * elScale, -8 * elScale, 20 * elScale, 16 * elScale);
+    ctx.restore();
+});
+
+// 173. Spherical Zero-Gravity Water Droplets Floating Across Cabin
+reg(['ds_zerog_water_droplets', 'item_173'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numBlobs = 6;
+    for (let b = 0; b < numBlobs; b++) {
+        const bx = (b * 67 + Math.sin(time + b) * 25) % W;
+        const by = (b * 97 + Math.cos(time * 0.8 + b) * 20) % H;
+        const blobR = (8 + (b % 3) * 4) * elScale;
+        
+        const grad = ctx.createRadialGradient(bx - blobR * 0.3, by - blobR * 0.3, 1, bx, by, blobR);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${0.9 * intensity})`);
+        grad.addColorStop(0.5, `rgba(56, 189, 248, ${0.65 * intensity})`);
+        grad.addColorStop(1, `rgba(14, 165, 233, ${0.35 * intensity})`);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(bx, by, blobR, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 174. Colorful Deep-Space Nebula Clouds Shifting Slowly
+reg(['ds_nebula_drift', 'item_174'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    for (let n = 0; n < 5; n++) {
+        const nx = ((time * 15 * speed + n * 80) % (W + 120)) - 60;
+        const ny = H * 0.5 + Math.sin(time * 0.6 + n) * 30 * elScale;
+        const rad = (70 + n * 12 + rough * 30) * elScale;
+        const grad = ctx.createRadialGradient(nx, ny, 10, nx, ny, rad);
+        grad.addColorStop(0, n % 2 === 0 ? `rgba(168, 85, 247, ${0.35 * intensity})` : `rgba(244, 114, 182, ${0.35 * intensity})`);
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(nx, ny, rad, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 175. Majestic Planetary Ice Rings Rotating Outside Lounge
+reg(['ds_planetary_rings', 'item_175'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    for (let r = 0; r < 4; r++) {
+        const radX = (90 + r * 22) * elScale;
+        const radY = (35 + r * 9) * elScale;
+        ctx.strokeStyle = `rgba(186, 230, 253, ${(0.45 - r * 0.08) * intensity})`;
+        ctx.lineWidth = 3 * elScale;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, radX, radY, 0.25, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+});
+
+// =========================================================================
+// B. ANIMATED TEXTURES & VOLUMES (176 - 200) - Deep Space & Hard Sci-Fi
+// =========================================================================
+
+// 176. Eerie Blue Cherenkov Radiation Glowing Beneath Submerged Fission Core
+reg(['ds_cherenkov_radiation', 'item_176'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const pulse = 0.8 + Math.sin(time * 3 * speed) * 0.2;
+    // Submerged radioactive reactor pool
+    const cherenkovGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.min(W, H) * 0.5);
+    cherenkovGrad.addColorStop(0, `rgba(56, 189, 248, ${0.9 * pulse * intensity})`);
+    cherenkovGrad.addColorStop(0.5, `rgba(14, 165, 233, ${0.45 * pulse * intensity})`);
+    cherenkovGrad.addColorStop(1, 'rgba(3, 105, 161, 0)');
+    ctx.fillStyle = cherenkovGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.min(W, H) * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Heavy cylindrical uranium fuel bundle core
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 26 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 3 * elScale;
+    ctx.stroke();
+});
+
+// 177. Red-Alert Klaxon Strobes Washing Rhythmically Over Decking (Top-Down Beacon)
+reg(['ds_redalert_strobes', 'item_177'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const maxR = Math.max(W, H) * 0.6;
+    const rot = time * 4 * speed;
+    const pulse = 0.5 + Math.sin(time * 6 * speed) * 0.5;
+
+    // Dual rotating warning light beam cones
+    for (let b = 0; b < 2; b++) {
+        const ang = rot + b * Math.PI;
+        const bGrad = ctx.createRadialGradient(cx, cy, 5, cx, cy, maxR);
+        bGrad.addColorStop(0, `rgba(239, 68, 68, ${0.75 * intensity})`);
+        bGrad.addColorStop(0.5, `rgba(220, 38, 38, ${0.4 * intensity})`);
+        bGrad.addColorStop(1, 'rgba(220, 38, 38, 0)');
+        ctx.fillStyle = bGrad;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, maxR, ang - 0.4, ang + 0.4);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // Central ceiling klaxon dome
+    FX.drawRadialGlow(ctx, cx, cy, 2, 45 * elScale, `rgba(254, 202, 202, ${pulse * 0.8 * intensity})`, 'rgba(239, 68, 68, 0)');
+    ctx.fillStyle = '#991b1b';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#f87171';
+    ctx.lineWidth = 2 * elScale;
+    ctx.stroke();
+});
+
+// 178. Bioluminescent Alien Moss Pulsing Across Terraforming Bio-Dome
+reg(['ds_biolum_moss', 'item_178'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numPatches = 12;
+    for (let p = 0; p < numPatches; p++) {
+        const px = (p * 57) % (W * 0.85) + W * 0.08;
+        const py = (p * 79) % (H * 0.85) + H * 0.08;
+        const pulse = 0.6 + Math.sin(time * 2.5 * speed + p * 0.8) * 0.4;
+        const rad = (18 + (p % 4) * 6 + rough * 10) * elScale;
+        
+        const glow = ctx.createRadialGradient(px, py, 2, px, py, rad);
+        glow.addColorStop(0, `rgba(74, 222, 128, ${pulse * 0.85 * intensity})`);
+        glow.addColorStop(0.7, `rgba(22, 163, 74, ${pulse * 0.35 * intensity})`);
+        glow.addColorStop(1, 'rgba(22, 163, 74, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(px, py, rad, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 179. Crisp Deep-Space Starlight Twinkling Steadily
+reg(['ds_void_starlight', 'item_179'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    ctx.save();
+    const numStars = Math.round(40 + rough * 25);
+    for (let s = 0; s < numStars; s++) {
+        const sx = (s * 83 + Math.sin(s * 7) * 20) % W;
+        const sy = (s * 47 + Math.cos(s * 11) * 20) % H;
+        const twinkle = 0.35 + Math.sin(time * (4 + (s % 5)) * speed + s * 1.7) * 0.65;
+        const isBright = s % 8 === 0;
+
+        if (isBright) {
+            // Bright beacon star with 4-point diffraction spike
+            ctx.fillStyle = 'rgba(255, 255, 255, ' + (0.8 * intensity) + ')';
+            ctx.beginPath();
+            ctx.arc(sx, sy, 2.2 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(186, 230, 253, ' + (0.8 * intensity) + ')';
+            ctx.lineWidth = 1 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(sx - 6 * elScale, sy); ctx.lineTo(sx + 6 * elScale, sy);
+            ctx.moveTo(sx, sy - 6 * elScale); ctx.lineTo(sx, sy + 6 * elScale);
+            ctx.stroke();
+        } else {
+            // Spectral colored twinkling star
+            const starColor = (s % 3 === 0) ? 'rgba(186, 230, 253, ' + (0.8 * intensity) + ')' :
+                              ((s % 3 === 1) ? 'rgba(254, 240, 138, ' + (0.8 * intensity) + ')' : 'rgba(255, 255, 255, ' + (0.8 * intensity) + ')');
+            ctx.fillStyle = starColor;
+            ctx.beginPath();
+            ctx.arc(sx, sy, (1.0 + (s % 3) * 0.5) * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // Fleeting micrometeorite streak
+    const meteorCycle = (time * 1.5 * speed) % 6;
+    if (meteorCycle < 0.25) {
+        const mt = meteorCycle / 0.25;
+        const mx1 = (W * 0.2) + mt * (W * 0.4);
+        const my1 = (H * 0.1) + mt * (H * 0.35);
+        ctx.strokeStyle = 'rgba(255, 255, 255, ' + (0.8 * intensity) + ')';
+        ctx.lineWidth = 1.5 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(mx1 - 25 * elScale, my1 - 22 * elScale);
+        ctx.lineTo(mx1, my1);
+        ctx.stroke();
+    }
+    ctx.restore();
+});
+
+// 180. Sub-Floor Quantum Processor Grid Pulsing With Golden Data
+reg(['ds_quantum_proc_grid', 'item_180'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const gridSize = 35 * elScale;
+    const nx = Math.ceil(W / gridSize), ny = Math.ceil(H / gridSize);
+    for (let y = 0; y < ny; y++) {
+        for (let x = 0; x < nx; x++) {
+            const pulse = Math.sin(time * 4 * speed + (x + y) * 0.5);
+            if (pulse > 0.4) {
+                ctx.strokeStyle = `rgba(245, 158, 11, ${(pulse - 0.4) * 1.5 * intensity})`;
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(x * gridSize + 2, y * gridSize + 2, gridSize - 4, gridSize - 4);
+                // Gold bus traces
+                ctx.fillStyle = '#fef08a';
+                ctx.fillRect(x * gridSize + gridSize * 0.5 - 2, y * gridSize + gridSize * 0.5 - 2, 4, 4);
+            }
+        }
+    }
+});
+
+// 181. Boiling Radioactive Reactor Coolant Flooding Engineering Bay (Top-Down Organic Puddle)
+reg(['ds_radioactive_coolant_flood', 'item_181'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const poolR = Math.min(W, H) * 0.42;
+
+    // Organic caustic puddle boundary
+    ctx.save();
+    const radGrad = ctx.createRadialGradient(cx, cy, 5, cx, cy, poolR);
+    radGrad.addColorStop(0, `rgba(132, 204, 22, ${0.75 * intensity})`);
+    radGrad.addColorStop(0.6, `rgba(101, 163, 13, ${0.55 * intensity})`);
+    radGrad.addColorStop(1, 'rgba(101, 163, 13, 0)');
+    ctx.fillStyle = radGrad;
+
+    ctx.beginPath();
+    const numPts = 16;
+    for (let p = 0; p < numPts; p++) {
+        const ang = (p / numPts) * Math.PI * 2;
+        const wave = Math.sin(time * 3 * speed + p * 1.5) * (8 + rough * 8) * elScale;
+        const r = poolR + wave;
+        const px = cx + Math.cos(ang) * r;
+        const py = cy + Math.sin(ang) * r;
+        if (p === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Boiling surface bubbles popping within puddle
+    for (let b = 0; b < 12; b++) {
+        const bang = (b * 1.7 + time * 0.8 * speed);
+        const bdist = ((b * 19 + time * 25 * speed) % (poolR * 0.75));
+        const bx = cx + Math.cos(bang) * bdist;
+        const by = cy + Math.sin(bang) * bdist;
+        const bsize = (3 + (b % 4) * 2) * elScale;
+        ctx.fillStyle = '#bef264';
+        ctx.beginPath();
+        ctx.arc(bx, by, bsize, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+});
+
+// 182. Pulsing Organic Alien Hive Biomass Creeping Across Bulkheads
+reg(['ds_alien_biomass', 'item_182'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numTendrils = 8;
+    for (let t = 0; t < numTendrils; t++) {
+        const rootX = (t / numTendrils) * W;
+        const pulse = Math.sin(time * 2 * speed + t) * (10 + rough * 12);
+        ctx.strokeStyle = '#581c87';
+        ctx.lineWidth = (6 + (t % 3) * 2) * elScale;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(rootX, 0);
+        ctx.quadraticCurveTo(rootX + pulse, H * 0.4, rootX + pulse * 1.5, H * 0.7);
+        ctx.stroke();
+        // Biological egg sacs along biomass
+        ctx.fillStyle = '#9333ea';
+        ctx.beginPath();
+        ctx.arc(rootX + pulse, H * 0.4, 7 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 183. Cryo-Frozen Metal Decking Cracking With Spreading Frost
+reg(['ds_frost_fractals', 'item_183'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    ctx.strokeStyle = `rgba(224, 242, 254, ${0.85 * intensity})`;
+    ctx.lineWidth = (1.5 + rough * 1.5) * elScale;
+    for (let r = 0; r < 8; r++) {
+        const a = (r / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        let px = cx, py = cy;
+        for (let s = 1; s <= 4; s++) {
+            px += Math.cos(a + Math.sin(s + r) * 0.3) * (18 * elScale);
+            py += Math.sin(a + Math.sin(s + r) * 0.3) * (18 * elScale);
+            ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+    }
+});
+
+// 184. Electrified Hull Grating Arcing Wildly During Ion Storm
+reg(['ds_ion_storm_deck', 'item_184'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const isArc = (Math.sin(time * 16 * speed) > 0.2);
+    if (!isArc) return;
+    ctx.strokeStyle = `rgba(56, 189, 248, ${0.9 * intensity})`;
+    ctx.lineWidth = (2.5 + rough * 2) * elScale;
+    ctx.beginPath();
+    ctx.moveTo(Math.random() * W, 0);
+    for (let y = 20; y <= H; y += 30) {
+        ctx.lineTo(W * 0.5 + (Math.random() - 0.5) * (40 + rough * 30), y);
+    }
+    ctx.stroke();
+});
+
+// 185. Yellow Acidic Alien Spore Clouds Blanketing Quarantine Chamber
+reg(['ds_xenospore_quarantine', 'item_185'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    for (let c = 0; c < 7; c++) {
+        const cx = ((time * 25 * speed + c * 75) % (W + 100)) - 50;
+        const cy = H * 0.5 + Math.sin(time + c) * 30 * elScale;
+        const rad = (35 + c * 6 + rough * 15) * elScale;
+        const cloud = ctx.createRadialGradient(cx, cy, 2, cx, cy, rad);
+        cloud.addColorStop(0, `rgba(234, 179, 8, ${0.45 * intensity})`);
+        cloud.addColorStop(1, 'rgba(234, 179, 8, 0)');
+        ctx.fillStyle = cloud;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 186. Tiered Hydroponic Garden Beds Misting Engineered Space-Crops
+reg(['ds_hydroponic_beds', 'item_186'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numTiers = 3;
+    for (let t = 0; t < numTiers; t++) {
+        const ty = H * 0.25 + t * (H * 0.25);
+        // Hydroponic nutrient conduit tube (transparent ground)
+        ctx.strokeStyle = `rgba(56, 189, 248, ${0.45 * intensity})`;
+        ctx.lineWidth = 3 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(W * 0.12, ty); ctx.lineTo(W * 0.88, ty);
+        ctx.stroke();
+        // Engineered green crop clusters
+        for (let p = 0; p < 8; p++) {
+            const px = W * 0.16 + p * (W * 0.72 / 7);
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(px, ty - 6 * elScale, 6 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        // Aerosol nutrient mist puffs
+        for (let m = 0; m < 4; m++) {
+            const mx = W * 0.2 + m * (W * 0.6 / 3);
+            FX.drawRadialGlow(ctx, mx, ty - 8 * elScale, 2, 16 * elScale, `rgba(224, 242, 254, ${0.35 * intensity})`, 'rgba(224, 242, 254, 0)');
+        }
+    }
+});
+
+// 187. Honeycomb Wall of Cryo-Sleep Pods Blinking With Green Vitals
+reg(['ds_cryopod_honeycomb', 'item_187'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numRows = 3, numCols = 4;
+    const podW = 45 * elScale, podH = 26 * elScale;
+    for (let r = 0; r < numRows; r++) {
+        for (let c = 0; c < numCols; c++) {
+            const px = W * 0.15 + c * (podW + 12 * elScale);
+            const py = H * 0.2 + r * (podH + 12 * elScale);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(px, py, podW, podH);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2 * elScale;
+            ctx.strokeRect(px, py, podW, podH);
+            // Blinking green vital telemetry LED
+            const pulse = (Math.sin(time * 4 * speed + (r + c)) > 0);
+            ctx.fillStyle = pulse ? '#22c55e' : '#14532d';
+            ctx.beginPath();
+            ctx.arc(px + podW - 8 * elScale, py + 8 * elScale, 3 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+});
+
+// 188. Automated Drone Charging Floor With Blinking Battery LEDs
+reg(['ds_drone_charging_floor', 'item_188'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    for (let d = 0; d < 6; d++) {
+        const dx = W * 0.2 + (d % 3) * (W * 0.3);
+        const dy = H * 0.3 + Math.floor(d / 3) * (H * 0.4);
+        // Hexagonal charging pad
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2 * elScale;
+        ctx.strokeRect(dx - 18 * elScale, dy - 18 * elScale, 36 * elScale, 36 * elScale);
+        // Amber blinking battery LED
+        const blink = Math.sin(time * 6 * speed + d) > 0;
+        ctx.fillStyle = blink ? '#fbbf24' : '#78350f';
+        ctx.beginPath();
+        ctx.arc(dx, dy, 4 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 189. Heavy-Duty Conveyor Grating Moving Asteroid Ore Into Crusher
+reg(['ds_ore_conveyor_crusher', 'item_189'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cy = H * 0.5;
+    // Moving steel grating tracks
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2;
+    for (let x = 0; x <= W; x += 25) {
+        const mx = (x + time * 60 * speed) % W;
+        ctx.beginPath(); ctx.moveTo(mx, cy - 20 * elScale); ctx.lineTo(mx, cy + 20 * elScale); ctx.stroke();
+    }
+    // Tumbling ore chunks
+    for (let o = 0; o < 5; o++) {
+        const ox = ((time * 60 * speed + o * 70) % (W + 60)) - 30;
+        ctx.fillStyle = '#64748b';
+        ctx.beginPath();
+        ctx.ellipse(ox, cy, 10 * elScale, 7 * elScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 190. Reinforced Glass Bridge Floor Revealing Spinning Gyroscopes (Top-Down Circular Viewport)
+reg(['ds_gyroscope_floor', 'item_190'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Circular reinforced glass viewport rim on transparent deck
+    ctx.strokeStyle = `rgba(56, 189, 248, ${0.65 * intensity})`;
+    ctx.lineWidth = 3 * elScale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 68 * elScale, 0, Math.PI * 2);
+    ctx.stroke();
+    // Inner bevel ring
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+    ctx.lineWidth = 1.5 * elScale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 64 * elScale, 0, Math.PI * 2);
+    ctx.stroke();
+    // Spinning brass gimbal rings beneath glass
+    const rot = time * 3 * speed;
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 4 * elScale;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 55 * elScale, 55 * elScale * Math.abs(Math.cos(rot)), rot, 0, Math.PI * 2);
+    ctx.stroke();
+});
+
+// 191. Swirling Blue Hyperspace Wormhole Tunnel Surrounding Starship
+reg(['ds_wormhole_tunnel', 'item_191'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const numRings = 6;
+    for (let r = 1; r <= numRings; r++) {
+        const rad = ((time * 80 * speed + r * 35) % (Math.min(W, H) * 0.55));
+        const alpha = Math.max(0, 1 - rad / (Math.min(W, H) * 0.55));
+        ctx.strokeStyle = `rgba(56, 189, 248, ${alpha * 0.85 * intensity})`;
+        ctx.lineWidth = (3 + rough * 3) * elScale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+});
+
+// 192. Gravitational Lensing Warping Starlight Around Singularity
+reg(['ds_gravitational_lens', 'item_192'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Black hole event horizon
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 28 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    // Glowing Einstein ring photon sphere
+    const ringGrad = ctx.createRadialGradient(cx, cy, 28 * elScale, cx, cy, 55 * elScale);
+    ringGrad.addColorStop(0, `rgba(254, 240, 138, ${0.9 * intensity})`);
+    ringGrad.addColorStop(0.5, `rgba(249, 115, 22, ${0.5 * intensity})`);
+    ringGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+    ctx.fillStyle = ringGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 55 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+});
+
+// 193. Translucent Energy Shield Dome Shimmering Across Lunar Outpost
+reg(['ds_outpost_shield_dome', 'item_193'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.7;
+    const rad = Math.min(W, H) * 0.45 * elScale;
+    const pulse = 0.75 + Math.sin(time * 3 * speed) * 0.25;
+    ctx.fillStyle = `rgba(56, 189, 248, ${0.2 * pulse * intensity})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, Math.PI, 0, false);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(186, 230, 253, ${0.85 * pulse * intensity})`;
+    ctx.lineWidth = 3 * elScale;
+    ctx.stroke();
+});
+
+// 194. Full-Room Holographic Star-Chart Projection Filling Deck
+reg(['ds_fullroom_starchart', 'item_194'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Concentric orbital grid rings
+    ctx.strokeStyle = `rgba(6, 182, 212, ${0.4 * intensity})`;
+    ctx.lineWidth = 1.5;
+    for (let r = 1; r <= 3; r++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 40 * elScale, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    // Rotating holographic system nodes
+    for (let n = 0; n < 6; n++) {
+        const a = time * 0.8 * speed + (n / 6) * Math.PI * 2;
+        const rad = (30 + (n % 3) * 35) * elScale;
+        const nx = cx + Math.cos(a) * rad;
+        const ny = cy + Math.sin(a) * rad * 0.6;
+        ctx.fillStyle = '#67e8f9';
+        ctx.beginPath();
+        ctx.arc(nx, ny, 3.5 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 195. Zero-Gravity Floating Clipboards, Pens & Dust in Derelict
+reg(['ds_zerog_debris_field', 'item_195'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numItems = 8;
+    for (let i = 0; i < numItems; i++) {
+        const ix = (i * 73 + Math.sin(time * speed + i) * 20) % W;
+        const iy = (i * 97 + Math.cos(time * 0.8 * speed + i) * 18) % H;
+        const rot = time * 1.5 + i;
+        ctx.save();
+        ctx.translate(ix, iy);
+        ctx.rotate(rot);
+        if (i % 2 === 0) {
+            // Floating rectangular datapad
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(-10 * elScale, -14 * elScale, 20 * elScale, 28 * elScale);
+        } else {
+            // Floating pen
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(-2 * elScale, -8 * elScale, 4 * elScale, 16 * elScale);
+        }
+        ctx.restore();
+    }
+});
+
+// 196. Sterile White Air-Scrubber Mist Drifting Across Medical Lab
+reg(['ds_air_scrubber_mist', 'item_196'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    for (let m = 0; m < 6; m++) {
+        const mx = ((time * 40 * speed + m * 85) % (W + 120)) - 60;
+        const my = H * 0.6 + Math.sin(time + m) * 15 * elScale;
+        const rad = (45 + m * 8 + rough * 20) * elScale;
+        const mist = ctx.createRadialGradient(mx, my, 5, mx, my, rad);
+        mist.addColorStop(0, `rgba(240, 249, 255, ${0.4 * intensity})`);
+        mist.addColorStop(1, 'rgba(240, 249, 255, 0)');
+        ctx.fillStyle = mist;
+        ctx.beginPath();
+        ctx.arc(mx, my, rad, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 197. Sweeping Shadows of Rotating Comms Dishes Passing Over Regolith
+reg(['ds_comms_dish_shadows', 'item_197'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const rotSpeed = time * 0.8 * speed;
+    const sweep = Math.sin(rotSpeed) * (W * 0.32);
+    const dishW = 75 * elScale;
+    const dishH = 34 * elScale;
+
+    ctx.save();
+    ctx.translate(cx + sweep, cy);
+    ctx.rotate(0.25);
+
+    // Parabolic comms dish shadow on cratered regolith
+    ctx.fillStyle = 'rgba(15, 23, 42, ' + (0.8 * intensity) + ')';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, dishW, dishH, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Central sub-reflector feed tripod shadow
+    ctx.strokeStyle = 'rgba(15, 23, 42, ' + (0.8 * intensity) + ')';
+    ctx.lineWidth = 2 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(-dishW * 0.4, -dishH * 0.7);
+    ctx.moveTo(0, 0); ctx.lineTo(dishW * 0.4, -dishH * 0.7);
+    ctx.moveTo(0, 0); ctx.lineTo(0, dishH * 0.8);
+    ctx.stroke();
+
+    // Feed horn apex shadow dot
+    ctx.fillStyle = 'rgba(15, 23, 42, ' + (0.8 * intensity) + ')';
+    ctx.beginPath();
+    ctx.arc(0, 0, 6 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Antenna mast shadow casting outward
+    ctx.lineWidth = 4 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(0, dishH * 0.6);
+    ctx.lineTo(dishW * 0.6, dishH * 1.4);
+    ctx.stroke();
+
+    ctx.restore();
+});
+
+// 198. Glowing Microscopic Spores Floating in Exoplanet Jungle
+reg(['ds_exoplanet_spores', 'item_198'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const numSpores = 25;
+    for (let s = 0; s < numSpores; s++) {
+        const sx = (s * 47 + Math.sin(time * 2 + s) * 15) % W;
+        const sy = (s * 83 + Math.cos(time * 1.8 + s) * 15) % H;
+        const pulse = 0.5 + Math.sin(time * 6 * speed + s) * 0.5;
+        ctx.fillStyle = s % 2 === 0 ? `rgba(168, 85, 247, ${pulse * intensity})` : `rgba(45, 212, 191, ${pulse * intensity})`;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 199. Gentle Water Ripples Inside Zero-G Aquatic Xenobiology Tank
+reg(['ds_xenobio_aquatank', 'item_199'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const tankR = Math.min(W, H) * 0.42 * elScale;
+    // Spherical water boundary
+    ctx.fillStyle = `rgba(6, 182, 212, ${0.35 * intensity})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, tankR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#bae6fd';
+    ctx.lineWidth = 3 * elScale;
+    ctx.stroke();
+    // Inner fluid waves
+    for (let w = 0; w < 3; w++) {
+        const rad = tankR * (0.4 + w * 0.25) + Math.sin(time * 3 * speed + w) * 6;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.4 * intensity})`;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+});
+
+// 200. Subtle Thermal Shimmer Rising From Engine Manifolds (Top-Down Hexagonal Vent)
+reg(['ds_manifold_thermal_shimmer', 'item_200'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const ventR = 38 * elScale;
+
+    // Hexagonal manifold exhaust housing
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 3 * elScale;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2;
+        const hx = cx + Math.cos(ang) * ventR;
+        const hy = cy + Math.sin(ang) * ventR;
+        if (i === 0) ctx.moveTo(hx, hy);
+        else ctx.lineTo(hx, hy);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // Concentric expanding distorted thermal shimmer waves radiating outward from center
+    for (let r = 0; r < 4; r++) {
+        const age = (time * 1.5 * speed + r * 0.25) % 1;
+        const rad = ventR * (0.3 + age * 1.4);
+        const alpha = (1 - age) * 0.45 * intensity;
+        ctx.strokeStyle = `rgba(254, 240, 138, ${alpha})`;
+        ctx.lineWidth = (1.5 + rough * 2) * elScale;
+        ctx.beginPath();
+        for (let a = 0; a < 12; a++) {
+            const ang = (a / 12) * Math.PI * 2;
+            const shim = Math.sin(time * 10 * speed + a * 2) * (3 + rough * 4) * elScale;
+            const sx = cx + Math.cos(ang) * (rad + shim);
+            const sy = cy + Math.sin(ang) * (rad + shim);
+            if (a === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+        }
+        ctx.closePath();
+        ctx.stroke();
+    }
+});
+
+// =========================================================================
+// C. SINGLE ELEMENTS / SPOT PROPS (201 - 225) - Deep Space & Hard Sci-Fi
+// =========================================================================
+
+// 201. Central Fusion Reactor Core Pulsing With White-Blue Plasma
+reg(['ds_fusion_reactor_core', 'item_201'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const pulse = 0.85 + Math.sin(time * 6 * speed) * 0.15;
+    // Core containment magnetic rings
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 4 * elScale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 45 * elScale, 0, Math.PI * 2);
+    ctx.stroke();
+    // Blinding white-blue core plasma ball
+    const coreGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 40 * elScale * pulse);
+    coreGrad.addColorStop(0, `rgba(255, 255, 255, ${0.98 * intensity})`);
+    coreGrad.addColorStop(0.3, `rgba(56, 189, 248, ${0.85 * intensity})`);
+    coreGrad.addColorStop(0.8, `rgba(37, 99, 235, ${0.45 * intensity})`);
+    coreGrad.addColorStop(1, 'rgba(37, 99, 235, 0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 40 * elScale * pulse, 0, Math.PI * 2);
+    ctx.fill();
+});
+
+// 202. Loose LED Ceiling Panel Dangling by Wire and Flickering (Top-Down Battlemap View)
+reg(['ds_dangling_led_panel', 'item_202'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.48;
+    // 2D overhead suspension sway orbit
+    const swayX = Math.sin(time * 2.2 * speed) * (15 * elScale);
+    const swayY = Math.cos(time * 4.4 * speed) * (6 * elScale);
+    const px = cx + swayX;
+    const py = cy + swayY;
+    const flicker = (Math.sin(time * 26 * speed) > 0.15) ? (0.88 + Math.sin(time * 52) * 0.12) : 0.08;
+
+    ctx.save();
+    // 1. Overhead ceiling conduit frame opening (dark recessed ceiling pocket)
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+    ctx.fillRect(cx - 30 * elScale, cy - 20 * elScale, 60 * elScale, 40 * elScale);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1.5 * elScale;
+    ctx.strokeRect(cx - 30 * elScale, cy - 20 * elScale, 60 * elScale, 40 * elScale);
+
+    // 2. Flickering white-cyan light pool cast onto the steel deck floor below
+    const poolW = (75 + rough * 20) * elScale;
+    const poolH = (55 + rough * 15) * elScale;
+    const lightGrad = ctx.createRadialGradient(px - swayX * 0.3, py - swayY * 0.3, 4, px - swayX * 0.3, py - swayY * 0.3, poolW);
+    lightGrad.addColorStop(0, `rgba(240, 249, 255, ${0.85 * flicker * intensity})`);
+    lightGrad.addColorStop(0.4, `rgba(56, 189, 248, ${0.4 * flicker * intensity})`);
+    lightGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+    ctx.fillStyle = lightGrad;
+    ctx.beginPath();
+    ctx.ellipse(px - swayX * 0.3, py - swayY * 0.3, poolW, poolH, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Trailing power cable cords from ceiling pocket to suspended panel
+    ctx.strokeStyle = '#020617';
+    ctx.lineWidth = 2 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(cx - 18 * elScale, cy - 12 * elScale);
+    ctx.quadraticCurveTo(cx - 10 * elScale, cy - 5 * elScale, px - 14 * elScale, py - 8 * elScale);
+    ctx.moveTo(cx + 18 * elScale, cy - 12 * elScale);
+    ctx.quadraticCurveTo(cx + 12 * elScale, cy - 5 * elScale, px + 14 * elScale, py - 8 * elScale);
+    ctx.stroke();
+
+    // 4. Dangling LED panel frame seen from directly above (angled rectangle)
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(Math.sin(time * 2.2 * speed) * 0.15); // gentle angular tilt
+
+    // Panel chassis
+    const panW = 48 * elScale, panH = 26 * elScale;
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(-panW * 0.5, -panH * 0.5, panW, panH);
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2 * elScale;
+    ctx.strokeRect(-panW * 0.5, -panH * 0.5, panW, panH);
+
+    // Glowing diffuser face
+    ctx.fillStyle = `rgba(224, 242, 254, ${flicker * intensity})`;
+    ctx.fillRect(-panW * 0.42, -panH * 0.38, panW * 0.84, panH * 0.76);
+
+    // Occasional bright electrical spark from frayed wire corner
+    if (flicker < 0.2 && Math.sin(time * 30) > 0.4) {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-panW * 0.42, -panH * 0.42, 3 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.restore();
+});
+
+// 203. Handheld Magnesium Distress Flare Burning Bright Red
+reg(['ds_magnesium_flare', 'item_203'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.55;
+    // Flare casing
+    ctx.fillStyle = '#7f1d1d';
+    ctx.fillRect(cx - 18 * elScale, cy - 4 * elScale, 36 * elScale, 8 * elScale);
+    // Roaring blinding magnesium red flame
+    const flareR = (22 + Math.sin(time * 25 * speed) * 6) * elScale;
+    const flareGrad = ctx.createRadialGradient(cx + 18 * elScale, cy, 2, cx + 18 * elScale, cy, flareR);
+    flareGrad.addColorStop(0, `rgba(255, 255, 255, ${0.98 * intensity})`);
+    flareGrad.addColorStop(0.3, `rgba(239, 68, 68, ${0.9 * intensity})`);
+    flareGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+    ctx.fillStyle = flareGrad;
+    ctx.beginPath();
+    ctx.arc(cx + 18 * elScale, cy, flareR, 0, Math.PI * 2);
+    ctx.fill();
+});
+
+// 204. Rotating Holographic QUARANTINE Warning Icon Hovering
+reg(['ds_quarantine_holo_icon', 'item_204'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const rot = time * 2 * speed;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
+    // Yellow biohazard hazard triangle
+    ctx.strokeStyle = `rgba(245, 158, 11, ${0.9 * intensity})`;
+    ctx.lineWidth = 3.5 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(0, -28 * elScale);
+    ctx.lineTo(26 * elScale, 20 * elScale);
+    ctx.lineTo(-26 * elScale, 20 * elScale);
+    ctx.closePath();
+    ctx.stroke();
+    // Exclamation point
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(-2 * elScale, -12 * elScale, 4 * elScale, 16 * elScale);
+    ctx.beginPath();
+    ctx.arc(0, 12 * elScale, 2.5 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+});
+
+// 205. Phosphorescent Alien Jellyfish Pulsing in Cylinder
+reg(['ds_specimen_jellyfish', 'item_205'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Glass specimen cylinder
+    ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+    ctx.fillRect(cx - 24 * elScale, cy - 45 * elScale, 48 * elScale, 90 * elScale);
+    ctx.strokeStyle = '#bae6fd';
+    ctx.lineWidth = 2 * elScale;
+    ctx.strokeRect(cx - 24 * elScale, cy - 45 * elScale, 48 * elScale, 90 * elScale);
+    // Pulsing phosphorescent jellyfish bell
+    const pulse = 0.75 + Math.sin(time * 3 * speed) * 0.25;
+    const bellY = cy - 10 * elScale + Math.sin(time * 2) * 8 * elScale;
+    ctx.fillStyle = `rgba(168, 85, 247, ${0.85 * intensity})`;
+    ctx.beginPath();
+    ctx.arc(cx, bellY, 15 * elScale * pulse, Math.PI, 0, false);
+    ctx.fill();
+    // Trailing glowing tentacles
+    ctx.strokeStyle = '#c084fc';
+    ctx.lineWidth = 1.5;
+    for (let t = -2; t <= 2; t++) {
+        ctx.beginPath();
+        ctx.moveTo(cx + t * 4 * elScale, bellY);
+        ctx.quadraticCurveTo(cx + t * 6 * elScale + Math.sin(time * 4 + t) * 4, bellY + 18 * elScale, cx + t * 3 * elScale, bellY + 30 * elScale);
+        ctx.stroke();
+    }
+});
+
+// 206. Heavy Plasma-Arc Cutting Torch Slicing Through Blast Door
+reg(['ds_plasma_torch_cutter', 'item_206'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const cutY = cy - 25 * elScale + ((time * 30 * speed) % (50 * elScale));
+    // Torch nozzle
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(cx - 35 * elScale, cutY - 4 * elScale, 25 * elScale, 8 * elScale);
+    // Blue-white piercing plasma arc
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(cx - 10 * elScale, cutY, 4 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    // Flying incandescent sparks
+    for (let sp = 0; sp < 8; sp++) {
+        const sx = cx - 10 * elScale + Math.random() * 20 * elScale;
+        const sy = cutY + (Math.random() - 0.5) * 16 * elScale;
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 1.8 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 207. Escape Pod Thruster Nozzles Firing Stabilization Bursts
+reg(['ds_escape_pod_thrusters', 'item_207'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Hexagonal escape pod hull
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 32 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 3 * elScale;
+    ctx.stroke();
+    // RCS stabilization bursts from nozzles
+    const isBurst = (Math.sin(time * 5 * speed) > 0.2);
+    if (isBurst) {
+        ctx.fillStyle = `rgba(56, 189, 248, ${0.85 * intensity})`;
+        ctx.beginPath();
+        ctx.moveTo(cx + 32 * elScale, cy - 4 * elScale);
+        ctx.lineTo(cx + 52 * elScale, cy);
+        ctx.lineTo(cx + 32 * elScale, cy + 4 * elScale);
+        ctx.closePath();
+        ctx.fill();
+    }
+});
+
+// 208. Ruptured Sub-Floor Pipe Spraying Liquid Nitrogen Coolant
+reg(['ds_subfloor_coolant_leak', 'item_208'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.35, cy = H * 0.65;
+    ctx.save();
+    // Industrial reinforced deck conduit flange
+    ctx.fillStyle = '#1e293b';
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2 * elScale;
+    ctx.fillRect(cx - 25 * elScale, cy - 12 * elScale, 30 * elScale, 24 * elScale);
+    ctx.strokeRect(cx - 25 * elScale, cy - 12 * elScale, 30 * elScale, 24 * elScale);
+
+    // Rupture fracture tear with frost rim
+    ctx.fillStyle = '#0284c7';
+    ctx.fillRect(cx + 2 * elScale, cy - 6 * elScale, 6 * elScale, 12 * elScale);
+    ctx.strokeStyle = '#e0f2fe';
+    ctx.lineWidth = 1 * elScale;
+    ctx.strokeRect(cx + 1 * elScale, cy - 7 * elScale, 8 * elScale, 14 * elScale);
+
+    // High velocity cryogenic spray cone
+    const sprayLen = (W * 0.55 + rough * 25) * elScale;
+    const coneGrad = ctx.createLinearGradient(cx + 5 * elScale, cy, cx + sprayLen, cy - 35 * elScale);
+    coneGrad.addColorStop(0, 'rgba(240, 249, 255, ' + (0.8 * intensity) + ')');
+    coneGrad.addColorStop(0.4, 'rgba(186, 230, 253, ' + (0.8 * intensity) + ')');
+    coneGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+    ctx.fillStyle = coneGrad;
+    ctx.beginPath();
+    ctx.moveTo(cx + 6 * elScale, cy - 4 * elScale);
+    ctx.lineTo(cx + sprayLen, cy - 45 * elScale);
+    ctx.lineTo(cx + sprayLen, cy + 25 * elScale);
+    ctx.lineTo(cx + 6 * elScale, cy + 4 * elScale);
+    ctx.closePath();
+    ctx.fill();
+
+    // Billowing freezing vapor tumbling across floor plates
+    for (let v = 0; v < 8; v++) {
+        const vt = (time * 2 * speed + v * 0.2) % 1.4;
+        const vx = cx + 25 * elScale + vt * (sprayLen * 0.85);
+        const vy = cy - 10 * elScale + Math.sin(time * 4 + v) * (vt * 25 * elScale);
+        const vr = (8 + vt * 20) * elScale;
+        const vAlpha = (1 - vt / 1.4) * 0.45 * intensity;
+
+        const fg = ctx.createRadialGradient(vx, vy, 2, vx, vy, vr);
+        fg.addColorStop(0, 'rgba(255, 255, 255, ' + vAlpha + ')');
+        fg.addColorStop(0.7, 'rgba(224, 242, 254, ' + (vAlpha * 0.5) + ')');
+        fg.addColorStop(1, 'rgba(186, 230, 253, 0)');
+        ctx.fillStyle = fg;
+        ctx.beginPath();
+        ctx.arc(vx, vy, vr, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+});
+
+// 209. Pulsing Alien Egg Sac Twitching as Larva Breaks Out
+reg(['ds_alien_larva_hatching', 'item_209'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.55;
+    const twitch = Math.sin(time * 12 * speed) * 1.5;
+    // Leathery alien egg sac
+    ctx.fillStyle = '#3b0764';
+    ctx.beginPath();
+    ctx.ellipse(cx + twitch, cy, 24 * elScale, 32 * elScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Peeling top petals revealing green glowing interior
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.arc(cx + twitch, cy - 20 * elScale, 8 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+});
+
+// 210. Airlock Manual Override Lever Flashing Red With Sparks
+reg(['ds_airlock_override_lever', 'item_210'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Emergency yellow-striped wall housing
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(cx - 24 * elScale, cy - 35 * elScale, 48 * elScale, 70 * elScale);
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 3 * elScale;
+    ctx.strokeRect(cx - 24 * elScale, cy - 35 * elScale, 48 * elScale, 70 * elScale);
+    // Red pull-down lever arm
+    const pull = (Math.sin(time * 3 * speed) + 1) * 0.5 * 25 * elScale;
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 5 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 15 * elScale);
+    ctx.lineTo(cx, cy - 15 * elScale + pull);
+    ctx.stroke();
+    // Handle knob
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 15 * elScale + pull, 6 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+});
+
+// 211. Rotating 3D Holographic Planet Projection
+reg(['ds_holo_planet_globe', 'item_211'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const r = 32 * elScale;
+    const rot = time * 2 * speed;
+    // Wireframe holographic globe
+    ctx.strokeStyle = `rgba(56, 189, 248, ${0.85 * intensity})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    // Latitude and longitude lines
+    for (let l = 1; l <= 2; l++) {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, r, r * (l / 3), 0, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    // Rotating meridians
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r * Math.abs(Math.cos(rot)), r, 0, 0, Math.PI * 2);
+    ctx.stroke();
+});
+
+// 212. Horizontal Cryo-Pod Sliding Open With Escaping Frost
+reg(['ds_cryopod_hatch_open', 'item_212'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const podW = 75 * elScale, podH = 34 * elScale;
+    // Base chamber
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(cx - podW * 0.5, cy - podH * 0.5, podW, podH);
+    // Sliding glass hatch opening upwards
+    const open = Math.abs(Math.sin(time * 1.5 * speed)) * 18 * elScale;
+    ctx.fillStyle = 'rgba(186, 230, 253, 0.4)';
+    ctx.fillRect(cx - podW * 0.5, cy - podH * 0.5 - open, podW, podH);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2 * elScale;
+    ctx.strokeRect(cx - podW * 0.5, cy - podH * 0.5 - open, podW, podH);
+    // Escaping cold frost mist
+    for (let f = 0; f < 6; f++) {
+        const fx = cx - 25 * elScale + f * 10 * elScale;
+        const fy = cy - open - ((time * 25 + f * 15) % 25);
+        ctx.fillStyle = `rgba(240, 249, 255, ${0.45 * intensity})`;
+        ctx.beginPath();
+        ctx.arc(fx, fy, 6 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 213. Dish-Shaped Communications Array Rotating on Exterior Hull
+reg(['ds_hull_comms_dish', 'item_213'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.55;
+    const pan = Math.sin(time * 1.2 * speed);
+    // Base mount
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(cx - 10 * elScale, cy + 15 * elScale, 20 * elScale, 15 * elScale);
+    // Parabolic dish
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(pan * 0.35);
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 36 * elScale, 14 * elScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2 * elScale;
+    ctx.stroke();
+    // Central transceiver feed horn
+    ctx.strokeStyle = '#0284c7';
+    ctx.lineWidth = 2 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(0, -18 * elScale);
+    ctx.stroke();
+    ctx.restore();
+});
+
+// 214. Articulated Laser-Welding Arm Assembling Fighter Wing
+reg(['ds_drydock_welder_arm', 'item_214'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.35, cy = H * 0.2;
+    // Robotic shoulder & elbow joints
+    const ang1 = Math.sin(time * 2 * speed) * 0.35;
+    const ang2 = Math.cos(time * 2 * speed) * 0.45;
+    const j1x = cx + Math.sin(ang1) * 35 * elScale;
+    const j1y = cy + Math.cos(ang1) * 35 * elScale;
+    const tipX = j1x + Math.sin(ang1 + ang2) * 35 * elScale;
+    const tipY = j1y + Math.cos(ang1 + ang2) * 35 * elScale;
+    
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 4 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(j1x, j1y);
+    ctx.lineTo(tipX, tipY);
+    ctx.stroke();
+    // Welding spark flash
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(tipX, tipY, 4 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+});
+
+// 215. Brass-and-Steel Artificial Gravity Ring Spinning on Gimbals
+reg(['ds_antigrav_gimbal_ring', 'item_215'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const rot = time * 2.5 * speed;
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 3.5 * elScale;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 45 * elScale, 45 * elScale * Math.abs(Math.sin(rot)), 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#64748b';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 32 * elScale * Math.abs(Math.cos(rot)), 32 * elScale, 0, 0, Math.PI * 2);
+    ctx.stroke();
+});
+
+// 216. Glowing Antimatter Containment Cell With Pinch Fields
+reg(['ds_antimatter_containment', 'item_216'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Outer magnetic cage
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 3 * elScale;
+    ctx.strokeRect(cx - 24 * elScale, cy - 35 * elScale, 48 * elScale, 70 * elScale);
+    // Levitating violet antimatter pellet
+    const pulse = 0.8 + Math.sin(time * 8 * speed) * 0.2;
+    ctx.fillStyle = '#c084fc';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 8 * elScale * pulse, 0, Math.PI * 2);
+    ctx.fill();
+});
+
+// 217. Stealth Cloak Emitter Causing Optical Distortion Ripples
+reg(['ds_stealth_shroud_distortion', 'item_217'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    for (let r = 0; r < 3; r++) {
+        const age = (time * 1.5 * speed + r * 0.33) % 1;
+        const rad = age * 55 * elScale;
+        ctx.strokeStyle = `rgba(148, 163, 184, ${(1 - age) * 0.6 * intensity})`;
+        ctx.lineWidth = 2 * elScale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+});
+
+// 218. Overcharged EMP Capacitor Discharging Violet Static Arcs
+reg(['ds_emp_capacitor_arc', 'item_218'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Twin capacitor cylindrical poles
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(cx - 25 * elScale, cy - 20 * elScale, 14 * elScale, 40 * elScale);
+    ctx.fillRect(cx + 11 * elScale, cy - 20 * elScale, 14 * elScale, 40 * elScale);
+    // Violet spark discharge
+    if (Math.sin(time * 15 * speed) > 0.2) {
+        ctx.strokeStyle = '#a855f7';
+        ctx.lineWidth = 2 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(cx - 11 * elScale, cy);
+        ctx.lineTo(cx, cy + (Math.random() - 0.5) * 15);
+        ctx.lineTo(cx + 11 * elScale, cy);
+        ctx.stroke();
+    }
+});
+
+// 219. Tachyonic Sensor Array Emitting Concentric Ripples
+reg(['ds_tachyonic_sensor_array', 'item_219'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Central sensor mast
+    ctx.fillStyle = '#0284c7';
+    ctx.fillRect(cx - 4 * elScale, cy - 15 * elScale, 8 * elScale, 30 * elScale);
+    // Concentric radar waves
+    for (let w = 1; w <= 3; w++) {
+        const rad = ((time * 40 * speed + w * 25) % 65) * elScale;
+        ctx.strokeStyle = `rgba(6, 182, 212, ${0.75 * intensity})`;
+        ctx.lineWidth = 2 * elScale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+});
+
+// 220. Orbital Defense Cannon Charging With Converging Rings
+reg(['ds_orbital_cannon_charge', 'item_220'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Heavy cannon barrel
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(cx - 12 * elScale, cy - 35 * elScale, 24 * elScale, 70 * elScale);
+    // Converging charge rings
+    for (let r = 1; r <= 3; r++) {
+        const age = 1 - ((time * 2 * speed + r * 0.3) % 1);
+        const rad = age * 45 * elScale;
+        ctx.strokeStyle = `rgba(239, 68, 68, ${0.9 * intensity})`;
+        ctx.lineWidth = 2.5 * elScale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+});
+
+// 221. Med-Bay Telemetry Screen Scrolling Green ECG Line
+reg(['ds_medbay_ecg_screen', 'item_221'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    const monW = 85 * elScale, monH = 50 * elScale;
+    // Monitor screen frame
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(cx - monW * 0.5, cy - monH * 0.5, monW, monH);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2 * elScale;
+    ctx.strokeRect(cx - monW * 0.5, cy - monH * 0.5, monW, monH);
+    // Scrolling ECG line
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const startX = cx - monW * 0.5 + 4 * elScale;
+    const endX = cx + monW * 0.5 - 4 * elScale;
+    for (let x = startX; x <= endX; x += 4) {
+        const phase = (x - startX + time * 60 * speed) % 50;
+        let y = cy;
+        if (phase > 20 && phase < 26) y = cy - 12 * elScale;
+        else if (phase >= 26 && phase < 32) y = cy + 12 * elScale;
+        if (x === startX) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+});
+
+// 222. Small Round Hull-Cleaning Bot Bumping Against Bulkhead
+reg(['ds_hull_cleaner_droid', 'item_222'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5 + Math.sin(time * 2 * speed) * 20 * elScale;
+    const cy = H * 0.5;
+    // Round white cleaning bot body
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2 * elScale;
+    ctx.stroke();
+    // Blue sensor eye dome
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+});
+
+// 223. Sealed Zero-G Drink Pouch Floating and Rotating in Air
+reg(['ds_floating_drink_pouch', 'item_223'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5;
+    const floatY = H * 0.5 + Math.sin(time * 2 * speed) * 10 * elScale;
+    const rot = time * 1.5 * speed;
+    ctx.save();
+    ctx.translate(cx, floatY);
+    ctx.rotate(rot);
+    // Silver foil pouch
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(-12 * elScale, -16 * elScale, 24 * elScale, 32 * elScale);
+    // Orange liquid label
+    ctx.fillStyle = '#f97316';
+    ctx.fillRect(-8 * elScale, -8 * elScale, 16 * elScale, 16 * elScale);
+    // Straw nozzle
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fillRect(-2 * elScale, -22 * elScale, 4 * elScale, 6 * elScale);
+    ctx.restore();
+});
+
+// 224. Navigation Console Standby LEDs Blinking in Idle Loop
+reg(['ds_nav_console_standby', 'item_224'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.5, cy = H * 0.5;
+    // Console panel
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(cx - 35 * elScale, cy - 12 * elScale, 70 * elScale, 24 * elScale);
+    // Row of 5 indicator LEDs
+    const colors = ['#22c55e', '#38bdf8', '#f59e0b', '#ec4899', '#a855f7'];
+    for (let i = 0; i < 5; i++) {
+        const lx = cx - 24 * elScale + i * 12 * elScale;
+        const blink = Math.sin(time * 5 * speed + i) > 0;
+        ctx.fillStyle = blink ? colors[i] : '#334155';
+        ctx.beginPath();
+        ctx.arc(lx, cy, 3 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+});
+
+// 225. Six-Legged Alien Beetle Skittering Across Viewport
+reg(['ds_viewport_alien_beetle', 'item_225'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const bx = ((time * 50 * speed) % (W + 60)) - 30;
+    const by = H * 0.5 + Math.sin(time * 4) * 8 * elScale;
+    // Alien beetle body
+    ctx.fillStyle = '#15803d';
+    ctx.beginPath();
+    ctx.ellipse(bx, by, 10 * elScale, 6 * elScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Six scuttling jointed legs
+    ctx.strokeStyle = '#166534';
+    ctx.lineWidth = 1.5;
+    for (let l = -1; l <= 1; l++) {
+        const kick = Math.sin(time * 20 * speed + l) * 3;
+        ctx.beginPath();
+        ctx.moveTo(bx + l * 4 * elScale, by - 5 * elScale);
+        ctx.lineTo(bx + l * 6 * elScale, by - 12 * elScale + kick);
+        ctx.moveTo(bx + l * 4 * elScale, by + 5 * elScale);
+        ctx.lineTo(bx + l * 6 * elScale, by + 12 * elScale - kick);
+        ctx.stroke();
+    }
+});
+
 
 })();

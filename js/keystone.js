@@ -5,13 +5,13 @@
 
 class KeystoneEngine {
     constructor() {
-        // Default inset (6% from screen edges) for touch safety and projector table margins
-        this.defaultInset = 6.0;
+        // Default inset (0.0% for edge-to-edge full screen display)
+        this.defaultInset = 0.0;
         this.corners = {
-            tl: { x: 6.0, y: 6.0 },
-            tr: { x: 94.0, y: 6.0 },
-            br: { x: 94.0, y: 94.0 },
-            bl: { x: 6.0, y: 94.0 }
+            tl: { x: 0.0, y: 0.0 },
+            tr: { x: 100.0, y: 0.0 },
+            br: { x: 100.0, y: 100.0 },
+            bl: { x: 0.0, y: 100.0 }
         };
 
         this.activeCorner = 'tl';
@@ -99,7 +99,7 @@ class KeystoneEngine {
         this.notify();
     }
 
-    reset(inset = 6.0) {
+    reset(inset = 0.0) {
         this.corners = {
             tl: { x: inset, y: inset },
             tr: { x: 100 - inset, y: inset },
@@ -158,6 +158,19 @@ class KeystoneEngine {
      */
     applyTransform() {
         if (!this.viewportEl || !this.containerEl) return;
+
+        // If corners are at full edge-to-edge (0%, 100%), bypass CSS matrix3d to avoid any sub-pixel black border
+        const isIdentity = (
+            Math.abs(this.corners.tl.x) < 0.01 && Math.abs(this.corners.tl.y) < 0.01 &&
+            Math.abs(this.corners.tr.x - 100) < 0.01 && Math.abs(this.corners.tr.y) < 0.01 &&
+            Math.abs(this.corners.br.x - 100) < 0.01 && Math.abs(this.corners.br.y - 100) < 0.01 &&
+            Math.abs(this.corners.bl.x) < 0.01 && Math.abs(this.corners.bl.y - 100) < 0.01
+        );
+
+        if (isIdentity) {
+            this.viewportEl.style.transform = 'none';
+            return;
+        }
 
         const rect = this.containerEl.getBoundingClientRect();
         const W = rect.width || window.innerWidth;
@@ -259,10 +272,10 @@ class KeystoneEngine {
     updateHandles() {
         if (!this.calibrationOverlayEl) return;
         const labels = {
-            tl: '↖ TL',
-            tr: '↗ TR',
-            br: '↘ BR',
-            bl: '↙ BL'
+            tl: '\u2196 TL',
+            tr: '\u2197 TR',
+            br: '\u2198 BR',
+            bl: '\u2199 BL'
         };
         ['tl', 'tr', 'br', 'bl'].forEach(key => {
             const handle = this.calibrationOverlayEl.querySelector(`.keystone-handle[data-corner="${key}"]`);
@@ -575,17 +588,18 @@ class KeystoneEngine {
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (parsed.tl && parsed.tr && parsed.br && parsed.bl) {
-                    // Migrate old un-inset 0%/100% outer edges to new touch-friendly inset
-                    if (parsed.tl.x === 0 && parsed.tl.y === 0 &&
-                        parsed.tr.x === 100 && parsed.tr.y === 0 &&
-                        parsed.br.x === 100 && parsed.br.y === 100 &&
-                        parsed.bl.x === 0 && parsed.bl.y === 100) {
+                    const isLegacyDefault = (
+                        Math.round(parsed.tl.x) === 6 && Math.round(parsed.tl.y) === 6 &&
+                        Math.round(parsed.br.x) === 94 && Math.round(parsed.br.y) === 94
+                    );
+                    if (isLegacyDefault) {
                         this.corners = {
-                            tl: { x: 6.0, y: 6.0 },
-                            tr: { x: 94.0, y: 6.0 },
-                            br: { x: 94.0, y: 94.0 },
-                            bl: { x: 6.0, y: 94.0 }
+                            tl: { x: 0.0, y: 0.0 },
+                            tr: { x: 100.0, y: 0.0 },
+                            br: { x: 100.0, y: 100.0 },
+                            bl: { x: 0.0, y: 100.0 }
                         };
+                        this.saveSettings();
                     } else {
                         this.corners = Object.assign(this.corners, parsed);
                     }

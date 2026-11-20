@@ -6,7 +6,8 @@
 (function() {
     'use strict';
 
-    const VTT_FX = window.VTT_FX = window.VTT_FX || {};
+    const VTT_FX = window.VTT_FX = window.FX = window.VTT_FX || {};
+    const FX = VTT_FX;
 
     // Basic Math & Clamping
     VTT_FX.clamp = function(val, min, max) {
@@ -61,8 +62,8 @@
 
         const grad = ctx.createRadialGradient(0, 0, 2, length * 0.5, 0, length);
         grad.addColorStop(0, colStart);
-        grad.addColorStop(0.35, colStart.replace(/[\d\.]+\)$/, '0.65)'));
-        grad.addColorStop(0.75, colEnd.replace(/[\d\.]+\)$/, '0.22)'));
+        grad.addColorStop(0.35, colStart.replace(/[\d.]+\x29$/, '0.65)'));
+        grad.addColorStop(0.75, colEnd.replace(/[\d.]+\x29$/, '0.22)'));
         grad.addColorStop(1, colEnd);
 
         ctx.fillStyle = grad;
@@ -91,6 +92,9 @@
     // Fast CRT Scanline / Hologram Overlay
     VTT_FX.drawScanlines = function(ctx, x, y, w, h, spacing, opacity) {
         ctx.save();
+        // Cut scanlines OUT of already-drawn pixels instead of painting black stripes
+        // (black stripes on a transparent overlay show up as hard black lines on the map)
+        ctx.globalCompositeOperation = 'destination-out';
         ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
         for (let py = y; py < y + h; py += spacing) {
             ctx.fillRect(x, py, w, 1);
@@ -148,6 +152,86 @@
         ctx.arc(x, y, Math.max(0.5, r), 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+    };
+
+    // Computes variable-width organic ribbon samples with tangents, normals, left/right edges, and fractal width modulation
+    VTT_FX.evaluateVariablePath = function(points, baseWidth, variance, roughness, time, speed, isClosed) {
+        if (!points || points.length < 2) return [];
+        const stepDist = Math.max(12, Math.round(baseWidth * 0.42));
+        const samples = VTT_FX.samplePath(points, stepDist);
+        if (samples.length < 2) return samples;
+
+        const N = samples.length;
+        const v = Math.max(0, Math.min(2.0, variance !== undefined ? parseFloat(variance) : 0.0));
+        const r = Math.max(0, Math.min(2.0, roughness !== undefined ? parseFloat(roughness) : 0.75));
+        const t = time || 0;
+        const spd = speed !== undefined ? parseFloat(speed) : 1.0;
+
+        for (let i = 0; i < N; i++) {
+            const u = i / (N - 1);
+            const prev = samples[Math.max(0, i - 1)];
+            const next = samples[Math.min(N - 1, i + 1)];
+            let tx = next.x - prev.x;
+            let ty = next.y - prev.y;
+            const len = Math.hypot(tx, ty) || 1;
+            tx /= len;
+            ty /= len;
+
+            const nx = -ty;
+            const ny = tx;
+
+            let mod = 1.0;
+            if (v > 0.01) {
+                // Multi-harmonic organic swelling and pinching
+                const lowWave = Math.sin(u * Math.PI * 4) * 0.45;
+                const midWave = Math.sin(u * Math.PI * 11 + t * 0.4 * spd) * 0.25;
+                const frac = VTT_FX.fractalNoise ? VTT_FX.fractalNoise(u * 14, 0, t * 0.15, r) * 0.35 : 0;
+                mod = Math.max(0.12, 1.0 + v * (lowWave + midWave + frac));
+            }
+
+            // Natural organic taper at open path endpoints
+            if (v > 0.04 && !isClosed) {
+                const edgeTaper = Math.min(1.0, Math.min(u, 1 - u) * 4.0);
+                mod *= (0.35 + 0.65 * edgeTaper);
+            }
+
+            const w = Math.max(6, baseWidth * mod);
+            samples[i].u = u;
+            samples[i].w = w;
+            samples[i].tx = tx;
+            samples[i].ty = ty;
+            samples[i].nx = nx;
+            samples[i].ny = ny;
+            samples[i].leftX = samples[i].x + nx * (w * 0.5);
+            samples[i].leftY = samples[i].y + ny * (w * 0.5);
+            samples[i].rightX = samples[i].x - nx * (w * 0.5);
+            samples[i].rightY = samples[i].y - ny * (w * 0.5);
+        }
+
+        return samples;
+    };
+
+    // Helper to draw a filled or outlined variable-width ribbon path
+    VTT_FX.drawVariableRibbon = function(ctx, samples, isClosed) {
+        if (!samples || samples.length < 2) return;
+        ctx.beginPath();
+        // Trace forward along left edge
+        ctx.moveTo(samples[0].leftX, samples[0].leftY);
+        for (let i = 1; i < samples.length; i++) {
+            ctx.lineTo(samples[i].leftX, samples[i].leftY);
+        }
+        if (isClosed) {
+            ctx.closePath();
+            return;
+        }
+        // Round end cap
+        ctx.arc(samples[samples.length - 1].x, samples[samples.length - 1].y, samples[samples.length - 1].w * 0.5, 0, Math.PI * 2);
+        // Trace backward along right edge
+        ctx.moveTo(samples[samples.length - 1].rightX, samples[samples.length - 1].rightY);
+        for (let i = samples.length - 2; i >= 0; i--) {
+            ctx.lineTo(samples[i].rightX, samples[i].rightY);
+        }
+        ctx.closePath();
     };
 
 })();

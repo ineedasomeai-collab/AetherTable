@@ -1,14 +1,14 @@
 /**
- * MapGen — AI Battlemap Studio & 4K Map Finder Engine
+ * MapGen \u2014 AI Battlemap Studio & 4K Map Finder Engine
  * Modeled after the M&M 4e GM Suite MapGen Studio (Zero API Key Required):
  * 1. 2-Tab Studio Architecture:
- *    - Tab 1 (✨ AI Map Generator): 15 Quick Inspiration Presets, 6 Art Style & Perspective chips,
+ *    - Tab 1 (\u2728 AI Map Generator): 15 Quick Inspiration Presets, 6 Art Style & Perspective chips,
  *      13 Lighting & Atmosphere chips, Target Pixel Resolution (3840x2160 4K UHD, 2K, FHD, 4K Square,
  *      Ultrawide, Physical Mat sizes, Landscape/Portrait swap, Custom WxH), Aspect Fit/Crop modes
  *      (Fill & Crop 'cover', Fit Entire Map 'contain', Stretch 'fill'), Auto-Upscale to 4K,
  *      optional detail toggles, Master Cartographer Prompt, and Floating Companion Popup launchers
  *      for Google Gemini, Google AI Studio, and Google 4K Search.
- *    - Tab 2 (🔍 4K Battlemap Search & Instant 4K Maps): Floating companion search launchers for
+ *    - Tab 2 (\u{1F50D} 4K Battlemap Search & Instant 4K Maps): Floating companion search launchers for
  *      Google 4K Images, Pinterest 4K, Reddit r/battlemaps, and ArtStation Maps, Direct URL / Paste
  *      loader, and 8 Instant Curated 4K Procedural Battlemaps (3840x2160 1-click load with live canvas thumbs).
  * 2. High-Quality Bicubic 4K Canvas Processing Pipeline:
@@ -32,7 +32,7 @@ class AIMapGenerator {
             lighting: 'bright natural daylight, high contrast, clean visibility',
             w: 3840,
             h: 2160,
-            tag: '3840×2160 (4K UHD)',
+            tag: '3840\u00D72160 (4K UHD)',
             orientation: 'landscape', // 'landscape' | 'portrait'
             sizeIntent: '3840x2160',
             fit: 'cover', // 'cover' (Fill & Crop) | 'contain' (Fit Entire Map) | 'fill' (Stretch)
@@ -47,49 +47,49 @@ class AIMapGenerator {
         this.promptToggles = [
             {
                 id: 'flat2d',
-                label: '📐 Flat 2D 90° Camera',
+                label: '\u{1F4D0} Flat 2D 90\u00B0 Camera',
                 role: 'post',
                 text: 'completely flat 2D perpendicular 90-degree camera angle',
                 active: true
             },
             {
                 id: 'tactical',
-                label: '🎯 Clean Tactical Surface',
+                label: '\u{1F3AF} Clean Tactical Surface',
                 role: 'post',
                 text: 'clean tactical gaming surface',
                 active: true
             },
             {
                 id: 'ungridded',
-                label: '🚫 Ungridded / No Grid or Hexes',
+                label: '\u{1F6AB} Ungridded / No Grid or Hexes',
                 role: 'post',
                 text: 'ungridded seamless floor, no grid lines, no hexes',
                 active: true
             },
             {
                 id: 'nominis',
-                label: '🚫 No Minis / Characters',
+                label: '\u{1F6AB} No Minis / Characters',
                 role: 'post',
                 text: 'no miniatures, no characters, no figures',
                 active: true
             },
             {
                 id: 'notext',
-                label: '🚫 No Text / Watermarks',
+                label: '\u{1F6AB} No Text / Watermarks',
                 role: 'post',
                 text: 'no text labels, no watermarks',
                 active: true
             },
             {
                 id: 'textures8k',
-                label: '💎 Ultra-HD Crisp Cartography',
+                label: '\u{1F48E} Ultra-HD Crisp Cartography',
                 role: 'post',
                 text: 'ultra-high definition, crisp tactical cartography',
                 active: true
             },
             {
                 id: 'raytraced',
-                label: '🌑 Raytraced Ambient Occlusion',
+                label: '\u{1F311} Raytraced Ambient Occlusion',
                 role: 'post',
                 text: 'raytraced ambient occlusion',
                 active: false
@@ -101,64 +101,64 @@ class AIMapGenerator {
             {
                 id: 'forest',
                 name: 'Ancient Forest River',
-                tag: '3840×2160 (4K)',
-                icon: '🌲',
+                tag: '3840\u00D72160 (4K)',
+                icon: '\u{1F332}',
                 soundscape: 'forest',
                 draw: (ctx, w, h) => this.drawCuratedForestRiver(ctx, w, h)
             },
             {
                 id: 'dungeon',
                 name: 'Stone Crypt Dungeon',
-                tag: '3840×2160 (4K)',
-                icon: '🏰',
+                tag: '3840\u00D72160 (4K)',
+                icon: '\u{1F3F0}',
                 soundscape: 'cave',
                 draw: (ctx, w, h) => this.drawCuratedCryptDungeon(ctx, w, h)
             },
             {
                 id: 'cavern',
                 name: 'Molten Lava Chasm',
-                tag: '3840×2160 (4K)',
-                icon: '🌋',
+                tag: '3840\u00D72160 (4K)',
+                icon: '\u{1F30B}',
                 soundscape: 'volcano',
                 draw: (ctx, w, h) => this.drawCuratedLavaChasm(ctx, w, h)
             },
             {
                 id: 'tavern',
                 name: 'Cozy Tavern Taproom',
-                tag: '3840×2160 (4K)',
-                icon: '🍺',
+                tag: '3840\u00D72160 (4K)',
+                icon: '\u{1F37A}',
                 soundscape: 'tavern',
                 draw: (ctx, w, h) => this.drawCuratedTavernTaproom(ctx, w, h)
             },
             {
                 id: 'desert',
                 name: 'Desert Oasis Ruins',
-                tag: '3840×2160 (4K)',
-                icon: '🏜️',
+                tag: '3840\u00D72160 (4K)',
+                icon: '\u{1F3DC}\uFE0F',
                 soundscape: 'wind',
                 draw: (ctx, w, h) => this.drawCuratedDesertOasis(ctx, w, h)
             },
             {
                 id: 'cyber',
                 name: 'Cyberpunk Rain Alley',
-                tag: '3840×2160 (4K)',
-                icon: '🏙️',
+                tag: '3840\u00D72160 (4K)',
+                icon: '\u{1F3D9}\uFE0F',
                 soundscape: 'cyberpunk',
                 draw: (ctx, w, h) => this.drawCuratedCyberpunkAlley(ctx, w, h)
             },
             {
                 id: 'crystal',
                 name: 'Luminous Crystal Cavern',
-                tag: '3840×2160 (4K)',
-                icon: '🔮',
+                tag: '3840\u00D72160 (4K)',
+                icon: '\u{1F52E}',
                 soundscape: 'cave',
                 draw: (ctx, w, h) => this.drawCuratedCrystalCavern(ctx, w, h)
             },
             {
                 id: 'ship',
                 name: 'Starship Command Deck',
-                tag: '3840×2160 (4K)',
-                icon: '🚀',
+                tag: '3840\u00D72160 (4K)',
+                icon: '\u{1F680}',
                 soundscape: 'starship',
                 draw: (ctx, w, h) => this.drawCuratedStarshipBridge(ctx, w, h)
             }
@@ -229,7 +229,7 @@ class AIMapGenerator {
         this.state.w = numW;
         this.state.h = numH;
         const orientSuffix = numW === numH ? 'Square' : (this.state.orientation === 'portrait' ? 'Portrait' : 'Landscape');
-        this.state.tag = tag || `${numW}×${numH} (${orientSuffix})`;
+        this.state.tag = tag || `${numW}\u00D7${numH} (${orientSuffix})`;
         this.saveState();
         return { w: numW, h: numH, tag: this.state.tag };
     }
@@ -246,7 +246,7 @@ class AIMapGenerator {
             this.state.h = tmp;
         }
         const orientLabel = this.state.w === this.state.h ? 'Square' : (next === 'portrait' ? 'Portrait' : 'Landscape');
-        this.state.tag = `${this.state.w}×${this.state.h} (${orientLabel})`;
+        this.state.tag = `${this.state.w}\u00D7${this.state.h} (${orientLabel})`;
         this.saveState();
         return { w: this.state.w, h: this.state.h, tag: this.state.tag, orientation: next };
     }
@@ -255,7 +255,7 @@ class AIMapGenerator {
         const w = this.state.w || 3840;
         const h = this.state.h || 2160;
         const orientLabel = w === h ? 'Square' : (w > h ? 'Landscape' : 'Portrait');
-        const badge = `${w} × ${h} (${orientLabel})`;
+        const badge = `${w} \u00D7 ${h} (${orientLabel})`;
         this.state.tag = badge;
         this.state.fitMode = this.state.fit || 'cover';
         return { w, h, badge, orientation: this.state.orientation };
@@ -675,7 +675,7 @@ class AIMapGenerator {
             id: `map_${Date.now()}`,
             prompt: labelName || generated.name,
             fullPrompt: this.buildAssembledPrompt(),
-            provider: `4K Studio (${w}×${h})`,
+            provider: `4K Studio (${w}\u00D7${h})`,
             url: generated.url,
             width: w,
             height: h,

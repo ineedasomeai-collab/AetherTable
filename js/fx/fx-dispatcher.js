@@ -52,15 +52,24 @@
             const rough = cfg.fractalRoughness !== undefined ? parseFloat(cfg.fractalRoughness) : 0.75;
             const speed = cfg.speed !== undefined ? parseFloat(cfg.speed) : 1.0;
             const intensity = cfg.intensity !== undefined ? parseFloat(cfg.intensity) : 1.0;
-            const elScale = Math.max(0.2, Math.min(4.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
+            // If the host already scaled the context around the center, don't scale twice
+            const rawScale = Math.max(0.2, Math.min(4.0, parseFloat(cfg.elementScale !== undefined ? cfg.elementScale : (cfg.scale || 1.0))));
+            const elScale = el._motifScaled ? 1.0 : rawScale;
 
             try {
                 ctx.save();
+                ctx.shadowBlur = 0;
+                ctx.shadowColor = 'rgba(0, 0, 0, 0)';
+                ctx.globalAlpha = 1;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.setLineDash([]);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 fn(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale);
                 ctx.restore();
                 return true;
             } catch (err) {
-                console.error('Error rendering VTT FX:', err);
+                console.error('Error rendering VTT FX for element:', el && (el.config && el.config.variant || el.type), err);
                 ctx.restore();
                 return false;
             }
@@ -84,6 +93,7 @@
                 ctx._samples = samples;
                 ctx._strokeW = strokeW;
                 ctx._isClosed = isClosed;
+                ctx._widthVariance = cfg.widthVariance !== undefined ? parseFloat(cfg.widthVariance) : 0.0;
                 fn(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale);
                 ctx.restore();
                 return true;

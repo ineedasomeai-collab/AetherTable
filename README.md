@@ -25,6 +25,10 @@ A high-performance, web-based digital battle map utility engineered specifically
      - **🚀 Deep Space & Hard Sci-Fi (75, `js/fx/fx-space.js`)**: FTL star-streak warps, reactor coolant arcs, tracked repair drones, Cherenkov core glows, alien hive biomass, and 3D planetary holo-globes.
      - **👁️ Cosmic Horror, Noir & Occult Modern (75, `js/fx/fx-horror.js`)**: Fog lighthouse beams, crawling shadow tendrils, weeping basalt idols, vintage subways, venetian blind office shadows, and flickering London gaslamps.
      - **⚔️ High Fantasy & Sword-and-Sorcery (75, `js/fx/fx-fantasy.js`)**: Magic missile corkscrews, dragon-fire scorch waves, underground cavern rivers, cathedral god rays, bubbling witch cauldrons, and animated mimic chests.
+   - **✨ 100% Transparent Non-Focal Backdrop Architecture (Zero Opaque Bounding Boxes)**:
+     - Comprehensive codebase audit removing artificial background rectangles, fake wooden/stone floor fills, and opaque bounding boxes across all 375 effects (`js/fx/*.js` and `js/living-elements.js`).
+     - Only the active focal animated elements (light cones, illuminated beams, vehicles, tracks, runes, hazard fluids, props, and kinetic particles) are rendered.
+     - All "not important bits" are 100% transparent, enabling natural multi-layer stacking (e.g., placing campfires, smoke, rain, and headlights directly on top of battlemaps without obscuring the underlying map artwork).
    - **3 Physical Geometry Modes (125 Elements Each)**:
      - **〰️ Drawn Lines & Paths (125)**: Directional traveling paths and continuous ribbons that follow your stroke (headlight beams, flash floods, mining lasers, laser grids, conduits, and rivers).
      - **⭕ Filled Areas & Volumes (125)**: Custom enclosed perimeters and atmospheric textures (neon reflections, wheat fields, alien spore clouds, hoarfrost decks, and astral voids).
@@ -38,7 +42,49 @@ A high-performance, web-based digital battle map utility engineered specifically
    - **Genre Quick-Filter Bar & Live Keyword Search**: Instant 1-click genre chips (`🌐 All 375`, `⚡ Cyber 75`, `🤠 West 75`, `🚀 Space 75`, `👁️ Horror 75`, `⚔️ Fantasy 75`) paired with sub-millisecond search that filters across titles, descriptions, and tags while dynamically updating tab count badges.
    - **Soundscape Cleanout**: Clutter-free tabletop audio — removed redundant synthesized in-browser audio so GMs can run their preferred sound setups (Spotify, Syrinscape, Discord, or Bluetooth speakers) without in-browser audio clutter.
 
-4. **🌊 Deformable Waterways, Custom Pools & Living Forests (Zero Sameness)**:
+4. **🌊 Deformable Waterways, Custom Pools, Living Forests & Complete Procedural Geometry Overhaul (Zero Sameness)**:
+   - **True Procedural Structural Differentiation Across All Variants (No Fake Color Swaps)**:
+     - Every single variant across base elements now features 100% distinct procedural geometry, physical foundation structures, custom particle silhouettes, and unique kinetic behaviors:
+     - **Campfire & Torch**:
+       - *Wildfire*: Natural cobblestone hearth with 12 rounded fieldstones, radial split-timber logs with dark charred bark, and soft flame lobes.
+       - *Hellfire*: Brimstone altar with 8 sharp inward-pointing obsidian fang teeth, cracked basalt plates with molten magma fissures, and triangular erupting flame spires with exploding cinder shards.
+       - *Alchemical*: Transmutation floor mandala etched in emerald runes, wrought-iron 3-legged tripod with brass collars, central boiling glass alembic vessel, and serpentine flame ribbons with popping froth bubbles.
+       - *Arcane Fire*: Dual rotating runic summon rings, 6 floating levitating mana crystal shards bobbing in a hexagonal orbit, and needle/diamond flame spires with celestial stardust.
+       - *Burn Barrel / Industrial*: 55-gallon corrugated steel drum with crimped lip, 6 punched side air vents shooting flue flame jets, charred scrap/rebar bed, and billowing petroleum soot.
+     - **Volumetric Smoke & Atmospheric Gases**:
+       - *Black Carbon Soot*: Glowing coal firebed with rolling turbulent dark cumulus puffs and rising fiery cinders.
+       - *Stratified Ash Fog*: Low-contrast horizontal drifting haze layers with settling flat gray ash flakes and soft obscuration.
+       - *Marsh Poison Gas*: Sucking mud mire with 4 bubbling mud vents popping caustic green gas rings and creeping ground tendrils.
+       - *Caustic Acid Fumes*: Dissolving limestone floor craters with sizzling foam edges, corrosive spiraling vapor wisps, and micro-droplets.
+       - *Fungal Spore Miasma*: 5 rooted, fleshy bulbous fungal toadstool caps that pulse and expel rings of glowing bioluminescent spores.
+       - *Abyssal Void Miasma*: Dark matter reality void tear with reaching shadow claws and swarming necrotic void motes.
+     - **Viscous Ground Hazards & Bogs**:
+       - *Mud Bog*: Viscous brown mire with organic mud clods, slow suction ripples, and bursting thick mud domes.
+       - *Tar Pit*: Inky black pitch pool with iridescent petroleum rainbow sheen ribbons, embedded prehistoric animal skull & bone flotsam, and stretching elastic sticky tar strings.
+       - *Quicksand*: Deep central sinkhole with Archimedean sand spiral ridges churning inward and cascading granular sand motes.
+       - *Acid Sludge*: Caustic glowing emerald ooze with chemical erosion banks, sizzling foam rings, and popping acidic blisters.
+       - *Sticky Webs*: 16 radial tensile anchor silk lines, 5 concentric catenary spiral silk rings, vibrating cocooned trapped prey silhouette, and glistening morning dew glints.
+     - **Sparks & Arcane Electrical Hazards**:
+       - *Forked Lightning*: Violent branching electrical fork arcs with acute angles, rapid snap nodes, and electric plasma sparks.
+       - *Arcane Surge*: Concentric rotating mathematical rune circles with inscribed 7-pointed heptagram sigils and orbiting 3D faceted mana polyhedra (diamonds, cubes, octahedra).
+       - *Necrotic Rift*: Jagged vertical reality fracture seam with weeping dark matter tendrils, reaching skeletal shadow claws, and a pulsing crimson singularity core.
+       - *Sanctified Sunburst*: Sacred geometry 12-ray triangular sunburst ground mandala with 3 concentric interlocking holy rings and floating golden stardust cross-flares.
+     - **Living Tree Canopies**:
+       - *Summer Oak*: Multi-lobed rounded deciduous cloud-like leaf clusters arranged in natural organic tiers with dappled sunlight.
+       - *Autumn Maple*: 5-pointed serrated star-leaf clusters rendered in rich golden crimson and burnt amber with fluttering star flakes.
+       - *Conifer Pine Crown*: Multi-tiered concentric star-burst needle whorls with stiff evergreen boughs and central pinecones.
+       - *Tropical Palm*: 9 radiating arching curved palm fronds with dozens of paired feather leaflets branching from a central coconut cluster hub.
+       - *Weeping Deadwood*: Zero leaves! Gnarled, bare skeletal wooden boughs with 18 hanging, drooping weeping vine cords swaying heavily on the breeze.
+     - **Waterfalls & Cataracts**:
+       - *Alpine Cataract*: Natural granite rock shelf with weathered boulders, accelerating river lanes, and foaming plunge pool.
+       - *Crystal Cavern Veil*: Subterranean cascade dropping between hanging crystalline stalactites into an emerald-cyan bioluminescent crystal basin.
+       - *Timber Sluice Weir*: Heavy timber sluice weir with vertical wooden pilings, horizontal crossbeam sills, and rectangular spillway bays.
+       - *Molten Magma Cataract*: Basalt cliff lips with floating dark cooling slag crust chunks and exploding volcanic flare bursts.
+     - **Pulsing Lava Seams & Bedrock Fractures**:
+       - *Basalt Magma Trench*: Jagged cooling crust plates drifting over roaring yellow-orange magma channels with traveling molten surges.
+       - *Obsidian Brimstone Chasm*: 10 razor-sharp obsidian spikes flanking a deep sulfurous chasm with rising demonic cinder shards.
+       - *Leyline Mana Fracture*: Pure geometric crystal bedrock fracture with floating levitating mana prisms.
+       - *Vitriol Erosion Fault*: Dissolving limestone trench where boiling emerald vitriol eats into the stone banks with sizzling foam bubbles.
    - **Curved River Spline Mode**: Drag cyan control points to bend water around terrain; drag amber diamonds to widen/narrow riverbanks up to 3000px.
    - **8 Bespoke Procedural Waterway Physics Engines**: Completely eliminated generic color-shifted waterways:
      - `🩸 River of Blood`: Visceral dark maroon arterial flow, congealed dried liver-crust shores, rotating dark blood clots with specular glints, frothy crimson bubbles, branching capillary tendrils, and bobbing bleached human skulls & rib bones drifting downstream.
@@ -313,6 +359,12 @@ All organic shapes (forest canopies, deciduous trees, pine whorls, palm fronds, 
   - `75%` *(Default)*: Natural botanical tree silhouettes and organic riverbanks.
   - `150%`–`200%`: Craggy, deeply notched, gnarled ancient trees, skeletal briars, and jagged coves.
 - **Internal Entity Scale (`0.25x` to `3.0x`)**: Adjusts the size of internal components (leaves, twigs, needles, fish, tumbleweed barbs) independent of the bounding box size.
+- **〰️ Path Width Variance & Organic Taper Slider (`0%` to `150%`)**:
+  - `0% Uniform`: Classic uniform ribbon / constant stroke width.
+  - `40% Natural`: Gentle procedural width drift mimicking real meandering waterways, fissures, and trails.
+  - `80% Organic`: Pronounced rhythmic swelling into deep pools and pinching into narrow rapids or chasms.
+  - `130%–150% Wild Bulge & Taper`: High-contrast organic variance with multi-harmonic fractal edge jitter and smooth open-ended endpoint tapering.
+  - Available both in the **Freehand Draw Tool Bar** (for sketch-time control and live preview) and in the **Selected Element Inspector** (for dynamic post-draw fine-tuning).
 
 ### Color Grading, Blend Modes & Filters
 - **Full-Spectrum Hue Shift**: Rotate hues `-180°` to `+180°` or choose 1-click presets (*Gold*, *Fel Green*, *Arcane Cyan*, *Void Purple*, *Crimson Blood*).
