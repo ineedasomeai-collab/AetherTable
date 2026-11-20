@@ -16,92 +16,160 @@
 // A. LINEAR MOTION (151 - 175) - Deep Space & Hard Sci-Fi
 // =========================================================================
 
-// 151. FTL Star-Streak Warp (distant stars streaking into white lines at FTL)
+// 151. FTL Star-Streak Warp (Omnidirectional Hyper-Drive Star-Streaks & Relativistic Slipstream)
 reg(['ds_ftl_starstreak', 'item_151'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
     const cx = W * 0.5, cy = H * 0.5;
     const maxR = Math.hypot(W, H) * 0.65;
-    const numStars = 80;
+    const numStars = 110;
 
-    // Vanishing point hyperspace focal core glow
-    const corePulse = 0.5 + 0.5 * Math.sin(time * 3 * speed);
-    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, (16 + corePulse * 6) * elScale);
-    coreGrad.addColorStop(0, `rgba(224, 242, 254, ${0.85 * intensity})`);
-    coreGrad.addColorStop(0.35, `rgba(56, 189, 248, ${0.45 * intensity})`);
-    coreGrad.addColorStop(0.7, `rgba(99, 102, 241, ${0.2 * intensity})`);
-    coreGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
-    ctx.fillStyle = coreGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, (16 + corePulse * 6) * elScale, 0, Math.PI * 2);
-    ctx.fill();
+    // Check if drawn along a custom directional path
+    const hasPath = (ctx._isDrawnPath && Array.isArray(ctx._samples) && ctx._samples.length >= 2);
+    const pathSamples = hasPath ? ctx._samples : null;
 
-    for (let s = 0; s < numStars; s++) {
-        // Deterministic pseudo-random angle and speed independent of loop index
-        const ang = FX.hash(s * 17.13 + 3.1) * Math.PI * 2;
-        const starSpeed = 0.75 + FX.hash(s * 31.7 + 9.3) * 0.7;
-        const phase = FX.hash(s * 53.9 + 17.7);
+    ctx.save();
 
-        // Progress cycles outward from center
-        const progress = (time * 1.6 * speed * starSpeed + phase) % 1.0;
+    if (hasPath) {
+        // Relativistic hyperspace slipstream traveling along the user-drawn path
+        for (let s = 0; s < numStars; s++) {
+            const starSpeed = 0.8 + (((s * 7 + 5) % 17) / 17) * 0.8;
+            const phase = ((s * 13 + 11) % 29) / 29;
+            const progress = (time * 1.8 * speed * starSpeed + phase) % 1.0;
+            const laneOffset = ((((s * 11 + 3) % 23) / 23) - 0.5) * (ctx._strokeW || 60 * elScale);
 
-        // Relativistic acceleration: stars accelerate rapidly as they approach edge
-        const normR = Math.pow(progress, 1.7);
-        const rHead = normR * maxR;
+            const idxFloat = progress * (pathSamples.length - 1);
+            const idx = Math.min(Math.floor(idxFloat), pathSamples.length - 2);
+            const frac = idxFloat - idx;
+            const p0 = pathSamples[idx];
+            const p1 = pathSamples[idx + 1];
+            const dx = p1.x - p0.x;
+            const dy = p1.y - p0.y;
+            const segLen = Math.hypot(dx, dy) || 1;
+            const nx = -dy / segLen;
+            const ny = dx / segLen;
 
-        // Streak elongates proportionally to velocity and distance from center
-        const streakLen = (18 + normR * 110 + rough * 45) * elScale;
-        const rTail = Math.max(0, rHead - streakLen);
+            const hx = (p0.x + dx * frac) + nx * laneOffset;
+            const hy = (p0.y + dy * frac) + ny * laneOffset;
+            const streakLen = (20 + progress * 80 + rough * 40) * elScale;
+            const tx = hx - (dx / segLen) * streakLen;
+            const ty = hy - (dy / segLen) * streakLen;
 
-        const cosA = Math.cos(ang);
-        const sinA = Math.sin(ang);
+            let alpha = Math.sin(progress * Math.PI) * intensity;
+            if (alpha <= 0.02) continue;
 
-        const xHead = cx + cosA * rHead;
-        const yHead = cy + sinA * rHead;
-        const xTail = cx + cosA * rTail;
-        const yTail = cy + sinA * rTail;
+            const streakGrad = ctx.createLinearGradient(tx, ty, hx, hy);
+            streakGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+            streakGrad.addColorStop(0.6, `rgba(186, 230, 253, ${alpha * 0.75})`);
+            streakGrad.addColorStop(1, `rgba(255, 255, 255, ${alpha})`);
 
-        // Alpha envelope: fade in smoothly from center, fade out cleanly at viewport perimeter
-        let alpha = 1.0;
-        if (normR < 0.12) {
-            alpha = normR / 0.12;
-        } else if (normR > 0.82) {
-            alpha = Math.max(0, (1.0 - normR) / 0.18);
+            ctx.strokeStyle = streakGrad;
+            ctx.lineWidth = (1.0 + progress * 2.2) * elScale;
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(hx, hy);
+            ctx.stroke();
+
+            // Searing tip
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(hx, hy, (1.2 + progress * 1.2) * elScale, 0, Math.PI * 2);
+            ctx.fill();
         }
-        alpha *= intensity;
-
-        if (alpha <= 0.01) continue;
-
-        // Star color variation: primarily searing cyan-white with occasional warm or violet Doppler shift
-        const colorSeed = FX.hash(s * 89.3 + 4.1);
-        let midColor;
-        if (colorSeed < 0.65) {
-            midColor = `rgba(186, 230, 253, ${alpha * 0.85})`; // Cyan-white
-        } else if (colorSeed < 0.85) {
-            midColor = `rgba(199, 210, 254, ${alpha * 0.85})`; // Violet-white
-        } else {
-            midColor = `rgba(254, 240, 138, ${alpha * 0.85})`; // Golden-white
-        }
-
-        // Streak vector gradient from tail to head
-        const streakGrad = ctx.createLinearGradient(xTail, yTail, xHead, yHead);
-        streakGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-        streakGrad.addColorStop(0.55, midColor);
-        streakGrad.addColorStop(1, `rgba(255, 255, 255, ${alpha})`);
-
-        ctx.strokeStyle = streakGrad;
-        ctx.lineWidth = (0.75 + normR * 2.2) * elScale;
-        ctx.lineCap = 'round';
-
+    } else {
+        // Omnidirectional Hyper-Drive Warp Field
+        // 1. Central blinding Cherenkov singularity core glow
+        const corePulse = 0.85 + 0.15 * Math.sin(time * 6 * speed);
+        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, (24 + corePulse * 8) * elScale);
+        coreGrad.addColorStop(0, `rgba(255, 255, 255, ${0.98 * intensity})`);
+        coreGrad.addColorStop(0.25, `rgba(224, 242, 254, ${0.85 * corePulse * intensity})`);
+        coreGrad.addColorStop(0.55, `rgba(56, 189, 248, ${0.45 * intensity})`);
+        coreGrad.addColorStop(0.85, `rgba(99, 102, 241, ${0.18 * intensity})`);
+        coreGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+        ctx.fillStyle = coreGrad;
         ctx.beginPath();
-        ctx.moveTo(xTail, yTail);
-        ctx.lineTo(xHead, yHead);
+        ctx.arc(cx, cy, (24 + corePulse * 8) * elScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Gravitational lensing accretion ring
+        ctx.strokeStyle = `rgba(56, 189, 248, ${0.32 * corePulse * intensity})`;
+        ctx.lineWidth = (2.5 + rough * 2) * elScale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, (34 + Math.sin(time * 4) * 4) * elScale, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Pinpoint bright head needle dot
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.beginPath();
-        ctx.arc(xHead, yHead, (0.8 + normR * 1.4) * elScale, 0, Math.PI * 2);
-        ctx.fill();
+        // 3. Dense, mathematically uniform Golden-Angle star-streaks (ZERO quadrant clumping, ZERO aliasing)
+        // Golden angle: 2.399963229728653 rad (~137.507764 deg)
+        const goldenAngle = 2.399963229728653;
+
+        for (let s = 0; s < numStars; s++) {
+            // Golden angle sequence ensures perfectly uniform omnidirectional distribution
+            const ang = (s * goldenAngle) % (Math.PI * 2);
+            // De-correlated speeds and phases via prime modulus
+            const starSpeed = 0.72 + (((s * 11 + 7) % 19) / 19) * 0.75;
+            const phase = ((s * 17 + 13) % 31) / 31;
+
+            // Progress accelerates rapidly outward from center (relativistic lorentz contraction)
+            const progress = (time * 1.5 * speed * starSpeed + phase) % 1.0;
+            const normR = Math.pow(progress, 1.65);
+            const rHead = normR * maxR;
+
+            // Streak elongates proportionally to velocity and distance from vanishing point
+            const streakLen = (16 + normR * 125 + rough * 50) * elScale;
+            const rTail = Math.max(0, rHead - streakLen);
+
+            const cosA = Math.cos(ang);
+            const sinA = Math.sin(ang);
+
+            const xHead = cx + cosA * rHead;
+            const yHead = cy + sinA * rHead;
+            const xTail = cx + cosA * rTail;
+            const yTail = cy + sinA * rTail;
+
+            // Fade in smoothly from center, fade out cleanly at perimeter
+            let alpha = 1.0;
+            if (normR < 0.10) {
+                alpha = normR / 0.10;
+            } else if (normR > 0.84) {
+                alpha = Math.max(0, (1.0 - normR) / 0.16);
+            }
+            alpha *= intensity;
+
+            if (alpha <= 0.01) continue;
+
+            // Doppler color shift: blue-shifted cyan-white leading tip, violet trailing wake
+            const colorMod = s % 5;
+            let midColor;
+            if (colorMod < 3) {
+                midColor = `rgba(186, 230, 253, ${alpha * 0.88})`; // Intense cyan-white
+            } else if (colorMod === 3) {
+                midColor = `rgba(199, 210, 254, ${alpha * 0.82})`; // Violet-white
+            } else {
+                midColor = `rgba(254, 240, 138, ${alpha * 0.75})`; // Golden relativistic burst
+            }
+
+            // Streak vector gradient from tail to head
+            const streakGrad = ctx.createLinearGradient(xTail, yTail, xHead, yHead);
+            streakGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            streakGrad.addColorStop(0.55, midColor);
+            streakGrad.addColorStop(1, `rgba(255, 255, 255, ${alpha})`);
+
+            ctx.strokeStyle = streakGrad;
+            ctx.lineWidth = (0.8 + normR * 2.4) * elScale;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(xTail, yTail);
+            ctx.lineTo(xHead, yHead);
+            ctx.stroke();
+
+            // Pinpoint searing tip star
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(xHead, yHead, (0.9 + normR * 1.5) * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
+
+    ctx.restore();
 });
 
 // 152. Pulsing Amber Runway Approach Lights Guiding Shuttles
@@ -283,38 +351,250 @@ reg(['ds_micrometeoroid_shower', 'item_158'], function(el, ctx, W, H, dt, cfg, t
     }
 });
 
-// 159. Heavy Hydraulic Bulkheads Slamming Shut Sequentially (Top-Down Corridor Jambs)
-reg(['ds_hydraulic_bulkheads', 'item_159'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const cx = W * 0.5, cy = H * 0.5;
-    const cycle = (time * 1.5 * speed) % 3;
-    const isClosed = cycle > 0 && cycle < 1.8;
-    const doorGap = isClosed ? 2 * elScale : 45 * elScale;
-    const doorW = 42 * elScale, doorH = 70 * elScale;
+// 159. Heavy Hydraulic Bulkheads Slamming Shut Sequentially (Pure 90-deg Top-Down Overhead Battlemap View)
+reg(['ds_hydraulic_bulkheads', 'ds_bulkhead_doors', 'item_159'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cy = H * 0.5;
 
-    // Structural door frame coaming
-    ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 3 * elScale;
-    ctx.strokeRect(cx - doorW - 5 * elScale, cy - doorH * 0.5, (doorW * 2) + 10 * elScale, doorH);
+    // 2 Sequential Bulkhead Stations spaced down the corridor
+    const numStations = (W > 300 * elScale) ? 2 : 1;
 
-    // Left blast door sliding toward center
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(cx - doorGap - doorW, cy - doorH * 0.5 + 4 * elScale, doorW, doorH - 8 * elScale);
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 2 * elScale;
-    ctx.strokeRect(cx - doorGap - doorW, cy - doorH * 0.5 + 4 * elScale, doorW, doorH - 8 * elScale);
+    ctx.save();
 
-    // Right blast door sliding toward center
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(cx + doorGap, cy - doorH * 0.5 + 4 * elScale, doorW, doorH - 8 * elScale);
-    ctx.strokeRect(cx + doorGap, cy - doorH * 0.5 + 4 * elScale, doorW, doorH - 8 * elScale);
+    for (let s = 0; s < numStations; s++) {
+        const bx = numStations === 1 ? (W * 0.5) : (W * (0.32 + s * 0.36));
 
-    // Hydraulic warning beacons
-    const flash = (time * 8 * speed) % 1 > 0.5 ? 1 : 0.2;
-    ctx.fillStyle = `rgba(239, 68, 68, ${flash * intensity})`;
-    ctx.beginPath();
-    ctx.arc(cx - doorW - 2 * elScale, cy - doorH * 0.4, 3 * elScale, 0, Math.PI * 2);
-    ctx.arc(cx + doorW + 2 * elScale, cy - doorH * 0.4, 3 * elScale, 0, Math.PI * 2);
-    ctx.fill();
+        // Sequential timing cascade: Station 0 slams shut, then Station 1 slams shut
+        const stationOffset = s * 1.5;
+        const cycle = ((time * 0.75 * speed + stationOffset) % 4.0); // 4-second cycle
+
+        // State machine: 0 to 0.7 (open/alarm), 0.7 to 1.1 (slamming shut), 1.1 to 2.8 (locked shut), 2.8 to 3.4 (retracting open), 3.4 to 4.0 (idle open)
+        let closeProgress = 0; // 0 = fully open, 1 = slammed shut
+        let isSlamming = false;
+        let isLocked = false;
+        let justSlammed = false;
+
+        if (cycle < 0.7) {
+            closeProgress = 0; // open, pre-closing alarm
+        } else if (cycle < 1.1) {
+            // Rapid violent pneumatic slam
+            const t = (cycle - 0.7) / 0.4;
+            closeProgress = Math.min(1.0, Math.pow(t, 2.8)); // accelerate rapidly
+            isSlamming = true;
+        } else if (cycle < 2.8) {
+            closeProgress = 1.0; // locked tight
+            isLocked = true;
+            if (cycle < 1.35) justSlammed = true;
+        } else if (cycle < 3.4) {
+            // Smooth hydraulic retraction
+            const t = (cycle - 2.8) / 0.6;
+            closeProgress = 1.0 - t;
+        } else {
+            closeProgress = 0;
+        }
+
+        // Geometry dimensions in pure 90-deg top-down overhead perspective
+        const jambW = (24 + rough * 8) * elScale;
+        const wallDepth = Math.min(H * 0.28, 45 * elScale);
+        const corridorSpan = H - wallDepth * 2;
+        const maxDoorTravel = corridorSpan * 0.5;
+        const currentTravel = closeProgress * maxDoorTravel;
+
+        // 1. DECK FLOOR THRESHOLD SILL & CAUTION CHEVRONS (Between Wall Jambs)
+        const sillX = bx - jambW * 0.5;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(sillX, wallDepth, jambW, corridorSpan);
+
+        // Recessed steel floor guide track where the door leaves meet
+        ctx.fillStyle = '#020617';
+        ctx.fillRect(bx - 3 * elScale, wallDepth, 6 * elScale, corridorSpan);
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1 * elScale;
+        ctx.strokeRect(bx - 3 * elScale, wallDepth, 6 * elScale, corridorSpan);
+
+        // Industrial safety hazard chevron stripes on either side of the threshold track
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(sillX, wallDepth, jambW, corridorSpan);
+        ctx.clip();
+        for (let chY = wallDepth - jambW; chY < H - wallDepth + jambW; chY += 12 * elScale) {
+            ctx.fillStyle = '#f59e0b'; // Safety Amber
+            ctx.beginPath();
+            ctx.moveTo(bx - jambW * 0.5, chY);
+            ctx.lineTo(bx, chY + 8 * elScale);
+            ctx.lineTo(bx + jambW * 0.5, chY);
+            ctx.lineTo(bx + jambW * 0.5, chY + 5 * elScale);
+            ctx.lineTo(bx, chY + 13 * elScale);
+            ctx.lineTo(bx - jambW * 0.5, chY + 5 * elScale);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // 2. REINFORCED UPPER & LOWER BLAST DOOR LEAVES (Top-Down Armored Slabs)
+        const leafThick = 12 * elScale;
+        const doorY_TopEdge = wallDepth + currentTravel;
+        const doorY_BottomEdge = H - wallDepth - currentTravel;
+
+        // Top door leaf extending downward across corridor
+        if (currentTravel > 1) {
+            const topLeafH = currentTravel;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(bx - leafThick * 0.5, wallDepth, leafThick, topLeafH);
+
+            // Armored bevel highlight & shadow
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5 * elScale;
+            ctx.strokeRect(bx - leafThick * 0.5, wallDepth, leafThick, topLeafH);
+
+            // Heavy reinforced ribbing along the top of the door slab
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 1.0 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(bx, wallDepth); ctx.lineTo(bx, doorY_TopEdge);
+            ctx.stroke();
+
+            // Interlocking teeth along the leading mating edge
+            ctx.fillStyle = '#334155';
+            for (let t = -leafThick * 0.5; t < leafThick * 0.5; t += 4 * elScale) {
+                ctx.fillRect(bx + t, doorY_TopEdge - 2 * elScale, 2 * elScale, 2 * elScale);
+            }
+        }
+
+        // Bottom door leaf extending upward across corridor
+        if (currentTravel > 1) {
+            const bottomLeafH = currentTravel;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(bx - leafThick * 0.5, doorY_BottomEdge, leafThick, bottomLeafH);
+
+            // Armored bevel highlight & shadow
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5 * elScale;
+            ctx.strokeRect(bx - leafThick * 0.5, doorY_BottomEdge, leafThick, bottomLeafH);
+
+            // Reinforced spine
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 1.0 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(bx, doorY_BottomEdge); ctx.lineTo(bx, H - wallDepth);
+            ctx.stroke();
+
+            // Interlocking teeth along the bottom mating edge
+            ctx.fillStyle = '#334155';
+            for (let t = -leafThick * 0.5; t < leafThick * 0.5; t += 4 * elScale) {
+                ctx.fillRect(bx + t, doorY_BottomEdge, 2 * elScale, 2 * elScale);
+            }
+        }
+
+        // Center magnetic pressure seal glow when locked shut
+        if (isLocked) {
+            ctx.strokeStyle = `rgba(56, 189, 248, ${0.85 * intensity})`;
+            ctx.lineWidth = 2 * elScale;
+            ctx.beginPath();
+            ctx.moveTo(bx - leafThick * 0.5, cy);
+            ctx.lineTo(bx + leafThick * 0.5, cy);
+            ctx.stroke();
+        }
+
+        // 3. TOP & BOTTOM HEAVY CORRIDOR WALL POCKETS / JAMBS (Seen from 90-deg overhead)
+        const pocketW = jambW + 16 * elScale;
+
+        // Top Wall Pocket Frame
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(bx - pocketW * 0.5, 0, pocketW, wallDepth);
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 2 * elScale;
+        ctx.strokeRect(bx - pocketW * 0.5, 0, pocketW, wallDepth);
+
+        // Top hydraulic piston actuator visible through maintenance grating
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(bx - 3 * elScale, 4 * elScale, 6 * elScale, wallDepth - 8 * elScale);
+
+        // Bottom Wall Pocket Frame
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(bx - pocketW * 0.5, H - wallDepth, pocketW, wallDepth);
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 2 * elScale;
+        ctx.strokeRect(bx - pocketW * 0.5, H - wallDepth, pocketW, wallDepth);
+
+        // Bottom hydraulic piston actuator
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(bx - 3 * elScale, H - wallDepth + 4 * elScale, 6 * elScale, wallDepth - 8 * elScale);
+
+        // 4. PRESSURIZED PNEUMATIC STEAM JETS UPON SLAMMING IMPACT
+        if (justSlammed) {
+            const steamAge = (cycle - 1.1) / 0.25; // 0 to 1
+            const steamLen = (35 + steamAge * 45) * elScale;
+            const steamAlpha = (1.0 - steamAge) * 0.75 * intensity;
+
+            // Lateral steam jets blasting West and East along the corridor
+            const steamGradW = ctx.createLinearGradient(bx, cy, bx - steamLen, cy);
+            steamGradW.addColorStop(0, `rgba(255, 255, 255, ${steamAlpha})`);
+            steamGradW.addColorStop(0.5, `rgba(224, 242, 254, ${steamAlpha * 0.6})`);
+            steamGradW.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = steamGradW;
+            ctx.beginPath();
+            ctx.arc(bx - steamLen * 0.5, cy, (6 + steamAge * 10) * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            const steamGradE = ctx.createLinearGradient(bx, cy, bx + steamLen, cy);
+            steamGradE.addColorStop(0, `rgba(255, 255, 255, ${steamAlpha})`);
+            steamGradE.addColorStop(0.5, `rgba(224, 242, 254, ${steamAlpha * 0.6})`);
+            steamGradE.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = steamGradE;
+            ctx.beginPath();
+            ctx.arc(bx + steamLen * 0.5, cy, (6 + steamAge * 10) * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 5. ROTATING OVERHEAD ALARM STROBE BEACONS (Mounted on wall coamings)
+        const alarmActive = (cycle < 1.6 || cycle > 3.6);
+        const beaconSpeed = 16 * speed;
+        const beaconAng = time * beaconSpeed + s * Math.PI;
+
+        const topBx = bx;
+        const topBy = wallDepth * 0.45;
+        const botBx = bx;
+        const botBy = H - wallDepth * 0.45;
+
+        [ { x: topBx, y: topBy }, { x: botBx, y: botBy } ].forEach(b => {
+            // Heavy circular beacon housing
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 6.5 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 1.2 * elScale;
+            ctx.stroke();
+
+            if (alarmActive) {
+                // Sweeping directional light beam pool on deck
+                const beamLen = 38 * elScale;
+                const bGrad = ctx.createRadialGradient(b.x, b.y, 2, b.x, b.y, beamLen);
+                bGrad.addColorStop(0, `rgba(239, 68, 68, ${0.85 * intensity})`);
+                bGrad.addColorStop(0.4, `rgba(249, 115, 22, ${0.45 * intensity})`);
+                bGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                ctx.fillStyle = bGrad;
+                ctx.beginPath();
+                ctx.moveTo(b.x, b.y);
+                ctx.arc(b.x, b.y, beamLen, beaconAng - 0.5, beaconAng + 0.5);
+                ctx.closePath();
+                ctx.fill();
+
+                // Blinding beacon bulb core
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, 2.5 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Dim standby bulb
+                ctx.fillStyle = '#450a0a';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, 2.5 * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+    }
+
+    ctx.restore();
 });
 
 // 160. Industrial Mining Laser Slicing Across Asteroid

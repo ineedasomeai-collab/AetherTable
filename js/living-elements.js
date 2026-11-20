@@ -6255,23 +6255,39 @@ class LivingElementsEngine {
 
         // Dedicated procedural renderers for unique waterway physics & fluid dynamics
         switch (style) {
+            case 'hf_cavern_river':
+                this.drawSplineCavernRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'hf_mountain_river':
+            case 'ocean':
+                this.drawSplineRapidsRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'ww_flash_flood':
+                this.drawSplineFlashFlood(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'ww_canyon_river':
+                this.drawSplineCanyonRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'ww_gold_sluice':
+                this.drawSplineAlpineStream(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'cp_chemical_culvert':
+            case 'acid':
+                this.drawSplineCoolantConduit(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'cp_acrylic_coolant_floor':
+            case 'concrete_canal':
+                this.drawSplineCanalRiver(el, ctx, samples, time, opacity, intensity, qty);
+                break;
+            case 'ch_cellar_ichor':
             case 'blood_river':
                 this.drawSplineBloodRiver(el, ctx, samples, time, opacity, intensity, qty);
                 break;
             case 'lava':
                 this.drawSplineLavaRiver(el, ctx, samples, time, opacity, intensity, qty);
                 break;
-            case 'ocean':
-                this.drawSplineRapidsRiver(el, ctx, samples, time, opacity, intensity, qty);
-                break;
             case 'swamp':
                 this.drawSplineSwampRiver(el, ctx, samples, time, opacity, intensity, qty);
-                break;
-            case 'concrete_canal':
-                this.drawSplineCanalRiver(el, ctx, samples, time, opacity, intensity, qty);
-                break;
-            case 'acid':
-                this.drawSplineCoolantConduit(el, ctx, samples, time, opacity, intensity, qty);
                 break;
             case 'moat_stakes':
                 this.drawSplineMoatRiver(el, ctx, samples, time, opacity, intensity, qty);
@@ -6317,6 +6333,395 @@ class LivingElementsEngine {
     // ------------------------------------------------------------------------
     // BESPOKE WATERWAY RENDERERS
     // ------------------------------------------------------------------------
+
+    drawSplineFlashFlood(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Dry Desert Clay / Red Sandstone Arroyo Banks
+        this.traceSplineRibbonPath(ctx, samples, 1.12);
+        ctx.fillStyle = `rgba(124, 45, 18, ${opacity * 0.95})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 1.02);
+        ctx.fillStyle = `rgba(92, 33, 14, ${opacity * 0.90})`;
+        ctx.fill();
+
+        // 2. Churning Silt-Heavy Muddy Flood Torrent
+        this.traceSplineRibbonPath(ctx, samples, 0.92);
+        ctx.fillStyle = `rgba(146, 64, 14, ${opacity * 0.92})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.70);
+        ctx.fillStyle = `rgba(120, 53, 15, ${opacity * 0.96})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.45);
+        ctx.fillStyle = `rgba(90, 38, 12, ${opacity * 0.98})`;
+        ctx.fill();
+
+        // 3. Clip for High-Velocity Muddy Current & Turbulent Surge
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.98);
+        ctx.clip();
+
+        // High-velocity muddy silt streamlines
+        ctx.strokeStyle = `rgba(217, 119, 6, ${0.52 * intensity})`;
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        const lanes = [-0.38, -0.20, 0, 0.20, 0.38];
+        lanes.forEach((lane, lIdx) => {
+            const laneSpeed = 28 + (lIdx % 2) * 8;
+            for (let b = 0; b < totalSamples - 4; b += 3) {
+                const k = Math.floor((b + time * laneSpeed) % (totalSamples - 3));
+                const s1 = samples[k];
+                const s2 = samples[k + 2];
+                if (!s1 || !s2) continue;
+                const wave1 = Math.sin(b * 0.9 + time * 8 + lIdx) * 0.08;
+                const wave2 = Math.cos(b * 0.9 + time * 8 + lIdx) * 0.08;
+                ctx.moveTo(s1.x + s1.nx * (lane + wave1) * s1.w, s1.y + s1.ny * (lane + wave1) * s1.w);
+                ctx.lineTo(s2.x + s2.nx * (lane + wave2) * s2.w, s2.y + s2.ny * (lane + wave2) * s2.w);
+            }
+        });
+        ctx.stroke();
+
+        // Frothing cream-colored silt foam crests & churning hydraulic boils
+        ctx.fillStyle = `rgba(254, 243, 199, ${0.72 * intensity})`;
+        for (let f = 2; f < totalSamples - 2; f += 5) {
+            const surgePhase = (time * 24 + f * 4.3) % (totalSamples - 2);
+            const idx = Math.floor(surgePhase);
+            const s = samples[idx];
+            if (!s) continue;
+            const foamX = s.x + s.nx * Math.sin(f * 2.1) * s.w * 0.32;
+            const foamY = s.y + s.ny * Math.sin(f * 2.1) * s.w * 0.32;
+            const fRad = (4 + Math.sin(time * 12 + f) * 2) * (s.w / 60);
+            ctx.beginPath();
+            ctx.arc(foamX, foamY, fRad, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Churning tumbling boulders & debris
+        for (let b = 5; b < totalSamples - 5; b += 9) {
+            const s = samples[b];
+            const bOffset = ((b % 3) - 1) * 0.22 * s.w;
+            const bx = s.x + s.nx * bOffset;
+            const by = s.y + s.ny * bOffset;
+            const br = Math.max(6, s.w * 0.11);
+            const flowAng = Math.atan2(s.ty, s.tx);
+
+            // Muddy sandstone boulder
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.arc(bx, by, br, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#451a03';
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+
+            // Downstream muddy wake V
+            ctx.strokeStyle = `rgba(254, 215, 170, ${0.65 * intensity})`;
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.moveTo(bx + Math.cos(flowAng + 2.4) * (br + 2), by + Math.sin(flowAng + 2.4) * (br + 2));
+            ctx.lineTo(bx + Math.cos(flowAng) * (br * 0.4), by + Math.sin(flowAng) * (br * 0.4));
+            ctx.lineTo(bx + Math.cos(flowAng - 2.4) * (br + 2), by + Math.sin(flowAng - 2.4) * (br + 2));
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    drawSplineCanyonRiver(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Terraced Red Sandstone Canyon Banks (Outer strata cliffs and sandstone shelves)
+        this.traceSplineRibbonPath(ctx, samples, 1.15);
+        ctx.fillStyle = `rgba(154, 52, 18, ${opacity * 0.95})`; // Terracotta red rock
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 1.04);
+        ctx.fillStyle = `rgba(180, 83, 9, ${opacity * 0.90})`; // Mesa sandstone shelf
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.92);
+        ctx.fillStyle = `rgba(120, 53, 15, ${opacity * 0.85})`; // Wet riverbank silt
+        ctx.fill();
+
+        // 2. Clear Turquoise / Azure Canyon Waters (Deep desert river channel)
+        this.traceSplineRibbonPath(ctx, samples, 0.82);
+        ctx.fillStyle = `rgba(14, 116, 144, ${opacity * 0.94})`; // Deep turquoise channel
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.60);
+        ctx.fillStyle = `rgba(6, 182, 212, ${opacity * 0.96})`; // Shimmering azure water
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.35);
+        ctx.fillStyle = `rgba(34, 211, 238, ${opacity * 0.88})`; // Sunlit central flow
+        ctx.fill();
+
+        // 3. Clip for Riverbed & Surface Dynamics
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.88);
+        ctx.clip();
+
+        // Submerged smooth river stones / sandbars
+        const stoneColors = ['#78350f', '#92400e', '#b45309', '#d97706', '#0f766e'];
+        for (let sIdx = 3; sIdx < totalSamples - 3; sIdx += 4) {
+            const smp = samples[sIdx];
+            const sSeed = sIdx * 7.19;
+            const sOff = Math.sin(sSeed) * 0.32 * smp.w;
+            const sx = smp.x + smp.nx * sOff;
+            const sy = smp.y + smp.ny * sOff;
+            const sr = 3.5 + (sIdx % 4) * 2.2;
+            ctx.fillStyle = stoneColors[sIdx % stoneColors.length];
+            ctx.beginPath();
+            ctx.ellipse(sx, sy, sr * 1.3, sr * 0.85, sSeed, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Shimmering golden sun caustics weaving along the current
+        const numCausticLanes = 6;
+        for (let c = 0; c < numCausticLanes; c++) {
+            const lane = -0.32 + (c / (numCausticLanes - 1)) * 0.64;
+            const flowSpeed = 16 + (c % 3) * 5;
+            ctx.strokeStyle = c % 2 === 0 ? `rgba(224, 242, 254, ${0.55 * intensity})` : `rgba(254, 240, 138, ${0.45 * intensity})`;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            for (let baseK = 0; baseK < totalSamples - 4; baseK += 2) {
+                const k = Math.floor((baseK + time * flowSpeed) % (totalSamples - 3));
+                const s1 = samples[k];
+                const s2 = samples[k + 2];
+                if (!s1 || !s2) continue;
+                const wave1 = Math.sin(baseK * 0.6 + time * 3.8 + c * 1.4) * 0.07;
+                const wave2 = Math.cos(baseK * 0.6 + time * 3.5 + c * 1.4) * 0.07;
+                ctx.moveTo(s1.x + s1.nx * ((lane + wave1) * s1.w), s1.y + s1.ny * ((lane + wave1) * s1.w));
+                ctx.lineTo(s2.x + s2.nx * ((lane + wave2) * s2.w), s2.y + s2.ny * ((lane + wave2) * s2.w));
+            }
+            ctx.stroke();
+        }
+
+        // Drifting foam patches and gentle ripples
+        for (let f = 0; f < 10; f++) {
+            const fIdx = Math.floor((time * 18 + f * 11.3) % (totalSamples - 2));
+            const fs = samples[fIdx];
+            if (!fs) continue;
+            const fx = fs.x + fs.nx * (Math.sin(f * 2.7 + time * 0.6) * 0.28 * fs.w);
+            const fy = fs.y + fs.ny * (Math.sin(f * 2.7 + time * 0.6) * 0.28 * fs.w);
+            const fRadius = 3.5 + (f % 3) * 2;
+            ctx.fillStyle = `rgba(240, 253, 250, ${0.65 * intensity})`;
+            ctx.beginPath();
+            ctx.ellipse(fx, fy, fRadius * 1.3, fRadius * 0.7, Math.sin(time + f), 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+
+        // 4. Weathered Wooden Fishing Pier (built on the bank, extending out into the clear water)
+        const pierSampleIdx = Math.floor(totalSamples * 0.38);
+        const pSample = samples[pierSampleIdx];
+        if (pSample) {
+            const pierWidth = Math.max(14, pSample.w * 0.22);
+            const nx = pSample.nx;
+            const ny = pSample.ny;
+            const tx = pSample.tx;
+            const ty = pSample.ty;
+
+            // Pier starts from outer bank (0.95 * w) extending inward to (0.35 * w)
+            const pStart = 0.95 * pSample.w;
+            const pEnd = 0.35 * pSample.w;
+            const pStartX = pSample.x + nx * pStart;
+            const pStartY = pSample.y + ny * pStart;
+            const pEndX = pSample.x + nx * pEnd;
+            const pEndY = pSample.y + ny * pEnd;
+
+            ctx.save();
+
+            // Under-pier pilings (heavy dark timber round posts embedded in water)
+            const pilingCount = 3;
+            for (let pl = 0; pl < pilingCount; pl++) {
+                const ratio = 0.2 + (pl / (pilingCount - 1)) * 0.75;
+                const px = pStartX + (pEndX - pStartX) * ratio;
+                const py = pStartY + (pEndY - pStartY) * ratio;
+                const pr = 4.0;
+
+                // Pilings ripple wake in current
+                ctx.strokeStyle = `rgba(207, 250, 254, ${0.6 * intensity})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(px, py, pr + 3.0 + Math.sin(time * 3 + pl) * 1.5, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Piling post
+                ctx.fillStyle = '#291b12';
+                ctx.beginPath();
+                ctx.arc(px, py, pr, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Pier deck planks (weathered cedar/pine boards running perpendicular to pier direction)
+            const numPlanks = 8;
+            for (let pk = 0; pk < numPlanks; pk++) {
+                const ratio = pk / (numPlanks - 1);
+                const pkx = pStartX + (pEndX - pStartX) * ratio;
+                const pky = pStartY + (pEndY - pStartY) * ratio;
+                const halfW = pierWidth * 0.5;
+
+                // Wooden plank rectangle
+                ctx.strokeStyle = '#3e2312';
+                ctx.lineWidth = 1.2;
+                ctx.fillStyle = pk % 2 === 0 ? '#78350f' : '#854d0e';
+                ctx.beginPath();
+                ctx.moveTo(pkx - tx * halfW, pky - ty * halfW);
+                ctx.lineTo(pkx + tx * halfW, pky + ty * halfW);
+                ctx.lineTo(pkx + tx * halfW + (pEndX - pStartX) * 0.12, pky + ty * halfW + (pEndY - pStartY) * 0.12);
+                ctx.lineTo(pkx - tx * halfW + (pEndX - pStartX) * 0.12, pky - ty * halfW + (pEndY - pStartY) * 0.12);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Nail heads on planks
+                ctx.fillStyle = '#1c1917';
+                ctx.beginPath();
+                ctx.arc(pkx - tx * (halfW * 0.75), pky - ty * (halfW * 0.75), 1.0, 0, Math.PI * 2);
+                ctx.arc(pkx + tx * (halfW * 0.75), pky + ty * (halfW * 0.75), 1.0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Fishing gear on pier: tackle pail and fishing rod over water
+            const bktX = pEndX + tx * (pierWidth * 0.25);
+            const bktY = pEndY + ty * (pierWidth * 0.25);
+            ctx.fillStyle = '#451a03';
+            ctx.beginPath();
+            ctx.arc(bktX, bktY, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#d6d3d1';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            // Slender fishing rod extending out into river
+            const rodTipX = pEndX + (pEndX - pStartX) * 0.45;
+            const rodTipY = pEndY + (pEndY - pStartY) * 0.45;
+            ctx.strokeStyle = '#d97706';
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(pEndX, pEndY);
+            ctx.lineTo(rodTipX, rodTipY);
+            ctx.stroke();
+
+            // Monofilament line & tiny bobber floating on water
+            const bobberX = rodTipX + (pEndX - pStartX) * 0.15;
+            const bobberY = rodTipY + (pEndY - pStartY) * 0.15 + Math.sin(time * 3) * 2;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(rodTipX, rodTipY);
+            ctx.lineTo(bobberX, bobberY);
+            ctx.stroke();
+
+            // Red/White bobber
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(bobberX, bobberY, 2.0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Bobber ripple
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.6 * intensity})`;
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.arc(bobberX, bobberY, 4.5 + Math.sin(time * 4) * 1.5, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+    }
+
+    drawSplineCavernRiver(el, ctx, samples, time, opacity, intensity, qty) {
+        const totalSamples = samples.length;
+
+        // 1. Dark cavern limestone banks (subterranean bedrock)
+        this.traceSplineRibbonPath(ctx, samples, 1.08);
+        ctx.fillStyle = `rgba(15, 23, 42, ${opacity * 0.95})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.94);
+        ctx.fillStyle = `rgba(30, 41, 59, ${opacity * 0.88})`;
+        ctx.fill();
+
+        // 2. Surging subterranean river channel (dark indigo to cyan deep water)
+        this.traceSplineRibbonPath(ctx, samples, 0.80);
+        ctx.fillStyle = `rgba(3, 105, 161, ${opacity * 0.92})`;
+        ctx.fill();
+
+        this.traceSplineRibbonPath(ctx, samples, 0.58);
+        ctx.fillStyle = `rgba(2, 132, 199, ${opacity * 0.96})`;
+        ctx.fill();
+
+        // 3. Clip for Internal Dynamics (submerged cavern rocks, bioluminescent currents, rapids)
+        ctx.save();
+        this.traceSplineRibbonPath(ctx, samples, 0.92);
+        ctx.clip();
+
+        // Submerged smooth cavern rocks & glowing mineral crystals
+        const rockColors = ['#1e293b', '#334155', '#0f172a', '#475569', '#38bdf8', '#818cf8'];
+        for (let p = 2; p < totalSamples - 2; p += 3) {
+            const s = samples[p];
+            const pSeed = p * 5.43;
+            const pOff = Math.sin(pSeed) * 0.35 * s.w;
+            const px = s.x + s.nx * pOff;
+            const py = s.y + s.ny * pOff;
+            const pr = 4.0 + (p % 4) * 2.0;
+            const isCrystal = (p % 6 === 0);
+            ctx.fillStyle = rockColors[p % rockColors.length];
+            ctx.beginPath();
+            ctx.ellipse(px, py, pr * 1.3, pr * 0.8, pSeed, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (isCrystal) {
+                // Crystal pulse glow
+                ctx.fillStyle = `rgba(56, 189, 248, ${0.45 * intensity})`;
+                ctx.beginPath();
+                ctx.arc(px, py, pr * 2.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Surging rushing whitewater currents moving downstream
+        const numCurrents = 5;
+        for (let c = 0; c < numCurrents; c++) {
+            const cLane = -0.3 + (c / (numCurrents - 1)) * 0.6;
+            const cSpeed = 22 + (c % 3) * 6;
+            ctx.strokeStyle = c % 2 === 0 ? `rgba(186, 230, 253, ${0.65 * intensity})` : `rgba(56, 189, 248, ${0.5 * intensity})`;
+            ctx.lineWidth = (2.0 + (c % 2)) * 1.0;
+            ctx.beginPath();
+            for (let baseK = 0; baseK < totalSamples - 4; baseK += 3) {
+                const k = Math.floor((baseK + time * cSpeed) % (totalSamples - 3));
+                const s1 = samples[k];
+                const s2 = samples[k + 2];
+                if (!s1 || !s2) continue;
+                const wave1 = Math.sin(baseK * 0.8 + time * 3.5 + c) * 0.08;
+                const wave2 = Math.cos(baseK * 0.8 + time * 3.2 + c) * 0.08;
+                ctx.moveTo(s1.x + s1.nx * ((cLane + wave1) * s1.w), s1.y + s1.ny * ((cLane + wave1) * s1.w));
+                ctx.lineTo(s2.x + s2.nx * ((cLane + wave2) * s2.w), s2.y + s2.ny * ((cLane + wave2) * s2.w));
+            }
+            ctx.stroke();
+        }
+
+        // Frothing whitewater foam crests tumbling down the subterranean rapids
+        for (let f = 0; f < 12; f++) {
+            const fk = Math.floor((time * 26 + f * 9.5) % (totalSamples - 2));
+            const fs = samples[fk];
+            if (!fs) continue;
+            const fx = fs.x + fs.nx * (Math.sin(f * 2.1 + time * 0.8) * 0.3 * fs.w);
+            const fy = fs.y + fs.ny * (Math.sin(f * 2.1 + time * 0.8) * 0.3 * fs.w);
+            const fSize = 6 + (f % 3) * 3;
+            ctx.fillStyle = `rgba(224, 242, 254, ${0.75 * intensity})`;
+            ctx.beginPath();
+            ctx.ellipse(fx, fy, fSize * 1.4, fSize * 0.7, Math.sin(time + f), 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
 
     drawSplineBloodRiver(el, ctx, samples, time, opacity, intensity, qty) {
         const totalSamples = samples.length;
@@ -7202,10 +7607,17 @@ class LivingElementsEngine {
                 this.drawPolygonBloodPool(el, ctx, nodes, time, opacity, intensity, qty);
                 break;
             case 'cavern_pool':
+            case 'hf_cave_drip_pond_ripples':
+            case 'hf_underwater_caustics':
+            case 'ch_liquid_mirror_ripple':
+            case 'ch_harbor_indigo_moon':
+            case 'ch_cosmic_asphalt_puddle':
+            case 'uni_cavernpool':
                 this.drawPolygonCavernPool(el, ctx, nodes, time, opacity, intensity, qty);
                 break;
             case 'ocean':
             case 'tropical_reef':
+            case 'hf_kelp_coral_reef':
                 this.drawPolygonOceanSurf(el, ctx, nodes, time, opacity, intensity, qty);
                 break;
             default:

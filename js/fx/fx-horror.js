@@ -92,7 +92,7 @@ reg(['ch_lighthouse_beam', 'item_226'], function(el, ctx, W, H, dt, cfg, time, r
 });
 
 // 227. Dying Streetlamp Chain (extinguishing one by one down an alley - Top-Down Battlemap View)
-reg(['ch_flickering_streetlamps', 'item_227'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+reg(['ch_flickering_streetlamps', 'ch_flickering_streetlamp', 'item_227'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
     const numLamps = 6;
     // Alley line along the curb/wall
     const cycle = (time * 0.45 * speed) % 8.0; // 8-second repeating cycle
@@ -350,7 +350,7 @@ reg(['ch_floating_taper', 'item_229'], function(el, ctx, W, H, dt, cfg, time, ro
 });
 
 // 230. Blood-Moon Eclipse Shadow (creeping steadily across stone courtyard - Top-Down Battlemap View)
-reg(['ch_bloodmoon_shadow', 'item_230'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+reg(['ch_bloodmoon_shadow', 'ch_blood_moon_shadow', 'ch_eclipse_shadow', 'item_230'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
     // Smooth creeping oscillation across the courtyard: ALWAYS visible within the frame
     // Sweeps between 18% and 82% of width with ominous, creeping celestial momentum
     const progress = 0.5 + 0.32 * Math.sin(time * 0.35 * speed);

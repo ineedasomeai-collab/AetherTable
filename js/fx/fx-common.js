@@ -62,8 +62,8 @@
 
         const grad = ctx.createRadialGradient(0, 0, 2, length * 0.5, 0, length);
         grad.addColorStop(0, colStart);
-        grad.addColorStop(0.35, colStart.replace(/[\d.]+\x29$/, '0.65)'));
-        grad.addColorStop(0.75, colEnd.replace(/[\d.]+\x29$/, '0.22)'));
+        grad.addColorStop(0.35, colStart.replace(/[\d.]+\x29$/, '0.65\x29'));
+        grad.addColorStop(0.75, colEnd.replace(/[\d.]+\x29$/, '0.22\x29'));
         grad.addColorStop(1, colEnd);
 
         ctx.fillStyle = grad;

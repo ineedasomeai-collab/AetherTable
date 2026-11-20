@@ -533,51 +533,374 @@
         }
     });
 
-    // 14. Overhead Gantry Welder (Transparent Overhead Crane Track)
+    // 14. Overhead Gantry Welder (Top-Down Industrial Crane & Robotic Welder)
     reg(['cp_gantry_welder', 'item_14'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cy = H * 0.5;
-        // Twin overhead gantry crane guide rails
-        ctx.strokeStyle = 'rgba(100, 116, 139, 0.7)';
-        ctx.lineWidth = 2 * elScale;
-        ctx.beginPath();
-        ctx.moveTo(0, cy - 8 * elScale); ctx.lineTo(W, cy - 8 * elScale);
-        ctx.moveTo(0, cy + 8 * elScale); ctx.lineTo(W, cy + 8 * elScale);
-        ctx.stroke();
-        // Articulated robotic welding carriage
-        const gantryX = W * (0.3 + 0.4 * Math.sin(time * 0.8 * speed));
         ctx.save();
-        ctx.translate(gantryX, cy);
-        ctx.fillStyle = '#eab308'; // Industrial yellow
-        ctx.fillRect(-20 * elScale, -16 * elScale, 40 * elScale, 32 * elScale);
+
+        // 1. Runway Rails & Wall Corbel Brackets (Top & Bottom of work bay)
+        const railTopY = 16 * elScale;
+        const railBotY = H - 16 * elScale;
+
+        // Concrete / steel corbel support brackets along the runways
+        ctx.fillStyle = '#1e293b';
         ctx.strokeStyle = '#0f172a';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-20 * elScale, -16 * elScale, 40 * elScale, 32 * elScale);
-        // Articulated welding arm extending downward
+        ctx.lineWidth = 1.5;
+        const bracketPitch = Math.max(40, W / 6);
+        for (let bx = bracketPitch * 0.5; bx < W; bx += bracketPitch) {
+            // Top brackets
+            ctx.fillRect(bx - 6 * elScale, 0, 12 * elScale, railTopY + 4 * elScale);
+            ctx.strokeRect(bx - 6 * elScale, 0, 12 * elScale, railTopY + 4 * elScale);
+            // Bottom brackets
+            ctx.fillRect(bx - 6 * elScale, railBotY - 4 * elScale, 12 * elScale, H - railBotY + 4 * elScale);
+            ctx.strokeRect(bx - 6 * elScale, railBotY - 4 * elScale, 12 * elScale, H - railBotY + 4 * elScale);
+        }
+
+        // Heavy steel runway I-beams
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(0, railTopY - 6 * elScale, W, 12 * elScale);
+        ctx.fillRect(0, railBotY - 6 * elScale, W, 12 * elScale);
+
+        // Polished steel rail heads (running surface)
         ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 3.5 * elScale;
         ctx.beginPath();
-        ctx.moveTo(0, 16 * elScale);
-        ctx.lineTo(8 * elScale, 34 * elScale);
-        ctx.lineTo(4 * elScale, 48 * elScale);
+        ctx.moveTo(0, railTopY); ctx.lineTo(W, railTopY);
+        ctx.moveTo(0, railBotY); ctx.lineTo(W, railBotY);
         ctx.stroke();
-        // Blinding welding spark flash bursts
-        const isWelding = (Math.sin(time * 6 * speed) > 0.15);
-        if (isWelding) {
-            const wx = 4 * elScale;
-            const wy = 48 * elScale;
-            // Blinding blue-white core flash
-            FX.drawRadialGlow(ctx, wx, wy, 2, 45 * elScale, `rgba(255, 255, 255, ${0.98 * intensity})`, 'rgba(56, 189, 248, 0)');
-            // Flying molten orange sparks
-            const numSparks = Math.round(8 + rough * 14);
-            for (let s = 0; s < numSparks; s++) {
-                const sAngle = FX.hash(s * 19 + Math.floor(time * 15)) * Math.PI * 2;
-                const sDist = (15 + FX.hash(s * 7) * 35) * elScale;
-                ctx.fillStyle = '#fdba74';
-                ctx.beginPath();
-                ctx.arc(wx + Math.cos(sAngle) * sDist, wy + Math.sin(sAngle) * sDist, 1.8, 0, Math.PI * 2);
-                ctx.fill();
+
+        // Geared rack teeth along the runway rails
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1.0;
+        ctx.beginPath();
+        for (let rx = 4; rx < W; rx += 8 * elScale) {
+            ctx.moveTo(rx, railTopY - 5 * elScale); ctx.lineTo(rx, railTopY - 1 * elScale);
+            ctx.moveTo(rx, railBotY + 1 * elScale); ctx.lineTo(rx, railBotY + 5 * elScale);
+        }
+        ctx.stroke();
+
+        // 2. Workpiece on Floor (Steel hull plate with weld seam)
+        const seamX1 = W * 0.2;
+        const seamX2 = W * 0.8;
+        const seamY = H * 0.52;
+
+        // Underlying steel plate seam
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 3 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(seamX1, seamY);
+        ctx.lineTo(seamX2, seamY);
+        ctx.stroke();
+
+        // Heat-affected zone (temper colors around the weld line)
+        ctx.strokeStyle = `rgba(180, 83, 9, ${0.35 * intensity})`;
+        ctx.lineWidth = 14 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(seamX1, seamY);
+        ctx.lineTo(seamX2, seamY);
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(124, 58, 237, ${0.25 * intensity})`;
+        ctx.lineWidth = 8 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(seamX1, seamY);
+        ctx.lineTo(seamX2, seamY);
+        ctx.stroke();
+
+        // 3. Dynamic Motion Calculations
+        // Gantry bridge traverses horizontally across the work bay
+        const bridgeProgress = 0.5 + 0.5 * Math.sin(time * 0.5 * speed);
+        const bridgeX = W * (0.24 + 0.52 * bridgeProgress);
+
+        // Welding trolley traverses along the bridge girder (vertically across Y)
+        const trolleyProgress = 0.5 + 0.5 * Math.sin(time * 0.9 * speed + 0.7);
+        const trolleyMinY = railTopY + 45 * elScale;
+        const trolleyMaxY = railBotY - 45 * elScale;
+        const trolleyY = trolleyMinY + (trolleyMaxY - trolleyMinY) * trolleyProgress;
+
+        // Robotic arm kinematics in overhead projection
+        const armBaseX = bridgeX;
+        const armBaseY = trolleyY;
+        const armAngle = Math.sin(time * 1.4 * speed) * 0.7 + Math.PI * 0.15;
+        const armLen1 = 28 * elScale;
+        const elbowX = armBaseX + Math.cos(armAngle) * armLen1;
+        const elbowY = armBaseY + Math.sin(armAngle) * armLen1;
+
+        const forearmAngle = armAngle + 0.6 + Math.sin(time * 2.2 * speed) * 0.4;
+        const armLen2 = 22 * elScale;
+        const torchX = elbowX + Math.cos(forearmAngle) * armLen2;
+        const torchY = elbowY + Math.sin(forearmAngle) * armLen2;
+
+        // Welding duty cycle: weld bursts followed by brief repositioning
+        const cycle = (time * 2.0 * speed) % 5.0;
+        const isWelding = (cycle < 3.8);
+
+        // 4. Glowing Solidified Weld Bead on the floor trailing the torch
+        const numBeads = 18;
+        for (let b = 0; b < numBeads; b++) {
+            const bx = seamX1 + (seamX2 - seamX1) * (b / (numBeads - 1));
+            const distToTorch = Math.abs(bx - torchX);
+            if (bx <= torchX + 10 * elScale) {
+                const heat = Math.max(0, 1.0 - (distToTorch / (90 * elScale)));
+                if (heat > 0.05) {
+                    ctx.fillStyle = heat > 0.65 ? '#fef08a' : (heat > 0.35 ? '#f97316' : '#991b1b');
+                    ctx.beginPath();
+                    ctx.arc(bx, seamY, (2.8 + heat * 1.5) * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
         }
+
+        // 5. Gantry Bridge Structure (Top-Down View)
+        const bridgeW = 34 * elScale;
+        const halfBW = bridgeW * 0.5;
+
+        // Drop shadow from high overhead bridge onto the floor
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+        ctx.fillRect(bridgeX - halfBW + 10 * elScale, railTopY + 10 * elScale, bridgeW, (railBotY - railTopY));
+
+        // Dual structural steel box girders
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(bridgeX - halfBW, railTopY, 10 * elScale, railBotY - railTopY);
+        ctx.fillRect(bridgeX + halfBW - 10 * elScale, railTopY, 10 * elScale, railBotY - railTopY);
+
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(bridgeX - halfBW, railTopY, 10 * elScale, railBotY - railTopY);
+        ctx.strokeRect(bridgeX + halfBW - 10 * elScale, railTopY, 10 * elScale, railBotY - railTopY);
+
+        // Structural diagonal cross-truss lattice between the two girders
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2.0 * elScale;
+        ctx.beginPath();
+        const trussStep = 24 * elScale;
+        for (let ty = railTopY + 12 * elScale; ty < railBotY - 12 * elScale; ty += trussStep) {
+            ctx.moveTo(bridgeX - halfBW + 10 * elScale, ty);
+            ctx.lineTo(bridgeX + halfBW - 10 * elScale, ty + trussStep);
+            ctx.moveTo(bridgeX + halfBW - 10 * elScale, ty);
+            ctx.lineTo(bridgeX - halfBW + 10 * elScale, ty + trussStep);
+        }
+        ctx.stroke();
+
+        // End-truck bogies riding on the runway rails
+        // Top end-truck
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(bridgeX - halfBW - 6 * elScale, railTopY - 10 * elScale, bridgeW + 12 * elScale, 20 * elScale);
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 2.0;
+        ctx.strokeRect(bridgeX - halfBW - 6 * elScale, railTopY - 10 * elScale, bridgeW + 12 * elScale, 20 * elScale);
+
+        // Bottom end-truck
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(bridgeX - halfBW - 6 * elScale, railBotY - 10 * elScale, bridgeW + 12 * elScale, 20 * elScale);
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 2.0;
+        ctx.strokeRect(bridgeX - halfBW - 6 * elScale, railBotY - 10 * elScale, bridgeW + 12 * elScale, 20 * elScale);
+
+        // Industrial hazard stripes on end-trucks
+        ctx.fillStyle = '#eab308';
+        for (let s = -halfBW - 4 * elScale; s < halfBW + 8 * elScale; s += 8 * elScale) {
+            ctx.beginPath();
+            ctx.moveTo(bridgeX + s, railTopY - 10 * elScale);
+            ctx.lineTo(bridgeX + s + 4 * elScale, railTopY - 10 * elScale);
+            ctx.lineTo(bridgeX + s, railTopY + 10 * elScale);
+            ctx.lineTo(bridgeX + s - 4 * elScale, railTopY + 10 * elScale);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(bridgeX + s, railBotY - 10 * elScale);
+            ctx.lineTo(bridgeX + s + 4 * elScale, railBotY - 10 * elScale);
+            ctx.lineTo(bridgeX + s, railBotY + 10 * elScale);
+            ctx.lineTo(bridgeX + s - 4 * elScale, railBotY + 10 * elScale);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 6. Traversing Welding Trolley (Top-Down View)
+        const trolleyW = 42 * elScale;
+        const trolleyH = 34 * elScale;
+
+        // Trolley drop shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(armBaseX - trolleyW * 0.5 + 8 * elScale, armBaseY - trolleyH * 0.5 + 8 * elScale, trolleyW, trolleyH);
+
+        // Trolley yellow chassis
+        ctx.fillStyle = '#eab308';
+        ctx.fillRect(armBaseX - trolleyW * 0.5, armBaseY - trolleyH * 0.5, trolleyW, trolleyH);
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.2;
+        ctx.strokeRect(armBaseX - trolleyW * 0.5, armBaseY - trolleyH * 0.5, trolleyW, trolleyH);
+
+        // Chamfered dark protective corners & bumper pads
+        ctx.fillStyle = '#1e293b';
+        const cpad = 6 * elScale;
+        ctx.fillRect(armBaseX - trolleyW * 0.5, armBaseY - trolleyH * 0.5, cpad, cpad);
+        ctx.fillRect(armBaseX + trolleyW * 0.5 - cpad, armBaseY - trolleyH * 0.5, cpad, cpad);
+        ctx.fillRect(armBaseX - trolleyW * 0.5, armBaseY + trolleyH * 0.5 - cpad, cpad, cpad);
+        ctx.fillRect(armBaseX + trolleyW * 0.5 - cpad, armBaseY + trolleyH * 0.5 - cpad, cpad, cpad);
+
+        // Trolley top ventilation louvers / cooling radiator
+        ctx.fillStyle = '#0f172a';
+        for (let v = -trolleyH * 0.3; v <= trolleyH * 0.3; v += 5 * elScale) {
+            ctx.fillRect(armBaseX - trolleyW * 0.32, armBaseY + v, trolleyW * 0.28, 2 * elScale);
+        }
+
+        // Flashing warning beacon on trolley
+        const beaconPulse = Math.sin(time * 8 * speed) > 0;
+        ctx.fillStyle = isWelding ? (beaconPulse ? '#38bdf8' : '#0284c7') : (beaconPulse ? '#f59e0b' : '#78350f');
+        ctx.beginPath();
+        ctx.arc(armBaseX + trolleyW * 0.3, armBaseY - trolleyH * 0.28, 3.5 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+
+        // 7. Articulated Robotic Arm in Overhead (Plan) Projection
+        // Rotating Turret Base Ring on Trolley Deck
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.arc(armBaseX, armBaseY, 11 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        ctx.fillStyle = '#64748b';
+        ctx.beginPath();
+        ctx.arc(armBaseX, armBaseY, 6 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Arm drop shadow onto floor
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.lineWidth = 7 * elScale;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(armBaseX + 6 * elScale, armBaseY + 6 * elScale);
+        ctx.lineTo(elbowX + 6 * elScale, elbowY + 6 * elScale);
+        ctx.lineTo(torchX + 6 * elScale, torchY + 6 * elScale);
+        ctx.stroke();
+
+        // Upper arm segment (heavy articulated industrial arm)
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 7 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(armBaseX, armBaseY);
+        ctx.lineTo(elbowX, elbowY);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 3.5 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(armBaseX, armBaseY);
+        ctx.lineTo(elbowX, elbowY);
+        ctx.stroke();
+
+        // Elbow joint servo hub
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath();
+        ctx.arc(elbowX, elbowY, 5.5 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Forearm segment extending to torch
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 5 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(elbowX, elbowY);
+        ctx.lineTo(torchX, torchY);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2.5 * elScale;
+        ctx.beginPath();
+        ctx.moveTo(elbowX, elbowY);
+        ctx.lineTo(torchX, torchY);
+        ctx.stroke();
+
+        // Wrist rotator & welding torch nozzle
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.arc(torchX, torchY, 4 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 8. Welding Torch Arc, Sparks & Thermal Floor Glow
+        if (isWelding) {
+            // Intense high-frequency electrical arc strobe
+            const jitter = (Math.random() - 0.5) * 1.5 * elScale;
+            const tx = torchX + jitter;
+            const ty = torchY + jitter;
+
+            // Wide ambient floor glow
+            FX.drawRadialGlow(ctx, tx, ty, 5 * elScale, 75 * elScale * intensity, `rgba(56, 189, 248, ${0.45 * intensity})`, 'rgba(14, 165, 233, 0)');
+
+            // Secondary warm molten glow
+            FX.drawRadialGlow(ctx, tx, ty, 2 * elScale, 38 * elScale * intensity, `rgba(254, 215, 170, ${0.65 * intensity})`, 'rgba(234, 88, 12, 0)');
+
+            // Searing white arc flash core
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(tx, ty, (4.5 + Math.random() * 2.5) * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Active molten weld puddle
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.ellipse(tx, ty + 1 * elScale, 5 * elScale, 3.5 * elScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Shower of 360-degree ballistic molten sparks across the floor
+            const numSparks = Math.round(18 + rough * 16);
+            for (let s = 0; s < numSparks; s++) {
+                const sAngle = FX.hash(s * 23 + Math.floor(time * 25)) * Math.PI * 2;
+                const sDist = (8 + FX.hash(s * 11 + Math.floor(time * 20)) * 55) * elScale;
+                const spx = tx + Math.cos(sAngle) * sDist;
+                const spy = ty + Math.sin(sAngle) * sDist;
+
+                // Spark color transitions as it flies outward
+                const sparkCol = sDist < 25 * elScale ? '#ffffff' : (sDist < 42 * elScale ? '#fde047' : '#f97316');
+                ctx.fillStyle = sparkCol;
+                ctx.beginPath();
+                ctx.arc(spx, spy, (1.2 + (s % 3) * 0.4) * elScale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Spark motion streak
+                if (sDist > 16 * elScale) {
+                    ctx.strokeStyle = `rgba(251, 146, 60, ${0.6 * intensity})`;
+                    ctx.lineWidth = 1.0;
+                    ctx.beginPath();
+                    ctx.moveTo(spx, spy);
+                    ctx.lineTo(spx - Math.cos(sAngle) * (4 * elScale), spy - Math.sin(sAngle) * (4 * elScale));
+                    ctx.stroke();
+                }
+            }
+        } else {
+            // Repositioning mode: Aiming laser dot on the seam
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(torchX, torchY, 2.5 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Targeting laser crosshair ring
+            ctx.strokeStyle = `rgba(239, 68, 68, ${0.65 * intensity})`;
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.arc(torchX, torchY, 6 * elScale, 0, Math.PI * 2);
+            ctx.moveTo(torchX - 9 * elScale, torchY); ctx.lineTo(torchX + 9 * elScale, torchY);
+            ctx.moveTo(torchX, torchY - 9 * elScale); ctx.lineTo(torchX, torchY + 9 * elScale);
+            ctx.stroke();
+
+            // Lingering warm residual puddle
+            ctx.fillStyle = 'rgba(234, 88, 12, 0.4)';
+            ctx.beginPath();
+            ctx.arc(torchX, torchY, 3.5 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         ctx.restore();
     });
 

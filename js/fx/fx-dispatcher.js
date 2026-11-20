@@ -107,7 +107,7 @@
         renderSpline: function(el, ctx, samples, time, opacity, intensity, qty) {
             if (!el || !ctx) return false;
             const fn = this.findRenderer(el);
-            if (typeof fn !== 'function') return false;
+            if (typeof fn !== 'function' || !fn.isSplineRenderer) return false;
 
             const cfg = el.config || {};
             const W = el.canvas ? el.canvas.width : (el.width || 800);
@@ -133,7 +133,7 @@
         renderPolygon: function(el, ctx, nodes, time, opacity, intensity, qty) {
             if (!el || !ctx) return false;
             const fn = this.findRenderer(el);
-            if (typeof fn !== 'function') return false;
+            if (typeof fn !== 'function' || !fn.isPolygonRenderer) return false;
 
             const cfg = el.config || {};
             const W = el.canvas ? el.canvas.width : (el.width || 800);

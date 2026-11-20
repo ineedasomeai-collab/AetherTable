@@ -69,47 +69,120 @@ reg(['ww_locomotive_beam', 'item_76'], function(el, ctx, W, H, dt, cfg, time, ro
     ctx.restore();
 });
 
-// 77. Oil Lantern Swaying From Rear Rack of Moving Stagecoach (Top-Down Battlemap View)
-reg(['ww_stagecoach_lantern', 'item_77'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const cx = W * 0.5, cy = H * 0.45;
-    // Carriage sway creates a 2D elliptical orbit in overhead perspective
-    const swayX = Math.sin(time * 3.2 * speed) * (14 * elScale);
-    const swayY = Math.cos(time * 6.4 * speed) * (4 * elScale);
+// 77. Oil Lantern Swaying From Rear Rack of Moving Stagecoach (Pure 90-deg Top-Down Overhead Battlemap View)
+reg(['ww_stagecoach_lantern', 'ww_lantern_sway', 'item_77'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const cx = W * 0.52, cy = H * 0.5;
+    // Stagecoach kinetic sway creates an elliptical orbital oscillation seen from directly overhead
+    const swayX = Math.sin(time * 3.2 * speed) * (18 * elScale);
+    const swayY = Math.cos(time * 6.4 * speed) * (6 * elScale);
     const lx = cx + swayX;
     const ly = cy + swayY;
-    const flicker = 0.88 + Math.sin(time * 22 * speed) * 0.12;
+    const flicker = 0.86 + Math.sin(time * 26 * speed) * 0.08 + Math.cos(time * 41 * speed) * 0.06;
 
     ctx.save();
-    // Iron mounting bracket extending from stagecoach corner/roof to lantern mount point
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 3.5 * elScale;
-    ctx.beginPath();
-    ctx.moveTo(W * 0.28, cy - 8 * elScale);
-    ctx.lineTo(cx - 6 * elScale, cy - 8 * elScale);
-    ctx.lineTo(lx, ly);
-    ctx.stroke();
 
-    // 1. Shifting warm light pool cast onto ground/dirt road below the swinging lantern
-    const poolR = (65 + rough * 18) * elScale;
-    const groundPool = ctx.createRadialGradient(lx - swayX * 0.4, ly - swayY * 0.4, 4, lx - swayX * 0.4, ly - swayY * 0.4, poolR);
-    groundPool.addColorStop(0, `rgba(254, 240, 138, ${0.85 * flicker * intensity})`);
-    groundPool.addColorStop(0.35, `rgba(245, 158, 11, ${0.45 * flicker * intensity})`);
-    groundPool.addColorStop(0.7, `rgba(180, 83, 9, ${0.15 * flicker * intensity})`);
+    // 1. DYNAMIC GROUND LIGHT POOL & CARRIAGE SHADOW CAST ONTO DIRT ROAD
+    const groundLx = lx - swayX * 0.45;
+    const groundLy = ly - swayY * 0.45;
+    const poolR = (85 + rough * 22) * elScale;
+
+    // Broad warm oil lamp illumination on the ground/road
+    const groundPool = ctx.createRadialGradient(groundLx, groundLy, 4 * elScale, groundLx, groundLy, poolR);
+    groundPool.addColorStop(0, `rgba(254, 240, 138, ${0.88 * flicker * intensity})`);
+    groundPool.addColorStop(0.35, `rgba(245, 158, 11, ${0.48 * flicker * intensity})`);
+    groundPool.addColorStop(0.7, `rgba(180, 83, 9, ${0.16 * flicker * intensity})`);
     groundPool.addColorStop(1, 'rgba(180, 83, 9, 0)');
     ctx.fillStyle = groundPool;
     ctx.beginPath();
-    ctx.arc(lx - swayX * 0.4, ly - swayY * 0.4, poolR, 0, Math.PI * 2);
+    ctx.arc(groundLx, groundLy, poolR, 0, Math.PI * 2);
     ctx.fill();
 
-    // 2. Lantern housing seen from directly above (90-deg Top-Down)
-    const hoodR = 14 * elScale;
-    // Outer hexagonal brass hood rim
-    ctx.fillStyle = '#78350f';
-    ctx.strokeStyle = '#451a03';
+    // Shadow cast on ground by swaying lantern housing
+    ctx.fillStyle = `rgba(15, 23, 42, ${0.35 * intensity})`;
+    ctx.beginPath();
+    ctx.ellipse(groundLx + swayX * 0.35, groundLy + swayY * 0.35 + 8 * elScale, 14 * elScale, 8 * elScale, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. STAGECOACH REAR RACK / TAILGATE CORNER (Top-Down Weathered Timber & Iron)
+    // Left-side wooden stagecoach roof/rack frame where the lantern is mounted
+    const rackW = W * 0.24;
+    const rackH = H * 0.58;
+    const rackX = W * 0.04;
+    const rackY = cy - rackH * 0.5;
+
+    // Weathered oak planks
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(rackX, rackY, rackW, rackH);
+
+    // Individual plank seams and grain lines
+    ctx.strokeStyle = '#271003';
+    ctx.lineWidth = 2 * elScale;
+    for (let p = 1; p < 4; p++) {
+        const py = rackY + (p / 4) * rackH;
+        ctx.beginPath();
+        ctx.moveTo(rackX, py);
+        ctx.lineTo(rackX + rackW, py);
+        ctx.stroke();
+    }
+
+    // Heavy black iron corner bracket
+    ctx.fillStyle = '#1c1917';
+    ctx.strokeStyle = '#44403c';
     ctx.lineWidth = 1.5 * elScale;
     ctx.beginPath();
+    ctx.rect(rackX + rackW - 14 * elScale, rackY + 6 * elScale, 14 * elScale, rackH - 12 * elScale);
+    ctx.fill();
+    ctx.stroke();
+
+    // Iron rivet heads along the bracket
+    ctx.fillStyle = '#78716c';
+    for (let r = 0; r < 5; r++) {
+        const ry = rackY + 14 * elScale + r * ((rackH - 28 * elScale) / 4);
+        ctx.beginPath();
+        ctx.arc(rackX + rackW - 7 * elScale, ry, 2 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // 3. WROUGHT-IRON CANTILEVER LANTERN BOOM ARM & SUSPENSION CHAIN
+    const mountX = rackX + rackW;
+    const mountY = cy;
+
+    // Forged iron support bracket extending out from carriage corner
+    ctx.strokeStyle = '#0c0a09';
+    ctx.lineWidth = 3.5 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(mountX, mountY);
+    ctx.lineTo(cx - 10 * elScale, mountY);
+    ctx.lineTo(cx, cy);
+    ctx.stroke();
+
+    // Hanging iron chain links swinging to the lantern mount point
+    ctx.strokeStyle = '#292524';
+    ctx.lineWidth = 2 * elScale;
+    const chainLinks = 4;
+    for (let c = 0; c < chainLinks; c++) {
+        const t0 = c / chainLinks;
+        const t1 = (c + 1) / chainLinks;
+        const x0 = cx + t0 * swayX;
+        const y0 = cy + t0 * swayY;
+        const x1 = cx + t1 * swayX;
+        const y1 = cy + t1 * swayY;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+    }
+
+    // 4. SWAYING BRASS/GLASS OIL LANTERN HOUSING (Pure 90-deg Top-Down Overhead View)
+    const hoodR = 15 * elScale;
+
+    // Hexagonal brass hood rim seen from above
+    ctx.fillStyle = '#78350f';
+    ctx.strokeStyle = '#451a03';
+    ctx.lineWidth = 2 * elScale;
+    ctx.beginPath();
     for (let i = 0; i < 6; i++) {
-        const a = (i * Math.PI) / 3 + 0.2;
+        const a = (i * Math.PI) / 3 + 0.25;
         const hx = lx + Math.cos(a) * hoodR;
         const hy = ly + Math.sin(a) * hoodR;
         if (i === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
@@ -118,99 +191,159 @@ reg(['ww_stagecoach_lantern', 'item_77'], function(el, ctx, W, H, dt, cfg, time,
     ctx.fill();
     ctx.stroke();
 
-    // Inner glowing glass core beneath vented hood
-    const coreGrad = ctx.createRadialGradient(lx, ly, 1, lx, ly, 8 * elScale);
+    // Hexagonal peaked roof ribs converging to central chimney
+    ctx.strokeStyle = '#92400e';
+    ctx.lineWidth = 1.2 * elScale;
+    for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI) / 3 + 0.25;
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.lineTo(lx + Math.cos(a) * hoodR, ly + Math.sin(a) * hoodR);
+        ctx.stroke();
+    }
+
+    // Glowing beveled glass core under the hood louvers
+    const coreGrad = ctx.createRadialGradient(lx, ly, 1, lx, ly, 9 * elScale);
     coreGrad.addColorStop(0, '#ffffff');
-    coreGrad.addColorStop(0.4, '#fef08a');
-    coreGrad.addColorStop(0.8, '#f59e0b');
-    coreGrad.addColorStop(1, '#b45309');
+    coreGrad.addColorStop(0.35, `rgba(254, 240, 138, ${0.95 * flicker})`);
+    coreGrad.addColorStop(0.75, `rgba(245, 158, 11, ${0.85 * flicker})`);
+    coreGrad.addColorStop(1, 'rgba(180, 83, 9, 0)');
     ctx.fillStyle = coreGrad;
     ctx.beginPath();
-    ctx.arc(lx, ly, 8 * elScale, 0, Math.PI * 2);
+    ctx.arc(lx, ly, 9 * elScale, 0, Math.PI * 2);
     ctx.fill();
 
-    // Central raised brass chimney vent cap
+    // Central brass chimney flue cap & top suspension ring
     ctx.fillStyle = '#292524';
-    ctx.strokeStyle = '#92400e';
-    ctx.lineWidth = 1 * elScale;
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 1.2 * elScale;
     ctx.beginPath();
-    ctx.arc(lx, ly, 4 * elScale, 0, Math.PI * 2);
+    ctx.arc(lx, ly, 4.5 * elScale, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Brass top carrying handle ring seen from above
-    ctx.strokeStyle = '#d97706';
-    ctx.lineWidth = 1.5 * elScale;
+    // Brass carrying ring
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 1.6 * elScale;
     ctx.beginPath();
-    ctx.ellipse(lx, ly - 3 * elScale, 4.5 * elScale, 2 * elScale, 0, 0, Math.PI * 2);
+    ctx.ellipse(lx, ly - 3.5 * elScale, 5 * elScale, 2.5 * elScale, 0, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.restore();
 });
 
-// 78. Ignited Kerosene Trail Racing Across Floor (Top-Down Battlemap View)
+// 78. Ignited Kerosene Trail Racing Across Floor (Organic Spilled Fluid Fire Trail - Top-Down Battlemap View)
 reg(['ww_kerosene_trail', 'ww_kerosene_fire_trail', 'item_78'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
     const cy = H * 0.5;
-    const trailLen = W * 0.88;
-    const progress = (time * 0.55 * speed) % 1.0;
-    const burnHeadX = W * 0.06 + progress * trailLen;
+    const startX = W * 0.05;
+    const endX = W * 0.95;
+    const trailSpan = endX - startX;
+    const progress = (time * 0.52 * speed) % 1.0;
+    const burnHeadX = startX + progress * trailSpan;
+
+    // Organic meandering spilled kerosene trajectory (NO rigid straight line, NO floorboard bars)
+    function getSpillY(x) {
+        return cy + Math.sin(x * 0.022 + 0.4) * (14 * elScale)
+                  + Math.sin(x * 0.058 + 1.8) * (8 * elScale)
+                  + Math.cos(x * 0.11 + 3.1) * (4 * elScale);
+    }
 
     ctx.save();
 
-    // 1. Unignited wet kerosene sheen ahead of the burning front
-    const wetLen = Math.min(burnHeadX + 90 * elScale, W * 0.94);
-    if (wetLen > burnHeadX) {
-        ctx.strokeStyle = `rgba(180, 83, 9, ${0.45 * intensity})`;
-        ctx.lineWidth = (8 + rough * 4) * elScale;
+    // 1. UNIGNITED WET KEROSENE SHEEN AHEAD OF RACING FLAME FRONT
+    const wetAheadLen = Math.min(burnHeadX + 110 * elScale, endX);
+    if (wetAheadLen > burnHeadX) {
+        ctx.strokeStyle = `rgba(180, 83, 9, ${0.48 * intensity})`;
+        ctx.lineWidth = (9 + rough * 4) * elScale;
         ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.beginPath();
-        ctx.moveTo(burnHeadX, cy);
-        ctx.lineTo(wetLen, cy);
+        for (let x = burnHeadX; x <= wetAheadLen; x += 8) {
+            const y = getSpillY(x);
+            if (x === burnHeadX) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
         ctx.stroke();
+
+        // Glossy fuel surface specular highlight
+        ctx.strokeStyle = `rgba(254, 240, 138, ${0.25 * intensity})`;
+        ctx.lineWidth = 2.5 * elScale;
+        ctx.beginPath();
+        for (let x = burnHeadX; x <= wetAheadLen; x += 10) {
+            const y = getSpillY(x) - 1.5 * elScale;
+            if (x === burnHeadX) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Unignited spilled fluid puddle patches ahead
+        for (let p = 0; p < 3; p++) {
+            const px = burnHeadX + (p + 1) * 28 * elScale;
+            if (px < endX) {
+                const py = getSpillY(px) + Math.sin(p * 3.7) * (5 * elScale);
+                ctx.fillStyle = `rgba(146, 64, 14, ${0.42 * intensity})`;
+                ctx.beginPath();
+                ctx.ellipse(px, py, (10 + p * 3) * elScale, (6 + p * 2) * elScale, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
     }
 
-    // 2. Charred scorched ground wake behind the racing fire
-    ctx.strokeStyle = `rgba(24, 24, 27, ${0.65 * intensity})`;
-    ctx.lineWidth = (12 + rough * 6) * elScale;
+    // 2. CHARRED SOOT & SCORCHED GROUND WAKE BEHIND THE FLAME FRONT
+    ctx.strokeStyle = `rgba(24, 24, 27, ${0.72 * intensity})`;
+    ctx.lineWidth = (14 + rough * 7) * elScale;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.moveTo(W * 0.06, cy);
-    ctx.lineTo(burnHeadX, cy);
+    for (let x = startX; x <= burnHeadX; x += 8) {
+        const y = getSpillY(x);
+        if (x === startX) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
     ctx.stroke();
 
-    // 3. Broad radiant fiery heat glow along the active burning trail
-    const trailGrad = ctx.createLinearGradient(W * 0.06, cy, burnHeadX, cy);
-    trailGrad.addColorStop(0, 'rgba(239, 68, 68, 0)');
-    trailGrad.addColorStop(Math.max(0, 1 - 120 / (burnHeadX - W * 0.06 + 1)), `rgba(234, 88, 12, ${0.35 * intensity})`);
-    trailGrad.addColorStop(1, `rgba(251, 191, 36, ${0.85 * intensity})`);
-    ctx.strokeStyle = trailGrad;
-    ctx.lineWidth = (22 + rough * 12) * elScale;
+    // Charred scorch spots and carbonized puddle footprints
+    for (let s = startX + 15 * elScale; s < burnHeadX - 20 * elScale; s += 38 * elScale) {
+        const sy = getSpillY(s) + Math.sin(s * 1.7) * (6 * elScale);
+        ctx.fillStyle = `rgba(15, 23, 42, ${0.55 * intensity})`;
+        ctx.beginPath();
+        ctx.ellipse(s, sy, 12 * elScale, 7 * elScale, Math.sin(s), 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // 3. RADIANT HEAT & GROUND GLOW ALONG ACTIVE BURNING ZONE
+    const activeBurnStart = Math.max(startX, burnHeadX - 220 * elScale);
+    ctx.strokeStyle = `rgba(234, 88, 12, ${0.38 * intensity})`;
+    ctx.lineWidth = (26 + rough * 14) * elScale;
     ctx.beginPath();
-    ctx.moveTo(W * 0.06, cy);
-    ctx.lineTo(burnHeadX, cy);
+    for (let x = activeBurnStart; x <= burnHeadX; x += 8) {
+        const y = getSpillY(x);
+        if (x === activeBurnStart) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
     ctx.stroke();
 
-    // 4. White-hot blazing kerosene core line
+    // 4. WHITE-HOT INTENSE FLAME CORE
+    const coreStart = Math.max(startX, burnHeadX - 160 * elScale);
     ctx.strokeStyle = `rgba(255, 255, 255, ${0.92 * intensity})`;
-    ctx.lineWidth = 3.5 * elScale;
+    ctx.lineWidth = 4 * elScale;
     ctx.beginPath();
-    ctx.moveTo(Math.max(W * 0.06, burnHeadX - 160 * elScale), cy);
-    ctx.lineTo(burnHeadX, cy);
+    for (let x = coreStart; x <= burnHeadX; x += 6) {
+        const y = getSpillY(x);
+        if (x === coreStart) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
     ctx.stroke();
 
-    // 5. Billowing, dancing flame tongues leaping along the active burn zone
-    const flameCount = 14;
+    // 5. BILLOWING DANCING FLAME TONGUES LEAPING FROM SPILLED KEROSENE
+    const flameCount = 18;
     for (let f = 0; f < flameCount; f++) {
-        const offset = (f / flameCount) * Math.min(burnHeadX - W * 0.06, 200 * elScale);
-        const fx = burnHeadX - offset;
+        const fx = burnHeadX - (f / flameCount) * Math.min(burnHeadX - startX, 220 * elScale);
+        if (fx < startX) continue;
+        const fyBase = getSpillY(fx);
         const flameSeed = f * 37.1;
-        const fy = cy + Math.sin(time * 18 * speed + flameSeed) * (8 + rough * 10) * elScale;
-        const fR = (4 + Math.cos(time * 14 + f * 2) * 2 + (1 - f / flameCount) * 8) * elScale;
+        const fy = fyBase + Math.sin(time * 22 * speed + flameSeed) * (9 + rough * 10) * elScale;
+        const fR = (5 + Math.cos(time * 16 + f * 2.3) * 2.5 + (1 - f / flameCount) * 9) * elScale;
 
         const fGrad = ctx.createRadialGradient(fx, fy, 1, fx, fy, fR);
-        fGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-        fGrad.addColorStop(0.35, `rgba(254, 240, 138, ${0.9 * intensity})`);
-        fGrad.addColorStop(0.75, `rgba(249, 115, 22, ${0.75 * intensity})`);
+        fGrad.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
+        fGrad.addColorStop(0.3, `rgba(254, 240, 138, ${0.95 * intensity})`);
+        fGrad.addColorStop(0.65, `rgba(249, 115, 22, ${0.82 * intensity})`);
         fGrad.addColorStop(1, 'rgba(220, 38, 38, 0)');
         ctx.fillStyle = fGrad;
         ctx.beginPath();
@@ -218,15 +351,25 @@ reg(['ww_kerosene_trail', 'ww_kerosene_fire_trail', 'item_78'], function(el, ctx
         ctx.fill();
     }
 
-    // 6. Flying embers & smoke wisps curling up from the charred wake
-    for (let e = 0; e < 8; e++) {
-        const ex = burnHeadX - (e * 24 + ((time * 40 * speed) % 80)) * elScale;
-        if (ex > W * 0.06) {
-            const ey = cy + Math.sin(time * 8 + e * 4) * (14 + e * 3) * elScale;
-            ctx.fillStyle = (e % 2 === 0) ? `rgba(254, 240, 138, ${0.85 * intensity})` : `rgba(239, 68, 68, ${0.75 * intensity})`;
+    // 6. RISING SMOKE PUFFS & DRIFTING INCANDESCENT EMBERS
+    for (let e = 0; e < 12; e++) {
+        const ex = burnHeadX - (e * 18 + ((time * 48 * speed) % 90)) * elScale;
+        if (ex > startX) {
+            const ey = getSpillY(ex) - (6 + Math.sin(time * 10 + e * 4) * (14 + e * 2.5)) * elScale;
+            // Fiery sparks
+            ctx.fillStyle = (e % 2 === 0) ? `rgba(254, 240, 138, ${0.9 * intensity})` : `rgba(239, 68, 68, ${0.8 * intensity})`;
             ctx.beginPath();
-            ctx.arc(ex, ey, (1.2 + (e % 3) * 0.8) * elScale, 0, Math.PI * 2);
+            ctx.arc(ex, ey, (1.2 + (e % 3) * 0.9) * elScale, 0, Math.PI * 2);
             ctx.fill();
+
+            // Wispy gray smoke clouds rising above the charred wake
+            if (e % 3 === 0) {
+                const smokeY = ey - (12 + e * 3) * elScale;
+                ctx.fillStyle = `rgba(71, 85, 105, ${0.25 * intensity})`;
+                ctx.beginPath();
+                ctx.arc(ex + Math.sin(time * 3 + e) * 8 * elScale, smokeY, (10 + e * 2) * elScale, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
     }
 
@@ -278,20 +421,93 @@ reg(['ww_ghost_lights_tracks', 'item_80'], function(el, ctx, W, H, dt, cfg, time
     }
 });
 
-// 81. Muddy Flash-Flood Water Surging Down Dry Desert Arroyo
-reg(['ww_arroyo_flashflood', 'item_81'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const waveX = ((time * 120 * speed) % (W + 200)) - 100;
-    // Muddy foaming surge wall
-    ctx.fillStyle = `rgba(120, 53, 15, ${0.75 * intensity})`;
-    ctx.fillRect(0, H * 0.35, Math.max(0, waveX), H * 0.45);
-    // Frothing white foam wall at leading edge
-    ctx.fillStyle = '#fef08a';
-    for (let f = 0; f < 8; f++) {
-        const fy = H * 0.35 + f * (H * 0.45 / 7);
-        ctx.beginPath();
-        ctx.arc(waveX, fy, (8 + Math.sin(time * 10 + f) * 4) * elScale, 0, Math.PI * 2);
-        ctx.fill();
+// 81. Muddy Flash-Flood Water Surging Down Dry Desert Arroyo (Pure 90-deg Top-Down Overhead Battlemap View)
+reg(['ww_arroyo_flashflood', 'ww_flash_flood', 'item_81'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const waveX = ((time * 160 * speed) % (W + 280)) - 140;
+
+    ctx.save();
+
+    // 1. Red-rock desert arroyo canyon banks (top and bottom edges)
+    const bankH = H * 0.22;
+    // North canyon cliff edge
+    ctx.fillStyle = '#7c2d12';
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(W, 0); ctx.lineTo(W, bankH);
+    for (let x = W; x >= 0; x -= 25) {
+        ctx.lineTo(x, bankH + Math.sin(x * 0.03 + 1.2) * (10 + rough * 12) * elScale);
     }
+    ctx.closePath();
+    ctx.fill();
+
+    // South canyon cliff edge
+    ctx.beginPath();
+    ctx.moveTo(0, H); ctx.lineTo(W, H); ctx.lineTo(W, H - bankH);
+    for (let x = W; x >= 0; x -= 25) {
+        ctx.lineTo(x, H - bankH - Math.sin(x * 0.03 + 2.5) * (10 + rough * 12) * elScale);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // 2. Churning red-clay silt water torrent filling the canyon channel
+    const riverY = bankH + 8 * elScale;
+    const riverH = H - bankH * 2 - 16 * elScale;
+    const floodLen = Math.min(W, Math.max(0, waveX));
+
+    if (floodLen > 0) {
+        // Deep muddy silt riverbed
+        ctx.fillStyle = `rgba(120, 53, 15, ${0.92 * intensity})`;
+        ctx.fillRect(0, riverY, floodLen, riverH);
+
+        // High-velocity brown surface streamlines
+        ctx.strokeStyle = `rgba(217, 119, 6, ${0.65 * intensity})`;
+        ctx.lineWidth = 2.5 * elScale;
+        for (let s = 0; s < 7; s++) {
+            const sy = riverY + (s + 0.5) * (riverH / 7);
+            ctx.beginPath();
+            for (let x = 0; x <= floodLen; x += 25) {
+                const y = sy + Math.sin(x * 0.04 + time * 6 * speed + s) * (6 + rough * 6) * elScale;
+                if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        // 3. Wall of frothing churning mud surge at the leading flood wave front
+        if (waveX > -20 && waveX < W + 100) {
+            // Roaring froth wave crest
+            for (let f = 0; f < 14; f++) {
+                const fy = riverY + (f / 13) * riverH + Math.sin(f * 2.3 + time * 12) * 6 * elScale;
+                const fx = waveX - Math.abs(f - 6.5) * 4 * elScale + Math.sin(time * 18 + f) * 5 * elScale;
+                const fR = (12 + (f % 3) * 5 + rough * 8) * elScale;
+
+                const fGrad = ctx.createRadialGradient(fx, fy, 2, fx, fy, fR);
+                fGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+                fGrad.addColorStop(0.35, `rgba(254, 243, 199, ${0.90 * intensity})`);
+                fGrad.addColorStop(0.75, `rgba(217, 119, 6, ${0.65 * intensity})`);
+                fGrad.addColorStop(1, 'rgba(120, 53, 15, 0)');
+                ctx.fillStyle = fGrad;
+                ctx.beginPath();
+                ctx.arc(fx, fy, fR, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Churning tumbling river boulders caught in the surge
+            for (let b = 0; b < 4; b++) {
+                const bx = waveX - (25 + b * 22) * elScale;
+                const by = riverY + (b + 1) * (riverH / 5) + Math.sin(time * 8 + b) * 8 * elScale;
+                if (bx > 0 && bx < W) {
+                    ctx.fillStyle = '#451a03';
+                    ctx.beginPath();
+                    ctx.arc(bx, by, (9 + (b % 2) * 4) * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#271003';
+                    ctx.lineWidth = 1.5 * elScale;
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    ctx.restore();
 });
 
 // 82. Runaway Ore Cart on Mine Tracks (Top-Down Battlemap View)
@@ -385,35 +601,172 @@ reg(['ww_longhorn_stampede', 'item_83'], function(el, ctx, W, H, dt, cfg, time, 
     }
 });
 
-// 84. Flaming Tumbleweeds Bouncing Rapidly Across Prairie
-reg(['ww_flaming_tumbleweeds', 'item_84'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+// 84. Flaming Tumbleweeds Bouncing Rapidly Across Prairie (Pure 90-deg Top-Down Overhead Battlemap View)
+reg(['ww_flaming_tumbleweeds', 'ww_flaming_tumbleweed', 'item_84'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
     const numWeeds = 3;
+
+    ctx.save();
+
     for (let w = 0; w < numWeeds; w++) {
-        const wx = ((time * 130 * speed + w * 110) % (W + 100)) - 50;
-        const bounceY = H * 0.7 - Math.abs(Math.sin(time * 5 * speed + w)) * 35 * elScale;
-        const rot = time * 6 * speed + w;
-        
-        ctx.save();
-        ctx.translate(wx, bounceY);
-        ctx.rotate(rot);
-        // Tangled scrub ball
-        ctx.strokeStyle = '#78350f';
-        ctx.lineWidth = 1.5;
-        for (let a = 0; a < 6; a++) {
-            ctx.strokeRect(-12 * elScale, -12 * elScale, 24 * elScale, 24 * elScale);
-            ctx.rotate(Math.PI / 6);
-        }
-        // Engulfing flame halo
-        const fireGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, 22 * elScale);
-        fireGrad.addColorStop(0, `rgba(254, 240, 138, ${0.9 * intensity})`);
-        fireGrad.addColorStop(0.6, `rgba(239, 68, 68, ${0.7 * intensity})`);
-        fireGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
-        ctx.fillStyle = fireGrad;
+        // Distinct wind corridors distributed across the prairie terrain (NO single 2D baseline)
+        const laneY = H * 0.22 + (w / (numWeeds - 1)) * (H * 0.56);
+        // Natural wind turbulence drift
+        const driftY = Math.sin(time * 1.8 * speed + w * 2.7) * (14 * elScale);
+        const gy = laneY + driftY;
+
+        // Tumbleweeds hurtling across the map driven by prairie gale
+        const spanX = W + 160 * elScale;
+        const weedSpeed = (140 + w * 35) * speed;
+        const gx = ((time * weedSpeed + w * 170 * elScale) % spanX) - 80 * elScale;
+
+        // Ground altitude bounce in Z-axis (height above ground, perpendicular to top-down camera)
+        const bouncePhase = (time * 5.5 * speed + w * 2.3);
+        const bounce = Math.abs(Math.sin(bouncePhase));
+        const maxAlt = 38 * elScale;
+        const altitude = bounce * maxAlt;
+        const isTouching = altitude < 3 * elScale;
+
+        // Perspective scale: rises slightly toward the camera as altitude increases
+        const curScale = (1.0 + (altitude / maxAlt) * 0.22) * elScale;
+        const bRad = 16 * curScale;
+
+        // 1. DYNAMIC GROUND PLANE (Ground Shadow, Light Pool, and Rolling Scorch Wake)
+        // Shadow cast on the ground separates based on altitude (sun elevation ~45 deg South-East)
+        const shadowDist = altitude * 0.65;
+        const shadowX = gx + shadowDist * 0.35;
+        const shadowY = gy + shadowDist * 0.75;
+        const shadowAlpha = (0.55 - (altitude / maxAlt) * 0.25) * intensity;
+
+        // Soft ground shadow of the spherical bramble ball
+        ctx.fillStyle = `rgba(15, 23, 42, ${shadowAlpha})`;
         ctx.beginPath();
-        ctx.arc(0, 0, 22 * elScale, 0, Math.PI * 2);
+        ctx.ellipse(shadowX, shadowY, bRad * (1.1 + (altitude / maxAlt) * 0.2), bRad * (0.8 + (altitude / maxAlt) * 0.15), 0.3, 0, Math.PI * 2);
         ctx.fill();
+
+        // Dynamic warm flickering ground light pool beneath burning tumbleweed
+        const poolRadius = (32 + altitude * 0.4 + Math.sin(time * 20 + w) * 5) * elScale;
+        const groundGlow = ctx.createRadialGradient(gx, gy, 3, gx, gy, poolRadius);
+        groundGlow.addColorStop(0, `rgba(254, 240, 138, ${0.75 * intensity})`);
+        groundGlow.addColorStop(0.35, `rgba(245, 158, 11, ${0.42 * intensity})`);
+        groundGlow.addColorStop(0.75, `rgba(220, 38, 38, ${0.12 * intensity})`);
+        groundGlow.addColorStop(1, 'rgba(220, 38, 38, 0)');
+        ctx.fillStyle = groundGlow;
+        ctx.beginPath();
+        ctx.arc(gx, gy, poolRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Charred prairie scorch spots & burning cinder trail left behind in the grass
+        for (let t = 1; t <= 4; t++) {
+            const tx = gx - t * 24 * elScale;
+            if (tx > -20 && tx < W + 20) {
+                const ty = gy + Math.sin(time * 2 + t + w) * 6 * elScale;
+                const tAlpha = (0.65 - t * 0.14) * intensity;
+                // Blackened scorch mark on the ground
+                ctx.fillStyle = `rgba(18, 12, 8, ${tAlpha * 0.8})`;
+                ctx.beginPath();
+                ctx.ellipse(tx, ty, 6 * elScale, 3.5 * elScale, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Smoldering ember in wake
+                if (t <= 2) {
+                    ctx.fillStyle = `rgba(249, 115, 22, ${tAlpha})`;
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, 1.4 * elScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Ground impact puff of dust and sparks when landing
+        if (isTouching) {
+            ctx.fillStyle = `rgba(180, 83, 9, ${0.35 * intensity})`;
+            ctx.beginPath();
+            ctx.arc(gx, gy, (bRad * 1.4 + rough * 6), 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 2. ROLLING TUMBLEWEED BRAMBLE SPHERE (Pure 90-deg Overhead Top-Down View)
+        ctx.save();
+        ctx.translate(gx, gy);
+        // 3D rolling angle: continuous roll along terrain
+        const rollAng = time * 7.5 * speed + w * 4.1;
+        ctx.rotate(rollAng);
+
+        // Intricate spherical thorn knotwork (curved bramble arcs viewed from above)
+        ctx.lineWidth = 1.4 * elScale;
+        const branchCount = 14;
+        for (let b = 0; b < branchCount; b++) {
+            const bAng = (b / branchCount) * Math.PI * 2;
+            const bR = (0.45 + (b % 3) * 0.25) * bRad;
+
+            ctx.strokeStyle = (b % 2 === 0) ? '#78350f' : '#92400e';
+            ctx.beginPath();
+            ctx.arc(Math.cos(bAng) * (bRad * 0.3), Math.sin(bAng) * (bRad * 0.3), bR, bAng, bAng + Math.PI * 1.3);
+            ctx.stroke();
+
+            // Prickly thorn barbs along outer perimeter
+            const tx = Math.cos(bAng) * bRad;
+            const ty = Math.sin(bAng) * bRad;
+            ctx.strokeStyle = '#451a03';
+            ctx.beginPath();
+            ctx.moveTo(tx * 0.82, ty * 0.82);
+            ctx.lineTo(tx * 1.15, ty * 1.15);
+            ctx.stroke();
+        }
+
+        // Dense inner dried root core
+        ctx.fillStyle = '#451a03';
+        ctx.beginPath();
+        ctx.arc(0, 0, bRad * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.restore();
+
+        // 3. ENGULFING FLAMES & BILLOWING FIRE TONGUES (Whipping Eastward in Gale)
+        // Radiant fiery core glow
+        const flameGrad = ctx.createRadialGradient(gx, gy, 2, gx, gy, bRad * 1.35);
+        flameGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+        flameGrad.addColorStop(0.28, `rgba(254, 240, 138, ${0.92 * intensity})`);
+        flameGrad.addColorStop(0.65, `rgba(249, 115, 22, ${0.80 * intensity})`);
+        flameGrad.addColorStop(1, 'rgba(220, 38, 38, 0)');
+        ctx.fillStyle = flameGrad;
+        ctx.beginPath();
+        ctx.arc(gx, gy, bRad * 1.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Wind-whipped flame tongues leaping backward (-X direction) from the rolling tumbleweed
+        const tongueCount = 6;
+        for (let ft = 0; ft < tongueCount; ft++) {
+            const ftAng = Math.PI + (ft - (tongueCount - 1) * 0.5) * 0.45;
+            const ftLen = (bRad * 1.2 + Math.sin(time * 24 + ft * 3 + w) * (6 * elScale));
+            const ftX = gx + Math.cos(ftAng) * ftLen;
+            const ftY = gy + Math.sin(ftAng) * ftLen * 0.6;
+            const ftR = (4.5 + Math.cos(time * 18 + ft) * 2) * elScale;
+
+            const tGrad = ctx.createRadialGradient(ftX, ftY, 1, ftX, ftY, ftR);
+            tGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+            tGrad.addColorStop(0.4, `rgba(254, 240, 138, ${0.85 * intensity})`);
+            tGrad.addColorStop(0.8, `rgba(239, 68, 68, ${0.65 * intensity})`);
+            tGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+            ctx.fillStyle = tGrad;
+            ctx.beginPath();
+            ctx.arc(ftX, ftY, ftR, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Flying incandescent sparks & smoke wisps trailing in the prairie wind
+        for (let sp = 0; sp < 5; sp++) {
+            const spDist = (bRad + (sp * 14 + ((time * 70 * speed) % 65))) * elScale;
+            const spX = gx - spDist;
+            const spY = gy + Math.sin(time * 12 + sp * 4) * (10 * elScale);
+            ctx.fillStyle = (sp % 2 === 0) ? `rgba(254, 240, 138, ${0.9 * intensity})` : `rgba(249, 115, 22, ${0.8 * intensity})`;
+            ctx.beginPath();
+            ctx.arc(spX, spY, (1.2 + (sp % 3) * 0.8) * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
+
+    ctx.restore();
 });
 
 // 85. Hand-Cranked Gatling Gun Tracer Rounds Ripping Down Main Street
@@ -436,40 +789,280 @@ reg(['ww_gatling_tracers', 'item_85'], function(el, ctx, W, H, dt, cfg, time, ro
     }
 });
 
-// 86. Wooden Stagecoach Wheels Spinning and Kicking Up Dust
-reg(['ww_stagecoach_wheels', 'item_86'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const cx = W * 0.5, cy = H * 0.55;
-    const r = 35 * elScale;
-    const rot = time * 7 * speed;
-    // Heavy wooden carriage rim
-    ctx.strokeStyle = '#78350f';
-    ctx.lineWidth = 5 * elScale;
+// 86. Wooden Stagecoach Wheels Spinning and Kicking Up Dust (Pure 90-deg Top-Down Overhead Battlemap View)
+reg(['ww_stagecoach_wheels', 'ww_stagecoach_dust', 'item_86'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    ctx.save();
+
+    const cy = H * 0.5;
+    // Stagecoach center position (leading on the right side of the track)
+    const coachX = W * 0.68;
+    // High-speed chassis suspension vibration over bumpy trail
+    const roadVibeY = Math.sin(time * 22 * speed) * (1.2 * elScale);
+    const roadVibeX = Math.cos(time * 19 * speed) * (0.8 * elScale);
+    const coachY = cy + roadVibeY;
+
+    // Track heading angle (slight natural trail drift)
+    const heading = Math.sin(time * 1.5 * speed) * 0.025;
+
+    // 1. Dry Prairie Dirt Trail & Deep Dual Wheel Ruts on Ground
+    const rutHalfSpan = 26 * elScale;
+    const rutTopY = cy - rutHalfSpan;
+    const rutBotY = cy + rutHalfSpan;
+
+    // Churned soil trail strip
+    ctx.fillStyle = 'rgba(120, 53, 15, 0.18)';
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
-    // 12 spokes
-    ctx.lineWidth = 2.5 * elScale;
-    for (let s = 0; s < 12; s++) {
-        const a = rot + (s / 12) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
-        ctx.stroke();
-    }
-    // Heavy iron hub
-    ctx.fillStyle = '#1e293b';
-    ctx.beginPath();
-    ctx.arc(cx, cy, 8 * elScale, 0, Math.PI * 2);
+    ctx.rect(0, cy - rutHalfSpan - 12 * elScale, coachX + 40 * elScale, (rutHalfSpan + 12 * elScale) * 2);
     ctx.fill();
-    // Kicked-up trail dust
-    for (let d = 0; d < 6; d++) {
-        const dx = cx - r - d * 10 * elScale;
-        const dy = cy + r - 4 * elScale - ((time * 30 + d * 15) % 25);
-        ctx.fillStyle = `rgba(217, 119, 6, ${(0.4 - d * 0.05) * intensity})`;
+
+    // Two deep wheel ruts pressed into the earth trailing behind
+    ctx.strokeStyle = 'rgba(69, 26, 3, 0.55)';
+    ctx.lineWidth = 4.5 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(0, rutTopY); ctx.lineTo(coachX, rutTopY);
+    ctx.moveTo(0, rutBotY); ctx.lineTo(coachX, rutBotY);
+    ctx.stroke();
+
+    // Inner compressed tire track grooves
+    ctx.strokeStyle = 'rgba(30, 20, 10, 0.4)';
+    ctx.lineWidth = 2.0 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(0, rutTopY); ctx.lineTo(coachX, rutTopY);
+    ctx.moveTo(0, rutBotY); ctx.lineTo(coachX, rutBotY);
+    ctx.stroke();
+
+    // Horse team hoof print marks along the trail ahead and under coach
+    ctx.fillStyle = 'rgba(69, 26, 3, 0.35)';
+    const hoofPitch = 22 * elScale;
+    const hoofShift = (time * 120 * speed) % hoofPitch;
+    for (let hx = 10; hx < coachX + 60 * elScale; hx += hoofPitch) {
+        const xPos = hx + hoofShift;
+        if (xPos > coachX + 65 * elScale) continue;
+        // Dual horseshoe crescent marks
         ctx.beginPath();
-        ctx.arc(dx, dy, (8 + d * 2) * elScale, 0, Math.PI * 2);
+        ctx.arc(xPos, cy - 10 * elScale, 2.5 * elScale, 0.2, Math.PI - 0.2);
+        ctx.arc(xPos + 8 * elScale, cy + 10 * elScale, 2.5 * elScale, 0.2, Math.PI - 0.2);
         ctx.fill();
     }
+
+    // 2. Churning, Billowing Expanding Dust Wake (The Dust Trail)
+    // Primary turbulent billowing clouds expanding backwards from the wheels
+    const numPuffs = Math.round(24 + rough * 16);
+    for (let p = 0; p < numPuffs; p++) {
+        // Continuous flow backward from the coach wheels
+        const puffAge = (time * 1.8 * speed + p / numPuffs) % 1.0;
+        const puffDist = puffAge * (coachX + 30 * elScale);
+        const px = (coachX - 20 * elScale) - puffDist;
+        if (px < -40 * elScale) continue;
+
+        // Dispersion spreads outward away from center as it travels back
+        const spread = (10 + puffAge * 55) * elScale;
+        const sideSign = (p % 2 === 0) ? 1 : -1;
+        const py = cy + sideSign * (rutHalfSpan * (0.8 + puffAge * 1.2)) + Math.sin(p * 3.7 + time * 2) * (12 * elScale * puffAge);
+
+        // Size expands from small tire puff to huge billowing cloud
+        const radius = (12 * elScale) + puffAge * (42 * elScale);
+
+        // Opacity fades as the cloud billows and dissipates
+        const alpha = (1.0 - puffAge) * (0.38 * intensity);
+
+        // Warm desert ochre dust gradient
+        const pGrad = ctx.createRadialGradient(px, py, radius * 0.15, px, py, radius);
+        pGrad.addColorStop(0, `rgba(251, 191, 36, ${alpha * 1.2})`);
+        pGrad.addColorStop(0.5, `rgba(217, 119, 6, ${alpha * 0.85})`);
+        pGrad.addColorStop(0.85, `rgba(180, 83, 9, ${alpha * 0.4})`);
+        pGrad.addColorStop(1, 'rgba(120, 53, 15, 0)');
+
+        ctx.fillStyle = pGrad;
+        ctx.beginPath();
+        ctx.arc(px, py, radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Violent rooster-tail grit & flying gravel flung backward from wheels
+    const numPebbles = Math.round(20 + rough * 18);
+    for (let g = 0; g < numPebbles; g++) {
+        const gSeed = g * 17.3 + Math.floor(time * 35);
+        const gAge = ((time * 3.5 * speed + g * 0.05) % 1.0);
+        const gDist = gAge * (coachX * 0.45);
+        const gx = (coachX - 35 * elScale) - gDist;
+        const gWheel = (g % 2 === 0) ? -rutHalfSpan : rutHalfSpan;
+        const gy = cy + gWheel + (FX.hash(gSeed) - 0.5) * (14 * elScale);
+
+        ctx.fillStyle = g % 3 === 0 ? '#451a03' : (g % 3 === 1 ? '#78350f' : '#b45309');
+        ctx.beginPath();
+        ctx.arc(gx, gy, (1.2 + FX.hash(g * 9) * 1.6) * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // 3. Stagecoach Body & Chassis (Pure 90-degree Overhead Top-Down View)
+    ctx.save();
+    ctx.translate(coachX, coachY);
+    ctx.rotate(heading);
+
+    // Drop shadow under carriage onto the road
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.roundRect(-42 * elScale + 4 * elScale, -rutHalfSpan - 3 * elScale + 4 * elScale, 84 * elScale, (rutHalfSpan * 2 + 6 * elScale), 6 * elScale);
+    ctx.fill();
+
+    // Under-chassis wooden running gear & iron axle bars
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 3.5 * elScale;
+    ctx.beginPath();
+    // Front axle (under front wheels)
+    ctx.moveTo(25 * elScale, -rutHalfSpan - 5 * elScale);
+    ctx.lineTo(25 * elScale, rutHalfSpan + 5 * elScale);
+    // Rear axle (under rear wheels)
+    ctx.moveTo(-25 * elScale, -rutHalfSpan - 5 * elScale);
+    ctx.lineTo(-25 * elScale, rutHalfSpan + 5 * elScale);
+    // Longitudinal reach perch pole
+    ctx.moveTo(-35 * elScale, 0);
+    ctx.lineTo(38 * elScale, 0);
+    ctx.stroke();
+
+    // 4 Top-Down Heavy Wooden Wheels with Iron Tires (Tread viewed from 90 deg directly overhead)
+    const wheelConfigs = [
+        { x: -25 * elScale, y: -rutHalfSpan, w: 26 * elScale, h: 6.5 * elScale },
+        { x: -25 * elScale, y: rutHalfSpan, w: 26 * elScale, h: 6.5 * elScale },
+        { x: 25 * elScale, y: -rutHalfSpan, w: 22 * elScale, h: 5.5 * elScale },
+        { x: 25 * elScale, y: rutHalfSpan, w: 22 * elScale, h: 5.5 * elScale }
+    ];
+
+    for (let w = 0; w < wheelConfigs.length; w++) {
+        const wh = wheelConfigs[w];
+        ctx.save();
+        ctx.translate(wh.x, wh.y);
+
+        // Spinning spoke striae along tire tread
+        const spinOffset = (time * 180 * speed) % (wh.w * 0.4);
+
+        // Outer iron tire band
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-wh.w * 0.5, -wh.h * 0.5, wh.w, wh.h);
+
+        // Wooden wheel felloe rim
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(-wh.w * 0.46, -wh.h * 0.35, wh.w * 0.92, wh.h * 0.7);
+
+        // Spinning tire treads / iron rivet studs on tread surface
+        ctx.fillStyle = '#475569';
+        for (let st = -wh.w * 0.4; st <= wh.w * 0.4; st += 5 * elScale) {
+            ctx.fillRect(st + (spinOffset % (5 * elScale)), -wh.h * 0.5, 1.2 * elScale, wh.h);
+        }
+
+        // Protruding cylindrical iron hub & linchpin on wheel exterior
+        const hubY = wh.y < 0 ? -wh.h * 0.5 - 2 * elScale : wh.h * 0.5;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-3 * elScale, hubY, 6 * elScale, 2 * elScale);
+
+        ctx.restore();
+    }
+
+    // 4. Main Stagecoach Cab / Concord Body (Top-Down Silhouette)
+    const cabW = 68 * elScale;
+    const cabH = 38 * elScale;
+
+    // Curved wooden stagecoach body (rich Western crimson lacquer with varnished mahogany)
+    ctx.fillStyle = '#7f1d1d';
+    ctx.beginPath();
+    ctx.roundRect(-cabW * 0.5, -cabH * 0.5, cabW, cabH, [8 * elScale, 6 * elScale, 6 * elScale, 8 * elScale]);
+    ctx.fill();
+    ctx.strokeStyle = '#450a0a';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    // Curved cab roof contour (slightly arched varnished wood roof)
+    const roofW = cabW * 0.74;
+    const roofH = cabH * 0.82;
+    ctx.fillStyle = '#991b1b';
+    ctx.beginPath();
+    ctx.roundRect(-cabW * 0.48, -roofH * 0.5, roofW, roofH, 4 * elScale);
+    ctx.fill();
+
+    // Roof timber longitudinal slats
+    ctx.strokeStyle = 'rgba(69, 10, 10, 0.5)';
+    ctx.lineWidth = 1.2;
+    for (let r = -roofH * 0.35; r <= roofH * 0.35; r += 5 * elScale) {
+        ctx.beginPath();
+        ctx.moveTo(-cabW * 0.46, r);
+        ctx.lineTo(-cabW * 0.46 + roofW, r);
+        ctx.stroke();
+    }
+
+    // Brass/iron roof luggage railing
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 1.4 * elScale;
+    ctx.strokeRect(-cabW * 0.44, -roofH * 0.42, roofW * 0.88, roofH * 0.84);
+
+    // Stowed luggage & cargo on the roof rack:
+    // Canvas-wrapped Wells Fargo gold treasure chest / strongbox
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(-cabW * 0.28, -8 * elScale, 16 * elScale, 16 * elScale);
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 1.0;
+    ctx.strokeRect(-cabW * 0.28, -8 * elScale, 16 * elScale, 16 * elScale);
+    ctx.beginPath();
+    ctx.moveTo(-cabW * 0.28 + 8 * elScale, -8 * elScale); ctx.lineTo(-cabW * 0.28 + 8 * elScale, 8 * elScale);
+    ctx.stroke();
+
+    // Canvas mail sacks and traveler bedrolls stowed around the strongbox
+    ctx.fillStyle = '#d4d4d8';
+    ctx.beginPath();
+    ctx.ellipse(-cabW * 0.08, -6 * elScale, 7 * elScale, 5 * elScale, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#71717a';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    ctx.fillStyle = '#1e3a8a';
+    ctx.beginPath();
+    ctx.roundRect(-cabW * 0.08, 3 * elScale, 12 * elScale, 5 * elScale, 2 * elScale);
+    ctx.fill();
+
+    // 5. Driver's Bench / Box (Front) & Reins
+    const boxX = cabW * 0.5 - 10 * elScale;
+    ctx.fillStyle = '#365314';
+    ctx.fillRect(boxX, -cabH * 0.38, 10 * elScale, cabH * 0.76);
+    ctx.strokeStyle = '#14532d';
+    ctx.lineWidth = 1.0;
+    ctx.strokeRect(boxX, -cabH * 0.38, 10 * elScale, cabH * 0.76);
+
+    // Driver's wide-brim Stetson hat (seen from directly overhead)
+    ctx.fillStyle = '#292524';
+    ctx.beginPath();
+    ctx.arc(boxX + 4 * elScale, -cabH * 0.12, 6.5 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#44403c';
+    ctx.beginPath();
+    ctx.arc(boxX + 4 * elScale, -cabH * 0.12, 3.8 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Leather reins extending forward from driver towards horses ahead
+    ctx.strokeStyle = '#451a03';
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.moveTo(boxX + 5 * elScale, -cabH * 0.12);
+    ctx.lineTo(boxX + 38 * elScale, -8 * elScale);
+    ctx.moveTo(boxX + 5 * elScale, -cabH * 0.12);
+    ctx.lineTo(boxX + 38 * elScale, 8 * elScale);
+    ctx.stroke();
+
+    // 6. Rear Triangular Leather Luggage Boot (Back)
+    ctx.fillStyle = '#1c1917';
+    ctx.beginPath();
+    ctx.moveTo(-cabW * 0.5, -cabH * 0.38);
+    ctx.lineTo(-cabW * 0.5 - 14 * elScale, -cabH * 0.22);
+    ctx.lineTo(-cabW * 0.5 - 14 * elScale, cabH * 0.22);
+    ctx.lineTo(-cabW * 0.5, cabH * 0.38);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#44403c';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.restore();
+    ctx.restore();
 });
 
 // 87. Iron Horse Steam Locomotive (Top-Down Battlemap View)
@@ -743,18 +1336,213 @@ reg(['ww_tumbleweeds_mainstreet', 'item_96'], function(el, ctx, W, H, dt, cfg, t
 
 // 97. Clear Canyon River Flowing Steadily Past Fishing Pier
 reg(['ww_canyon_river', 'item_97'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    for (let i = 0; i < 6; i++) {
-        const ry = (i / 5) * H;
-        ctx.strokeStyle = `rgba(56, 189, 248, ${(0.4 + (i % 2) * 0.15) * intensity})`;
-        ctx.lineWidth = 2.5 * elScale;
+    ctx.save();
+
+    // 1. Terraced Sandstone Canyon Cliffs (North & South Canyon Rim)
+    // North canyon cliff shelf
+    ctx.fillStyle = '#7c2d12'; // Deep terracotta
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(W, 0);
+    ctx.lineTo(W, H * 0.22);
+    for (let x = W; x >= 0; x -= 30) {
+        const ny = H * 0.22 + Math.sin(x * 0.015 + 1.2) * (H * 0.04);
+        ctx.lineTo(x, ny);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // North lower sandstone step
+    ctx.fillStyle = '#9a3412';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(W, 0);
+    ctx.lineTo(W, H * 0.16);
+    for (let x = W; x >= 0; x -= 30) {
+        const ny = H * 0.16 + Math.cos(x * 0.018 + 0.8) * (H * 0.03);
+        ctx.lineTo(x, ny);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // South canyon cliff shelf
+    ctx.fillStyle = '#7c2d12';
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    ctx.lineTo(W, H);
+    ctx.lineTo(W, H * 0.78);
+    for (let x = W; x >= 0; x -= 30) {
+        const sy = H * 0.78 + Math.sin(x * 0.016 + 2.5) * (H * 0.04);
+        ctx.lineTo(x, sy);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // South lower sandstone step
+    ctx.fillStyle = '#9a3412';
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    ctx.lineTo(W, H);
+    ctx.lineTo(W, H * 0.84);
+    for (let x = W; x >= 0; x -= 30) {
+        const sy = H * 0.84 + Math.cos(x * 0.014 + 1.7) * (H * 0.03);
+        ctx.lineTo(x, sy);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // 2. Clear Turquoise River Water Channel
+    const riverY1 = H * 0.24;
+    const riverY2 = H * 0.76;
+    const waterGrad = ctx.createLinearGradient(0, riverY1, 0, riverY2);
+    waterGrad.addColorStop(0, 'rgba(6, 182, 212, 0.88)');
+    waterGrad.addColorStop(0.3, 'rgba(14, 116, 144, 0.95)');
+    waterGrad.addColorStop(0.7, 'rgba(14, 116, 144, 0.95)');
+    waterGrad.addColorStop(1, 'rgba(6, 182, 212, 0.88)');
+
+    ctx.fillStyle = waterGrad;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 25) {
+        const yTop = riverY1 + Math.sin(x * 0.015 + 1.2) * (H * 0.04);
+        if (x === 0) ctx.moveTo(x, yTop);
+        else ctx.lineTo(x, yTop);
+    }
+    for (let x = W; x >= 0; x -= 25) {
+        const yBot = riverY2 + Math.sin(x * 0.016 + 2.5) * (H * 0.04);
+        ctx.lineTo(x, yBot);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Submerged riverbed stones visible through clear water
+    for (let s = 0; s < 14; s++) {
+        const sx = ((s * 73 + 41) % Math.floor(W));
+        const sy = H * 0.35 + ((s * 37) % Math.floor(H * 0.3));
+        const sr = 4 * elScale + (s % 3) * 2;
+        ctx.fillStyle = s % 2 === 0 ? 'rgba(120, 53, 15, 0.5)' : 'rgba(15, 118, 110, 0.45)';
         ctx.beginPath();
-        for (let x = 0; x <= W; x += 35) {
-            const y = ry + Math.sin(x * 0.03 + time * 3 * speed + i) * 8;
-            if (x === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+        ctx.ellipse(sx, sy, sr * 1.4, sr * 0.8, s, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Moving sunlit caustics & flow streamlines
+    ctx.lineWidth = 1.6 * elScale;
+    for (let l = 0; l < 7; l++) {
+        const baseCy = riverY1 + (l + 1) * ((riverY2 - riverY1) / 8);
+        ctx.strokeStyle = l % 2 === 0 ? `rgba(224, 242, 254, ${(0.45 + (l % 3) * 0.1) * intensity})` : `rgba(254, 240, 138, ${0.35 * intensity})`;
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 20) {
+            const wave = Math.sin(x * 0.02 + time * 3.2 * speed + l * 0.9) * (6 * elScale);
+            const cy = baseCy + wave;
+            if (x === 0) ctx.moveTo(x, cy);
+            else ctx.lineTo(x, cy);
         }
         ctx.stroke();
     }
+
+    // Drifting foam flecks and water sparkles
+    for (let f = 0; f < 8; f++) {
+        const fx = ((time * 45 * speed + f * 97) % (W + 40)) - 20;
+        const fy = riverY1 + ((f * 31) % Math.floor(riverY2 - riverY1 - 20)) + 10;
+        ctx.fillStyle = `rgba(240, 253, 250, ${0.7 * intensity})`;
+        ctx.beginPath();
+        ctx.arc(fx, fy, (2.5 + (f % 2)) * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // 3. Weathered Wooden Fishing Pier Extending from North Bank
+    const pierX = W * 0.38;
+    const pierW = 28 * elScale;
+    const pierTop = riverY1 + Math.sin(pierX * 0.015 + 1.2) * (H * 0.04) - 15 * elScale;
+    const pierLen = 70 * elScale;
+    const pierBot = pierTop + pierLen;
+
+    // Heavy round wood pilings submerged in water with ripples
+    for (let pl = 0; pl < 3; pl++) {
+        const plY = pierTop + (pl + 1) * (pierLen / 3.4);
+        const plL = pierX - pierW * 0.42;
+        const plR = pierX + pierW * 0.42;
+        const pr = 3.5 * elScale;
+
+        // Ripples in current
+        ctx.strokeStyle = `rgba(207, 250, 254, ${0.55 * intensity})`;
+        ctx.lineWidth = 1.2 * elScale;
+        ctx.beginPath();
+        ctx.arc(plL, plY, pr + 3.0 + Math.sin(time * 3 + pl) * 1.5, 0, Math.PI * 2);
+        ctx.arc(plR, plY, pr + 3.0 + Math.sin(time * 3 + pl + 1) * 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Pilings
+        ctx.fillStyle = '#291b12';
+        ctx.beginPath();
+        ctx.arc(plL, plY, pr, 0, Math.PI * 2);
+        ctx.arc(plR, plY, pr, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Deck planks
+    const plankH = 7 * elScale;
+    const numPlanks = Math.floor(pierLen / plankH);
+    for (let p = 0; p < numPlanks; p++) {
+        const py = pierTop + p * plankH;
+        ctx.fillStyle = p % 2 === 0 ? '#78350f' : '#854d0e';
+        ctx.fillRect(pierX - pierW * 0.5, py, pierW, plankH - 1.2);
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 1.0;
+        ctx.strokeRect(pierX - pierW * 0.5, py, pierW, plankH - 1.2);
+
+        // Nails
+        ctx.fillStyle = '#1c1917';
+        ctx.fillRect(pierX - pierW * 0.4, py + 2, 1.5, 1.5);
+        ctx.fillRect(pierX + pierW * 0.4 - 1.5, py + 2, 1.5, 1.5);
+    }
+
+    // Fishing gear on pier
+    // Wooden bait bucket
+    const bktX = pierX - pierW * 0.22;
+    const bktY = pierBot - 12 * elScale;
+    ctx.fillStyle = '#451a03';
+    ctx.beginPath();
+    ctx.arc(bktX, bktY, 4.5 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#d6d3d1';
+    ctx.lineWidth = 1.0;
+    ctx.stroke();
+
+    // Slender fishing rod extending out over river current
+    const rodEndX = pierX + pierW * 0.35 + 24 * elScale;
+    const rodEndY = pierBot + 28 * elScale;
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 1.8 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(pierX + pierW * 0.1, pierBot - 6 * elScale);
+    ctx.lineTo(rodEndX, rodEndY);
+    ctx.stroke();
+
+    // Fishing line with red/white bobber in water
+    const bobberX = rodEndX + 8 * elScale;
+    const bobberY = rodEndY + 12 * elScale + Math.sin(time * 3) * (2 * elScale);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(rodEndX, rodEndY);
+    ctx.lineTo(bobberX, bobberY);
+    ctx.stroke();
+
+    // Red/White bobber
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(bobberX, bobberY, 2.5 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bobber ripple
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.6 * intensity})`;
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.arc(bobberX, bobberY, (5 + Math.sin(time * 4) * 1.5) * elScale, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
 });
 
 // 98. Turkey Vultures Circling Slowly Overhead Casting Ground Shadows
