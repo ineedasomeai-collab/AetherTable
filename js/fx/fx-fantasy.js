@@ -1422,34 +1422,179 @@ reg(['hf_trout_stream', 'item_323'], function(el, ctx, W, H, dt, cfg, time, roug
     }
 });
 
-// 324. Wild Deer Herd Bounding Gracefully Across Glade
-reg(['hf_bounding_deer', 'item_324'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+// 324. Wild Deer Herd Bounding Gracefully Across Glade (Pure 90-deg Top-Down Overhead Battlemap View)
+reg(['hf_bounding_deer', 'hf_prancing_deer', 'item_324'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    ctx.save();
     const numDeer = 3;
+
     for (let d = 0; d < numDeer; d++) {
-        const dx = ((time * 95 * speed + d * 85) % (W + 100)) - 50;
-        const boundY = H * 0.65 - Math.abs(Math.sin(time * 7 * speed + d)) * 22 * elScale;
-        
+        // Organic parallel running corridors across the glade
+        const laneY = H * 0.22 + (d / (numDeer - 1)) * (H * 0.56);
+        const lateralDrift = Math.sin(time * 2.2 * speed + d * 2.8) * (14 * elScale);
+        const gy = laneY + lateralDrift;
+
+        // Bounding across the map from west to east
+        const runDist = (time * (110 + d * 18) * speed + d * 140) % (W + 160);
+        const gx = runDist - 80 * elScale;
+
+        // Ground travel heading angle (slight natural trail curve)
+        const heading = Math.sin(time * 2.2 * speed + d * 2.8) * 0.12;
+
+        // Z-axis vertical bounding kinematics (stotting leap into the air)
+        const boundCycle = time * 8.5 * speed + d * 2.2;
+        const altitude = Math.max(0, Math.sin(boundCycle)) * (24 * elScale);
+        const isAirborne = altitude > 2 * elScale;
+        const zScale = 1.0 + (altitude / (120 * elScale));
+
+        // 1. Separate Ground Drop Shadow on Meadow Floor
+        const shadowX = gx - 4 * elScale;
+        const shadowY = gy + 6 * elScale + altitude * 0.45;
+        const shadowW = Math.max(8, (26 - altitude * 0.35)) * elScale;
+        const shadowH = Math.max(4, (12 - altitude * 0.18)) * elScale;
+        const shadowAlpha = Math.max(0.12, 0.45 - (altitude / (50 * elScale)));
+
+        ctx.fillStyle = `rgba(15, 23, 42, ${shadowAlpha})`;
+        ctx.beginPath();
+        ctx.ellipse(shadowX, shadowY, shadowW, shadowH, heading, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Meadow turf impact dust / grass blades when landing
+        if (!isAirborne) {
+            ctx.fillStyle = `rgba(134, 239, 172, ${0.45 * intensity})`;
+            ctx.beginPath();
+            ctx.arc(gx - 14 * elScale, gy, 3.5 * elScale, 0, Math.PI * 2);
+            ctx.arc(gx + 12 * elScale, gy, 3.0 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 2. Deer Body in Pure 90-degree Overhead Top-Down Projection
+        ctx.save();
+        ctx.translate(gx, gy);
+        ctx.rotate(heading);
+        ctx.scale(zScale, zScale);
+
+        // Slender quadruped legs reaching/gathering in gallop cycle
+        const legPhase = Math.sin(boundCycle);
+        const legReach = legPhase * (12 * elScale);
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 1.8 * elScale;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        // Front hooves (extended forward along +X)
+        ctx.moveTo(14 * elScale, -5 * elScale); ctx.lineTo(14 * elScale + legReach, -7 * elScale);
+        ctx.moveTo(14 * elScale, 5 * elScale);  ctx.lineTo(14 * elScale + legReach, 7 * elScale);
+        // Rear hooves (trailing backward along -X)
+        ctx.moveTo(-14 * elScale, -5 * elScale); ctx.lineTo(-14 * elScale - legReach, -7 * elScale);
+        ctx.moveTo(-14 * elScale, 5 * elScale);  ctx.lineTo(-14 * elScale - legReach, 7 * elScale);
+        ctx.stroke();
+
+        // Powerful tawny deer body / torso
+        const isStag = (d === 0);
+        const bodyW = (isStag ? 30 : 26) * elScale;
+        const bodyH = (isStag ? 14 : 12) * elScale;
+
+        // Flank rim (lighter undercoat)
+        ctx.fillStyle = '#b45309';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, bodyW * 0.5, bodyH * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Main dorsal coat (warm chestnut brown)
         ctx.fillStyle = '#78350f';
         ctx.beginPath();
-        // Slender deer body
-        ctx.ellipse(dx, boundY, 18 * elScale, 9 * elScale, 0.15, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, bodyW * 0.44, bodyH * 0.42, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Head & antlers
+
+        // Spine shading stripe
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 1.6 * elScale;
         ctx.beginPath();
-        ctx.arc(dx + 16 * elScale, boundY - 10 * elScale, 5 * elScale, 0, Math.PI * 2);
+        ctx.moveTo(-bodyW * 0.38, 0); ctx.lineTo(bodyW * 0.38, 0);
+        ctx.stroke();
+
+        // White-tailed deer tail patch (rump flag flipping up during bound)
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(-bodyW * 0.46, 0, 4.5 * elScale, 3.2 * elScale, 0, 0, Math.PI * 2);
         ctx.fill();
-        if (d === 0) {
-            // Stag antlers
-            ctx.strokeStyle = '#b45309';
-            ctx.lineWidth = 1.5;
+
+        // Slender neck extending forward to head
+        const neckX = bodyW * 0.38;
+        ctx.fillStyle = '#92400e';
+        ctx.beginPath();
+        ctx.ellipse(neckX + 4 * elScale, 0, 7 * elScale, 4.5 * elScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Deer head (tapered wedge in plan projection)
+        const headX = neckX + 9 * elScale;
+        ctx.fillStyle = '#78350f';
+        ctx.beginPath();
+        ctx.moveTo(headX, -4.5 * elScale);
+        ctx.lineTo(headX + 9 * elScale, -1.8 * elScale);
+        ctx.lineTo(headX + 9 * elScale, 1.8 * elScale);
+        ctx.lineTo(headX, 4.5 * elScale);
+        ctx.closePath();
+        ctx.fill();
+
+        // Dark wet muzzle
+        ctx.fillStyle = '#1c1917';
+        ctx.fillRect(headX + 7.5 * elScale, -1.8 * elScale, 2.5 * elScale, 3.6 * elScale);
+
+        // Dark alert eyes on sides of head
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(headX + 3.5 * elScale, -3.8 * elScale, 1.2 * elScale, 0, Math.PI * 2);
+        ctx.arc(headX + 3.5 * elScale, 3.8 * elScale, 1.2 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Swiveling alert ears
+        ctx.fillStyle = '#92400e';
+        ctx.beginPath();
+        ctx.ellipse(headX + 1 * elScale, -6.5 * elScale, 4.5 * elScale, 2.2 * elScale, -0.6, 0, Math.PI * 2);
+        ctx.ellipse(headX + 1 * elScale, 6.5 * elScale, 4.5 * elScale, 2.2 * elScale, 0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3. Majestic Stag Antler Crown (Symmetrical overhead branch rack on lead stag)
+        if (isStag) {
+            ctx.strokeStyle = '#fef3c7';
+            ctx.lineWidth = 1.8 * elScale;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Left antler beam & tines (viewed from 90 deg above)
             ctx.beginPath();
-            ctx.moveTo(dx + 16 * elScale, boundY - 14 * elScale);
-            ctx.lineTo(dx + 22 * elScale, boundY - 24 * elScale);
-            ctx.moveTo(dx + 16 * elScale, boundY - 14 * elScale);
-            ctx.lineTo(dx + 12 * elScale, boundY - 24 * elScale);
+            ctx.moveTo(headX + 1 * elScale, -2 * elScale);
+            ctx.quadraticCurveTo(headX + 8 * elScale, -12 * elScale, headX + 4 * elScale, -18 * elScale);
+            // Brow tine
+            ctx.moveTo(headX + 4 * elScale, -6 * elScale);
+            ctx.lineTo(headX + 9 * elScale, -8 * elScale);
+            // Bez tine
+            ctx.moveTo(headX + 6 * elScale, -10 * elScale);
+            ctx.lineTo(headX + 11 * elScale, -13 * elScale);
+            // Crown fork
+            ctx.moveTo(headX + 4 * elScale, -18 * elScale);
+            ctx.lineTo(headX + 7 * elScale, -21 * elScale);
+            ctx.stroke();
+
+            // Right antler beam & tines (symmetrical right branch)
+            ctx.beginPath();
+            ctx.moveTo(headX + 1 * elScale, 2 * elScale);
+            ctx.quadraticCurveTo(headX + 8 * elScale, 12 * elScale, headX + 4 * elScale, 18 * elScale);
+            // Brow tine
+            ctx.moveTo(headX + 4 * elScale, 6 * elScale);
+            ctx.lineTo(headX + 9 * elScale, 8 * elScale);
+            // Bez tine
+            ctx.moveTo(headX + 6 * elScale, 10 * elScale);
+            ctx.lineTo(headX + 11 * elScale, 13 * elScale);
+            // Crown fork
+            ctx.moveTo(headX + 4 * elScale, 18 * elScale);
+            ctx.lineTo(headX + 7 * elScale, 21 * elScale);
             ctx.stroke();
         }
+
+        ctx.restore();
     }
+    ctx.restore();
 });
 
 // 325. Fluffy White Dandelion Seeds Floating Across Sunlit Pasture
@@ -1681,22 +1826,91 @@ reg(['hf_assassin_vines', 'item_334'], function(el, ctx, W, H, dt, cfg, time, ro
     }
 });
 
-// 335. Bubbling Peat Bog Releasing Periodic Bursts of Swamp Gas
+// 335. Bubbling Peat Bog Releasing Periodic Bursts of Swamp Gas (Pure 90-deg Top-Down Overhead Battlemap View)
 reg(['hf_peat_bog_gas', 'item_335'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    // Murky brown bog mud
-    ctx.fillStyle = `rgba(69, 26, 3, ${0.45 * intensity})`;
+    const cx = W * 0.5, cy = H * 0.5;
+    const bogW = Math.min(W * 0.44, 110 * elScale);
+    const bogH = Math.min(H * 0.42, 65 * elScale);
+
+    ctx.save();
+
+    // 1. Stagnant Peat Mire Mud Pool (Overhead organic wetland hollow)
+    ctx.fillStyle = `rgba(30, 15, 6, ${0.75 * intensity})`;
     ctx.beginPath();
-    ctx.ellipse(W * 0.5, H * 0.5, 90 * elScale, 55 * elScale, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, bogW * 1.15, bogH * 1.15, 0.1, 0, Math.PI * 2);
     ctx.fill();
-    // Bursting toxic sulfur gas puffs
-    for (let g = 0; g < 4; g++) {
-        const gx = W * 0.3 + g * 35 * elScale;
-        const gy = H * 0.5 - ((time * 30 * speed + g * 20) % 45);
-        ctx.fillStyle = `rgba(202, 138, 4, ${(0.5 - g * 0.1) * intensity})`;
+
+    ctx.fillStyle = `rgba(69, 26, 3, ${0.9 * intensity})`;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, bogW, bogH, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Oily toxic iridescent sheen on stagnant mud surface
+    ctx.strokeStyle = `rgba(163, 230, 53, ${0.28 * intensity})`;
+    ctx.lineWidth = 1.5 * elScale;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, bogW * 0.75, bogH * 0.72, 0.2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 2. Submerged Mud Bubbles Swelling & Popping Across 2D Surface
+    const numBubbles = 7;
+    for (let b = 0; b < numBubbles; b++) {
+        const bPhase = (time * (2.2 + (b % 3) * 0.8) * speed + b * 1.4) % 1.0;
+        const bAngle = (b / numBubbles) * Math.PI * 2 + time * 0.15;
+        const bDist = (0.2 + (b % 4) * 0.18) * bogW;
+        const bx = cx + Math.cos(bAngle) * bDist;
+        const by = cy + Math.sin(bAngle) * (bDist * (bogH / bogW));
+
+        if (bPhase < 0.7) {
+            // Swelling mud dome
+            const bRad = (bPhase / 0.7) * (7 + (b % 3) * 2) * elScale;
+            ctx.fillStyle = '#291307';
+            ctx.beginPath();
+            ctx.arc(bx, by, bRad, 0, Math.PI * 2);
+            ctx.fill();
+            // Mud highlight
+            ctx.fillStyle = 'rgba(161, 98, 7, 0.6)';
+            ctx.beginPath();
+            ctx.arc(bx - bRad * 0.3, by - bRad * 0.3, bRad * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Burst ripple
+            const popProg = (bPhase - 0.7) / 0.3;
+            const ripR = ((7 + (b % 3) * 2) * elScale) + popProg * (14 * elScale);
+            ctx.strokeStyle = `rgba(161, 98, 7, ${(1.0 - popProg) * 0.55 * intensity})`;
+            ctx.lineWidth = 1.4 * elScale;
+            ctx.beginPath();
+            ctx.arc(bx, by, ripR, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+
+    // 3. Periodic Bursts of Sickly Yellow-Green Swamp Gas
+    const numVents = 4;
+    for (let v = 0; v < numVents; v++) {
+        const vSeed = v * 19.3;
+        const vCycle = ((time * 1.4 * speed + v * 0.28) % 1.0);
+        const vAngle = (v / numVents) * Math.PI * 2 + vSeed;
+        const vDist = (0.25 + (v % 2) * 0.35) * bogW;
+        const vx = cx + Math.cos(vAngle) * vDist;
+        const vy = cy + Math.sin(vAngle) * (vDist * (bogH / bogW));
+
+        // Gas cloud expands radially across the mud and billows upward in Z
+        const gasR = (10 + vCycle * 32) * elScale;
+        const gasAlpha = (1.0 - vCycle) * (0.42 * intensity);
+
+        const gGrad = ctx.createRadialGradient(vx, vy, 2, vx, vy, gasR);
+        gGrad.addColorStop(0, `rgba(202, 138, 4, ${gasAlpha * 1.1})`);
+        gGrad.addColorStop(0.5, `rgba(132, 204, 22, ${gasAlpha * 0.8})`);
+        gGrad.addColorStop(1, 'rgba(101, 163, 13, 0)');
+
+        ctx.fillStyle = gGrad;
         ctx.beginPath();
-        ctx.arc(gx, gy, (10 + g * 3) * elScale, 0, Math.PI * 2);
+        ctx.arc(vx, vy, gasR, 0, Math.PI * 2);
         ctx.fill();
     }
+
+    ctx.restore();
 });
 
 // 336. Lush Green Forest Tree Canopies Swaying in Wind
@@ -2446,23 +2660,150 @@ reg(['hf_iron_spike_floortrap', 'item_356'], function(el, ctx, W, H, dt, cfg, ti
     ctx.restore();
 });
 
-// 357. Carved Stone Dragon-Head Sconce Breathing Flame Jets
+// 357. Carved Stone Dragon-Head Sconce Breathing Flame Jets (Pure 90-deg Top-Down Overhead Battlemap View)
 reg(['hf_dragonhead_flame_sconce', 'item_357'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const cx = W * 0.35, cy = H * 0.5;
-    // Carved dragon head profile in stone
+    const wallW = W * 0.22;
+    const cy = H * 0.5;
+
+    ctx.save();
+
+    // 1. Dungeon Masonry Granite Wall (along left edge)
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, wallW, H);
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2 * elScale;
+    ctx.strokeRect(0, 0, wallW, H);
+
+    // Ashlar stone block division lines
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1.2 * elScale;
+    ctx.beginPath();
+    for (let wy = 25 * elScale; wy < H; wy += 35 * elScale) {
+        ctx.moveTo(0, wy); ctx.lineTo(wallW, wy);
+    }
+    ctx.stroke();
+
+    // 2. Carved Stone Dragon Gargoyle Head (Mounted protruding into corridor, viewed from 90 deg above)
+    const mountX = wallW;
+    const headLen = 42 * elScale;
+    const snoutX = mountX + headLen;
+
+    // Stone dragon head drop shadow on dungeon floor
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(mountX + 22 * elScale, cy + 6 * elScale, 24 * elScale, 15 * elScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Heavy iron mounting collar plate on wall
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(mountX - 6 * elScale, cy - 18 * elScale, 10 * elScale, 36 * elScale);
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(mountX - 6 * elScale, cy - 18 * elScale, 10 * elScale, 36 * elScale);
+
+    // Carved granite stone dragon skull (symmetrical overhead projection)
     ctx.fillStyle = '#475569';
     ctx.beginPath();
-    ctx.moveTo(cx - 20 * elScale, cy + 15 * elScale);
-    ctx.lineTo(cx + 15 * elScale, cy + 8 * elScale); // snout
-    ctx.lineTo(cx + 8 * elScale, cy - 8 * elScale);  // jaw
-    ctx.lineTo(cx - 15 * elScale, cy - 20 * elScale); // horns
+    // Neck base
+    ctx.moveTo(mountX + 4 * elScale, cy - 14 * elScale);
+    // Left cranial ridge
+    ctx.lineTo(mountX + 18 * elScale, cy - 16 * elScale);
+    // Left eye brow ridge
+    ctx.lineTo(mountX + 28 * elScale, cy - 10 * elScale);
+    // Left snout taper
+    ctx.lineTo(snoutX, cy - 6 * elScale);
+    // Snout tip
+    ctx.lineTo(snoutX + 4 * elScale, cy);
+    // Right snout taper
+    ctx.lineTo(snoutX, cy + 6 * elScale);
+    // Right eye brow ridge
+    ctx.lineTo(mountX + 28 * elScale, cy + 10 * elScale);
+    // Right cranial ridge
+    ctx.lineTo(mountX + 18 * elScale, cy + 16 * elScale);
+    // Right neck base
+    ctx.lineTo(mountX + 4 * elScale, cy + 14 * elScale);
     ctx.closePath();
     ctx.fill();
-    // Intermittent fire breath jet
-    const isBreathing = (Math.sin(time * 2 * speed) > 0.2);
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1.8 * elScale;
+    ctx.stroke();
+
+    // Symmetrical curved dragon horns swept backward toward the wall
+    ctx.fillStyle = '#334155';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 1.2;
+    // Left horn
+    ctx.beginPath();
+    ctx.moveTo(mountX + 16 * elScale, cy - 12 * elScale);
+    ctx.quadraticCurveTo(mountX + 8 * elScale, cy - 24 * elScale, mountX - 4 * elScale, cy - 20 * elScale);
+    ctx.quadraticCurveTo(mountX + 12 * elScale, cy - 16 * elScale, mountX + 16 * elScale, cy - 10 * elScale);
+    ctx.fill();
+    ctx.stroke();
+    // Right horn
+    ctx.beginPath();
+    ctx.moveTo(mountX + 16 * elScale, cy + 12 * elScale);
+    ctx.quadraticCurveTo(mountX + 8 * elScale, cy + 24 * elScale, mountX - 4 * elScale, cy + 20 * elScale);
+    ctx.quadraticCurveTo(mountX + 12 * elScale, cy + 16 * elScale, mountX + 16 * elScale, cy + 10 * elScale);
+    ctx.fill();
+    ctx.stroke();
+
+    // Carved eye sockets glowing with molten orange heat
+    ctx.fillStyle = '#f97316';
+    ctx.beginPath();
+    ctx.ellipse(mountX + 24 * elScale, cy - 7 * elScale, 3 * elScale, 1.8 * elScale, -0.2, 0, Math.PI * 2);
+    ctx.ellipse(mountX + 24 * elScale, cy + 7 * elScale, 3 * elScale, 1.8 * elScale, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Flame Jet Dynamics (Roaring stream of dragon fire)
+    const breathCycle = (time * 1.8 * speed) % 4.0;
+    const isBreathing = (breathCycle < 2.5);
+
     if (isBreathing) {
-        FX.drawVolumetricCone(ctx, cx + 15 * elScale, cy + 4 * elScale, 0, W * 0.55, 0.45, `rgba(249, 115, 22, ${0.9 * intensity})`, 'rgba(239, 68, 68, 0)');
+        const fireOriginX = snoutX + 2 * elScale;
+        const fireOriginY = cy;
+        const flameLength = (W - fireOriginX) * (0.85 + Math.sin(time * 24) * 0.1);
+
+        // Wide thermal floor bloom illuminating corridor
+        FX.drawRadialGlow(ctx, fireOriginX + flameLength * 0.4, cy, 10 * elScale, flameLength * 0.65, `rgba(249, 115, 22, ${0.45 * intensity})`, 'rgba(239, 68, 68, 0)');
+
+        // Volumetric fire jet cone
+        FX.drawVolumetricCone(ctx, fireOriginX, fireOriginY, 0, flameLength, 0.42, `rgba(254, 240, 138, ${0.98 * intensity})`, 'rgba(220, 38, 38, 0)');
+        FX.drawVolumetricCone(ctx, fireOriginX, fireOriginY, 0, flameLength * 0.85, 0.28, `rgba(255, 255, 255, ${0.95 * intensity})`, 'rgba(249, 115, 22, 0)');
+
+        // Searing flame core at maw
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(fireOriginX, fireOriginY, (6 + Math.random() * 3) * elScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ballistic flying fire embers & sparks spraying across the dungeon floor
+        const numSparks = Math.round(14 + rough * 12);
+        for (let s = 0; s < numSparks; s++) {
+            const sProg = ((time * 3.5 * speed + s * 0.08) % 1.0);
+            const sx = fireOriginX + sProg * flameLength;
+            const spread = sProg * (32 * elScale);
+            const sy = cy + (FX.hash(s * 13 + Math.floor(time * 20)) - 0.5) * spread;
+
+            ctx.fillStyle = sProg < 0.4 ? '#fef08a' : '#f97316';
+            ctx.beginPath();
+            ctx.arc(sx, sy, (1.2 + (s % 2) * 0.6) * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else {
+        // Idle smoldering throat embers & faint smoke
+        ctx.fillStyle = '#ea580c';
+        ctx.beginPath();
+        ctx.arc(snoutX, cy, 3 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Smolder smoke
+        ctx.fillStyle = 'rgba(100, 116, 139, 0.35)';
+        ctx.beginPath();
+        ctx.arc(snoutX + 8 * elScale, cy + Math.sin(time * 3) * 3, 5 * elScale, 0, Math.PI * 2);
+        ctx.fill();
     }
+
+    ctx.restore();
 });
 
 // 358. Mimic Treasure Chest Rattling Lid and Gnashing Teeth (Top-Down Battlemap View)
@@ -3884,29 +4225,168 @@ reg(['hf_alchemist_brass_hourglass', 'item_374'], function(el, ctx, W, H, dt, cf
     ctx.restore();
 });
 
-// 375. Green Treefrog Hopping Onto Floating Water-Lily Pad
+// 375. Green Treefrog Hopping Onto Floating Water-Lily Pad (Pure 90-deg Top-Down Overhead Battlemap View)
 reg(['hf_treefrog_lilypad', 'item_375'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const cx = W * 0.5, cy = H * 0.55;
-    // Green floating lily pad
-    ctx.fillStyle = '#16a34a';
+    const cx = W * 0.5, cy = H * 0.5;
+    const padR = 36 * elScale;
+
+    ctx.save();
+
+    // 1. Expanding Water Concentric Ripples on Pond Surface
+    const ripplePhase = (time * 1.8 * speed) % 1.0;
+    const rippleR = padR + ripplePhase * (35 * elScale);
+    ctx.strokeStyle = `rgba(186, 230, 253, ${(1.0 - ripplePhase) * 0.45 * intensity})`;
+    ctx.lineWidth = 1.4 * elScale;
     ctx.beginPath();
-    ctx.arc(cx, cy, 32 * elScale, 0.2, Math.PI * 1.8, false);
+    ctx.arc(cx, cy, rippleR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 2. Floating Circular Green Water-Lily Pad (Top-Down with V-notch)
+    // Lily pad drop shadow in water
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+    ctx.beginPath();
+    ctx.arc(cx + 3 * elScale, cy + 4 * elScale, padR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lily pad green leaf body
+    ctx.fillStyle = '#15803d';
+    ctx.beginPath();
+    ctx.arc(cx, cy, padR, 0.25, Math.PI * 1.85, false);
     ctx.lineTo(cx, cy);
     ctx.closePath();
     ctx.fill();
-    // Treefrog hopping
-    const hopPhase = Math.abs(Math.sin(time * 3 * speed));
-    const frogY = cy - hopPhase * 16 * elScale;
+    ctx.strokeStyle = '#14532d';
+    ctx.lineWidth = 1.8 * elScale;
+    ctx.stroke();
+
+    // Inner lighter leaf rim
+    ctx.fillStyle = '#16a34a';
+    ctx.beginPath();
+    ctx.arc(cx, cy, padR * 0.9, 0.28, Math.PI * 1.82, false);
+    ctx.lineTo(cx, cy);
+    ctx.closePath();
+    ctx.fill();
+
+    // Radial leaf veins radiating from central stem attachment
+    ctx.strokeStyle = '#4ade80';
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    for (let a = 0.5; a < Math.PI * 1.7; a += 0.42) {
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a) * (padR * 0.82), cy + Math.sin(a) * (padR * 0.82));
+    }
+    ctx.stroke();
+
+    // Small pink water-lily blossom bud on edge
+    const budX = cx + Math.cos(Math.PI * 1.4) * (padR * 0.8);
+    const budY = cy + Math.sin(Math.PI * 1.4) * (padR * 0.8);
+    ctx.fillStyle = '#f43f5e';
+    ctx.beginPath();
+    ctx.arc(budX, budY, 6 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fbcfe8';
+    ctx.beginPath();
+    ctx.arc(budX, budY, 3.5 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Treefrog Z-Axis Hopping Kinematics
+    const hopCycle = time * 3.2 * speed;
+    const altitude = Math.max(0, Math.sin(hopCycle)) * (18 * elScale);
+    const isAirborne = altitude > 1.5 * elScale;
+    const zScale = 1.0 + (altitude / (65 * elScale));
+
+    // Frog ground drop shadow on lily pad
+    const shadowAlpha = Math.max(0.12, 0.5 - (altitude / (40 * elScale)));
+    ctx.fillStyle = `rgba(10, 30, 15, ${shadowAlpha})`;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 4 * elScale + altitude * 0.35, (12 - altitude * 0.18) * elScale, (8 - altitude * 0.12) * elScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. Emerald Green Treefrog in Pure 90-degree Overhead Top-Down Projection
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(zScale, zScale);
+
+    // Hind legs kicking/extending during leap
+    const kickExt = isAirborne ? (altitude / (18 * elScale)) * (14 * elScale) : 0;
+    ctx.strokeStyle = '#16a34a';
+    ctx.lineWidth = 3.2 * elScale;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Left hind leg
+    ctx.beginPath();
+    ctx.moveTo(-4 * elScale, 4 * elScale);
+    ctx.lineTo(-12 * elScale - kickExt * 0.7, 10 * elScale + kickExt);
+    ctx.lineTo(-8 * elScale - kickExt, 18 * elScale + kickExt * 1.2);
+    ctx.stroke();
+
+    // Right hind leg
+    ctx.beginPath();
+    ctx.moveTo(4 * elScale, 4 * elScale);
+    ctx.lineTo(12 * elScale + kickExt * 0.7, 10 * elScale + kickExt);
+    ctx.lineTo(8 * elScale + kickExt, 18 * elScale + kickExt * 1.2);
+    ctx.stroke();
+
+    // Forelimbs resting/reaching forward
+    ctx.lineWidth = 2.2 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(-6 * elScale, -3 * elScale); ctx.lineTo(-14 * elScale, -8 * elScale);
+    ctx.moveTo(6 * elScale, -3 * elScale);  ctx.lineTo(14 * elScale, -8 * elScale);
+    ctx.stroke();
+
+    // Suction-cup toe pads on forelimbs
+    ctx.fillStyle = '#86efac';
+    ctx.beginPath();
+    ctx.arc(-14 * elScale, -8 * elScale, 2 * elScale, 0, Math.PI * 2);
+    ctx.arc(14 * elScale, -8 * elScale, 2 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pear-shaped treefrog torso (overhead plan view)
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 11 * elScale, 14 * elScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#15803d';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Dorsal moss spots on back
+    ctx.fillStyle = '#15803d';
+    ctx.beginPath();
+    ctx.arc(-3 * elScale, 2 * elScale, 1.8 * elScale, 0, Math.PI * 2);
+    ctx.arc(3 * elScale, 3 * elScale, 2.0 * elScale, 0, Math.PI * 2);
+    ctx.arc(0, -4 * elScale, 1.5 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Frog head & protruding bulbous golden eyes
     ctx.fillStyle = '#4ade80';
     ctx.beginPath();
-    ctx.ellipse(cx, frogY, 10 * elScale, 7 * elScale, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -10 * elScale, 9 * elScale, 6 * elScale, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Dark bulbous frog eyes
+
+    // Left protruding golden eye
+    ctx.fillStyle = '#eab308';
+    ctx.beginPath();
+    ctx.arc(-7 * elScale, -11 * elScale, 3.8 * elScale, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
-    ctx.arc(cx - 5 * elScale, frogY - 5 * elScale, 2.5 * elScale, 0, Math.PI * 2);
-    ctx.arc(cx + 5 * elScale, frogY - 5 * elScale, 2.5 * elScale, 0, Math.PI * 2);
+    ctx.arc(-7 * elScale, -11 * elScale, 2.0 * elScale, 0, Math.PI * 2);
     ctx.fill();
+
+    // Right protruding golden eye
+    ctx.fillStyle = '#eab308';
+    ctx.beginPath();
+    ctx.arc(7 * elScale, -11 * elScale, 3.8 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(7 * elScale, -11 * elScale, 2.0 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+    ctx.restore();
 });
 
 

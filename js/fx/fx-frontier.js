@@ -1318,18 +1318,121 @@ reg(['ww_haboob_sandstorm', 'item_95'], function(el, ctx, W, H, dt, cfg, time, r
     }
 });
 
-// 96. Dry Tumbleweeds Bouncing Lazily Down Main Street
-reg(['ww_tumbleweeds_mainstreet', 'item_96'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const wx = ((time * 55 * speed) % (W + 80)) - 40;
-    const wy = H * 0.7 - Math.abs(Math.sin(time * 4 * speed)) * 25 * elScale;
+// 96. Dry Tumbleweeds Bouncing Lazily Down Main Street (Pure 90-deg Top-Down Overhead Battlemap View)
+reg(['ww_tumbleweed_street', 'ww_tumbleweeds_mainstreet', 'item_96'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
     ctx.save();
-    ctx.translate(wx, wy);
-    ctx.rotate(time * 3 * speed);
-    ctx.strokeStyle = '#78350f';
-    ctx.lineWidth = 1.5;
-    for (let a = 0; a < 6; a++) {
-        ctx.strokeRect(-10 * elScale, -10 * elScale, 20 * elScale, 20 * elScale);
-        ctx.rotate(Math.PI / 6);
+    const numWeeds = 3;
+
+    for (let w = 0; w < numWeeds; w++) {
+        // Multiple wind corridors distributed across the street width
+        const laneY = H * 0.22 + (w / (numWeeds - 1)) * (H * 0.56);
+        // Wind gusts causing lateral street drift
+        const driftY = Math.sin(time * 1.6 * speed + w * 2.5) * (18 * elScale);
+        const gy = laneY + driftY;
+
+        // Tumbleweed rolling across main street from west to east
+        const spanX = W + 120 * elScale;
+        const rollSpeed = (65 + w * 22) * speed;
+        const gx = ((time * rollSpeed + w * 150) % spanX) - 60 * elScale;
+
+        // Z-axis vertical bounce kinematics (bouncing along dry dirt street)
+        const bouncePhase = time * (3.8 + w * 0.6) * speed + w * 2.1;
+        const altitude = Math.abs(Math.sin(bouncePhase)) * (18 * elScale);
+        const zScale = 1.0 + (altitude / (70 * elScale));
+        const rotAngle = time * (3.2 + w * 0.5) * speed;
+
+        // 1. Separate Ground Drop Shadow on Main Street Earth
+        const shadowX = gx - 3 * elScale;
+        const shadowY = gy + 4 * elScale + altitude * 0.4;
+        const shadowW = Math.max(7, (18 - altitude * 0.25)) * elScale;
+        const shadowH = Math.max(4, (10 - altitude * 0.15)) * elScale;
+        const shadowAlpha = Math.max(0.12, 0.42 - (altitude / (45 * elScale)));
+
+        ctx.fillStyle = `rgba(15, 23, 42, ${shadowAlpha})`;
+        ctx.beginPath();
+        ctx.ellipse(shadowX, shadowY, shadowW, shadowH, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ground impact dust puff when touching the street
+        if (altitude < 3 * elScale) {
+            ctx.fillStyle = `rgba(217, 119, 6, ${0.35 * intensity})`;
+            ctx.beginPath();
+            ctx.arc(gx - 8 * elScale, gy, 4 * elScale, 0, Math.PI * 2);
+            ctx.arc(gx + 6 * elScale, gy + 2 * elScale, 3 * elScale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Skittering broken dry twigs & seed pods left behind
+        if (w === 0) {
+            for (let s = 0; s < 4; s++) {
+                const sx = gx - (15 + s * 14) * elScale;
+                const sy = gy + Math.sin(s * 3.1) * (6 * elScale);
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(sx, sy, 2 * elScale, 1.2 * elScale);
+            }
+        }
+
+        // 2. Rolling Tumbleweed Bramble Sphere (Pure 90-degree Overhead Top-Down View)
+        ctx.save();
+        ctx.translate(gx, gy);
+        ctx.scale(zScale, zScale);
+        ctx.rotate(rotAngle);
+
+        const weedRadius = (16 + (w % 2) * 3) * elScale;
+
+        // Tangled organic thorny bramble branches radiating from center
+        const brambleCount = 14;
+        for (let b = 0; b < brambleCount; b++) {
+            const bAngle = (b / brambleCount) * Math.PI * 2;
+            const bCurv = (b % 2 === 0 ? 1 : -1) * 0.6;
+            const bLen = weedRadius * (0.75 + (b % 3) * 0.12);
+
+            ctx.strokeStyle = (b % 3 === 0) ? '#451a03' : ((b % 2 === 0) ? '#78350f' : '#b45309');
+            ctx.lineWidth = (1.2 + (b % 3) * 0.3) * elScale;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(
+                Math.cos(bAngle + bCurv) * (bLen * 0.65),
+                Math.sin(bAngle + bCurv) * (bLen * 0.65),
+                Math.cos(bAngle) * bLen,
+                Math.sin(bAngle) * bLen
+            );
+            ctx.stroke();
+
+            // Thorny barbs and prickly side-twigs
+            if (b % 2 === 0) {
+                const barbDist = bLen * 0.55;
+                const bx = Math.cos(bAngle) * barbDist;
+                const by = Math.sin(bAngle) * barbDist;
+                ctx.beginPath();
+                ctx.moveTo(bx, by);
+                ctx.lineTo(bx + Math.cos(bAngle + 1.2) * (4 * elScale), by + Math.sin(bAngle + 1.2) * (4 * elScale));
+                ctx.stroke();
+            }
+        }
+
+        // Interlaced outer rim thorns
+        ctx.strokeStyle = '#92400e';
+        ctx.lineWidth = 1.2 * elScale;
+        ctx.beginPath();
+        for (let a = 0; a < 8; a++) {
+            const thAngle = (a / 8) * Math.PI * 2;
+            const thRad = weedRadius * (0.85 + (a % 2) * 0.15);
+            const tx = Math.cos(thAngle) * thRad;
+            const ty = Math.sin(thAngle) * thRad;
+            if (a === 0) ctx.moveTo(tx, ty);
+            else ctx.lineTo(tx, ty);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // Core tangled dry briar seed cluster
+        ctx.fillStyle = '#451a03';
+        ctx.beginPath();
+        ctx.arc(0, 0, 3.5 * elScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
     }
     ctx.restore();
 });

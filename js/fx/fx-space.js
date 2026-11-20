@@ -2081,81 +2081,341 @@ reg(['ds_holo_planet_globe', 'item_211'], function(el, ctx, W, H, dt, cfg, time,
     ctx.stroke();
 });
 
-// 212. Horizontal Cryo-Pod Sliding Open With Escaping Frost
+// 212. Horizontal Cryo-Pod Sliding Open With Escaping Frost (Pure 90-deg Top-Down Overhead Battlemap View)
 reg(['ds_cryopod_hatch_open', 'item_212'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
     const cx = W * 0.5, cy = H * 0.5;
-    const podW = 75 * elScale, podH = 34 * elScale;
-    // Base chamber
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(cx - podW * 0.5, cy - podH * 0.5, podW, podH);
-    // Sliding glass hatch opening upwards
-    const open = Math.abs(Math.sin(time * 1.5 * speed)) * 18 * elScale;
-    ctx.fillStyle = 'rgba(186, 230, 253, 0.4)';
-    ctx.fillRect(cx - podW * 0.5, cy - podH * 0.5 - open, podW, podH);
-    ctx.strokeStyle = '#38bdf8';
+    const podW = 82 * elScale, podH = 46 * elScale;
+
+    ctx.save();
+
+    // 1. Pod Drop Shadow on Deck Floor
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.roundRect(cx - podW * 0.5 + 4 * elScale, cy - podH * 0.5 + 4 * elScale, podW, podH, 8 * elScale);
+    ctx.fill();
+
+    // 2. Base Armored Chassis Mount & Cryogenic Conduits
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(cx - podW * 0.5, cy - podH * 0.5, podW, podH, 8 * elScale);
+    ctx.fill();
+    ctx.strokeStyle = '#334155';
     ctx.lineWidth = 2 * elScale;
-    ctx.strokeRect(cx - podW * 0.5, cy - podH * 0.5 - open, podW, podH);
-    // Escaping cold frost mist
-    for (let f = 0; f < 6; f++) {
-        const fx = cx - 25 * elScale + f * 10 * elScale;
-        const fy = cy - open - ((time * 25 + f * 15) % 25);
-        ctx.fillStyle = `rgba(240, 249, 255, ${0.45 * intensity})`;
+    ctx.stroke();
+
+    // Cryo coolant pipes running into pod ends
+    ctx.strokeStyle = '#0284c7';
+    ctx.lineWidth = 3 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(cx - podW * 0.5 - 12 * elScale, cy - 8 * elScale); ctx.lineTo(cx - podW * 0.5, cy - 8 * elScale);
+    ctx.moveTo(cx - podW * 0.5 - 12 * elScale, cy + 8 * elScale); ctx.lineTo(cx - podW * 0.5, cy + 8 * elScale);
+    ctx.stroke();
+
+    // Interior stasis berth (contoured bio-bed viewed from above)
+    const cavW = podW * 0.78;
+    const cavH = podH * 0.68;
+    ctx.fillStyle = '#021329';
+    ctx.beginPath();
+    ctx.roundRect(cx - cavW * 0.5, cy - cavH * 0.5, cavW, cavH, 4 * elScale);
+    ctx.fill();
+
+    // Bio-cushion silhouette & cyan stasis illumination
+    FX.drawRadialGlow(ctx, cx, cy, 4 * elScale, 36 * elScale, `rgba(56, 189, 248, ${0.45 * intensity})`, 'rgba(2, 132, 199, 0)');
+    ctx.fillStyle = '#0369a1';
+    ctx.beginPath();
+    ctx.ellipse(cx - cavW * 0.28, cy, 6 * elScale, 5 * elScale, 0, 0, Math.PI * 2); // Headrest
+    ctx.roundRect(cx - cavW * 0.15, cy - 7 * elScale, cavW * 0.55, 14 * elScale, 4 * elScale); // Torso/body berth
+    ctx.fill();
+
+    // 3. Pressurized Split-Canopy Glass Hatches (Sliding laterally open to top & bottom)
+    const openProg = Math.abs(Math.sin(time * 1.4 * speed)); // 0 (sealed) to 1 (fully open)
+    const slideDist = openProg * (14 * elScale);
+
+    // Top half hatch
+    ctx.fillStyle = 'rgba(186, 230, 253, 0.42)';
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 1.6 * elScale;
+    ctx.beginPath();
+    ctx.roundRect(cx - cavW * 0.5, cy - cavH * 0.5 - slideDist, cavW, cavH * 0.5, [4 * elScale, 4 * elScale, 0, 0]);
+    ctx.fill();
+    ctx.stroke();
+
+    // Bottom half hatch
+    ctx.beginPath();
+    ctx.roundRect(cx - cavW * 0.5, cy + slideDist, cavW, cavH * 0.5, [0, 0, 4 * elScale, 4 * elScale]);
+    ctx.fill();
+    ctx.stroke();
+
+    // 4. Dense Escaping Cryogenic Frost Mist Spilling Out
+    const numPuffs = Math.round(12 + rough * 10);
+    for (let f = 0; f < numPuffs; f++) {
+        const fProg = ((time * 1.8 * speed + f / numPuffs) % 1.0);
+        const fAngle = (f / numPuffs) * Math.PI * 2;
+        const fDist = (15 + fProg * 45) * elScale;
+        const fx = cx + Math.cos(fAngle) * fDist;
+        const fy = cy + Math.sin(fAngle) * (fDist * 0.7);
+        const fRad = (8 + fProg * 18) * elScale;
+        const fAlpha = (1.0 - fProg) * (0.45 * intensity);
+
+        ctx.fillStyle = `rgba(240, 249, 255, ${fAlpha})`;
         ctx.beginPath();
-        ctx.arc(fx, fy, 6 * elScale, 0, Math.PI * 2);
+        ctx.arc(fx, fy, fRad, 0, Math.PI * 2);
         ctx.fill();
     }
+
+    // Diagnostics status LEDs (green/cyan heartbeat pulse)
+    const ledCol = (Math.sin(time * 5) > 0) ? '#22c55e' : '#06b6d4';
+    ctx.fillStyle = ledCol;
+    ctx.beginPath();
+    ctx.arc(cx + podW * 0.4, cy - podH * 0.35, 2.2 * elScale, 0, Math.PI * 2);
+    ctx.arc(cx + podW * 0.4, cy + podH * 0.35, 2.2 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
 });
 
-// 213. Dish-Shaped Communications Array Rotating on Exterior Hull
+// 213. Dish-Shaped Communications Array Rotating on Exterior Hull (Pure 90-deg Top-Down Overhead Battlemap View)
 reg(['ds_hull_comms_dish', 'item_213'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const cx = W * 0.5, cy = H * 0.55;
-    const pan = Math.sin(time * 1.2 * speed);
-    // Base mount
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(cx - 10 * elScale, cy + 15 * elScale, 20 * elScale, 15 * elScale);
-    // Parabolic dish
+    const cx = W * 0.5, cy = H * 0.5;
+    const dishR = 35 * elScale;
+    const sweepAngle = time * 0.8 * speed;
+
+    ctx.save();
+
+    // 1. Exterior Starship Hull Plates
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, W, H);
+    // Hull panel seams & rivet lines
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.5, 0); ctx.lineTo(W * 0.5, H);
+    ctx.moveTo(0, H * 0.5); ctx.lineTo(W, H * 0.5);
+    ctx.stroke();
+
+    // 2. Heavy Circular Hull Gimbal Turret Ring
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.arc(cx, cy, dishR * 0.75, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2.5 * elScale;
+    ctx.stroke();
+
+    // Azimuth drive gear teeth
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    for (let g = 0; g < 16; g++) {
+        const ga = (g / 16) * Math.PI * 2;
+        ctx.moveTo(cx + Math.cos(ga) * (dishR * 0.65), cy + Math.sin(ga) * (dishR * 0.65));
+        ctx.lineTo(cx + Math.cos(ga) * (dishR * 0.75), cy + Math.sin(ga) * (dishR * 0.75));
+    }
+    ctx.stroke();
+
+    // 3. Parabolic Communications Dish (Plan projection, rotating smoothly in azimuth)
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(pan * 0.35);
-    ctx.fillStyle = '#94a3b8';
+    ctx.rotate(sweepAngle);
+
+    // Parabolic dish rim
+    ctx.fillStyle = '#334155';
     ctx.beginPath();
-    ctx.ellipse(0, 0, 36 * elScale, 14 * elScale, 0, 0, Math.PI * 2);
+    ctx.arc(0, 0, dishR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2.0 * elScale;
+    ctx.stroke();
+
+    // Concentric alloy reflector rings
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1.2 * elScale;
+    ctx.beginPath();
+    ctx.arc(0, 0, dishR * 0.7, 0, Math.PI * 2);
+    ctx.arc(0, 0, dishR * 0.42, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Quad support struts holding central transceiver sub-reflector
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.5 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(-dishR * 0.85, 0); ctx.lineTo(dishR * 0.85, 0);
+    ctx.moveTo(0, -dishR * 0.85); ctx.lineTo(0, dishR * 0.85);
+    ctx.stroke();
+
+    // Central feed horn & emitter focal point
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.arc(0, 0, 5 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.restore();
+
+    // 4. Pulsing Quantum Carrier Data Transmission Beam
+    const pulsePhase = (time * 2.5 * speed) % 1.0;
+    const pulseR = dishR + pulsePhase * (45 * elScale);
+    ctx.strokeStyle = `rgba(56, 189, 248, ${(1.0 - pulsePhase) * 0.65 * intensity})`;
+    ctx.lineWidth = 1.8 * elScale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Pulsing central beacon
+    FX.drawRadialGlow(ctx, cx, cy, 2, 18 * elScale, `rgba(56, 189, 248, ${0.85 * intensity})`, 'rgba(2, 132, 199, 0)');
+
+    ctx.restore();
+});
+
+// 214. Articulated Laser-Welding Arm Assembling Fighter Wing (Pure 90-deg Top-Down Overhead Battlemap View)
+reg(['ds_drydock_welder_arm', 'item_214'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
+    const baseX = W * 0.22, baseY = H * 0.5;
+
+    ctx.save();
+
+    // 1. Drydock Gantry Support Structure (Left side)
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, baseX, H);
+    ctx.strokeStyle = '#eab308';
+    ctx.lineWidth = 2;
+    // Hazard chevrons on gantry rail
+    for (let hy = 10; hy < H; hy += 24 * elScale) {
+        ctx.beginPath();
+        ctx.moveTo(baseX - 8 * elScale, hy);
+        ctx.lineTo(baseX, hy + 8 * elScale);
+        ctx.lineTo(baseX, hy + 14 * elScale);
+        ctx.lineTo(baseX - 8 * elScale, hy + 6 * elScale);
+        ctx.closePath();
+        ctx.fillStyle = '#eab308';
+        ctx.fill();
+    }
+
+    // Workpiece: Titanium starfighter wing panel being assembled (Right side)
+    const wingX1 = W * 0.55, wingY1 = H * 0.25;
+    const wingX2 = W * 0.88, wingY2 = H * 0.75;
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.moveTo(wingX1, wingY1);
+    ctx.lineTo(wingX2, H * 0.5);
+    ctx.lineTo(wingX1, wingY2);
+    ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = '#475569';
     ctx.lineWidth = 2 * elScale;
     ctx.stroke();
-    // Central transceiver feed horn
-    ctx.strokeStyle = '#0284c7';
-    ctx.lineWidth = 2 * elScale;
-    ctx.beginPath();
-    ctx.moveTo(0, 0); ctx.lineTo(0, -18 * elScale);
-    ctx.stroke();
-    ctx.restore();
-});
 
-// 214. Articulated Laser-Welding Arm Assembling Fighter Wing
-reg(['ds_drydock_welder_arm', 'item_214'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const cx = W * 0.35, cy = H * 0.2;
-    // Robotic shoulder & elbow joints
-    const ang1 = Math.sin(time * 2 * speed) * 0.35;
-    const ang2 = Math.cos(time * 2 * speed) * 0.45;
-    const j1x = cx + Math.sin(ang1) * 35 * elScale;
-    const j1y = cy + Math.cos(ang1) * 35 * elScale;
-    const tipX = j1x + Math.sin(ang1 + ang2) * 35 * elScale;
-    const tipY = j1y + Math.cos(ang1 + ang2) * 35 * elScale;
-    
-    ctx.strokeStyle = '#f59e0b';
+    // Active weld seam along wing centerline
+    const seamProgress = 0.5 + 0.45 * Math.sin(time * 1.8 * speed);
+    const weldX = wingX1 + (wingX2 - wingX1) * seamProgress * 0.7;
+    const weldY = H * 0.5;
+
+    // Solidified cooling weld bead
+    ctx.strokeStyle = `rgba(234, 88, 12, ${0.75 * intensity})`;
     ctx.lineWidth = 4 * elScale;
     ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(j1x, j1y);
-    ctx.lineTo(tipX, tipY);
+    ctx.moveTo(wingX1, H * 0.5);
+    ctx.lineTo(weldX, H * 0.5);
     ctx.stroke();
-    // Welding spark flash
-    ctx.fillStyle = '#38bdf8';
+
+    // 2. Articulated Robotic Arm Kinematics (Overhead Plan View)
+    // Turret turntable mount
+    ctx.fillStyle = '#0f172a';
     ctx.beginPath();
-    ctx.arc(tipX, tipY, 4 * elScale, 0, Math.PI * 2);
+    ctx.arc(baseX, baseY, 14 * elScale, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Arm reaches from (baseX, baseY) to (weldX, weldY)
+    const dx = weldX - baseX;
+    const dy = weldY - baseY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const baseAngle = Math.atan2(dy, dx);
+
+    const l1 = 65 * elScale;
+    const l2 = 65 * elScale;
+    // 2-link IK geometry
+    const clampedDist = Math.min(dist, l1 + l2 - 5 * elScale);
+    const cosAngle = (l1 * l1 + clampedDist * clampedDist - l2 * l2) / (2 * l1 * clampedDist);
+    const elbowOffset = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
+
+    const elbowX = baseX + Math.cos(baseAngle - elbowOffset) * l1;
+    const elbowY = baseY + Math.sin(baseAngle - elbowOffset) * l1;
+
+    // Arm drop shadows
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.lineWidth = 8 * elScale;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(baseX + 5 * elScale, baseY + 6 * elScale);
+    ctx.lineTo(elbowX + 5 * elScale, elbowY + 6 * elScale);
+    ctx.lineTo(weldX + 5 * elScale, weldY + 6 * elScale);
+    ctx.stroke();
+
+    // Upper arm beam
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 8 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(baseX, baseY); ctx.lineTo(elbowX, elbowY);
+    ctx.stroke();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 4 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(baseX, baseY); ctx.lineTo(elbowX, elbowY);
+    ctx.stroke();
+
+    // Elbow servo joint hub
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(elbowX, elbowY, 7 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Forearm beam
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 6 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(elbowX, elbowY); ctx.lineTo(weldX, weldY);
+    ctx.stroke();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 3 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(elbowX, elbowY); ctx.lineTo(weldX, weldY);
+    ctx.stroke();
+
+    // Wrist & laser torch nozzle
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.arc(weldX, weldY, 4.5 * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Laser Welding Arc Flash & Ballistic Flying Sparks
+    // Blinding blue-white core flash
+    FX.drawRadialGlow(ctx, weldX, weldY, 3, 50 * elScale * intensity, `rgba(56, 189, 248, ${0.92 * intensity})`, 'rgba(2, 132, 199, 0)');
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(weldX, weldY, (5 + Math.random() * 2) * elScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Flying molten titanium sparks in 360-degree radial arcs
+    const numSparks = Math.round(14 + rough * 12);
+    for (let s = 0; s < numSparks; s++) {
+        const sa = FX.hash(s * 29 + Math.floor(time * 25)) * Math.PI * 2;
+        const sd = (8 + FX.hash(s * 17) * 45) * elScale;
+        const spx = weldX + Math.cos(sa) * sd;
+        const spy = weldY + Math.sin(sa) * sd;
+        ctx.fillStyle = sd < 22 * elScale ? '#ffffff' : '#fde047';
+        ctx.beginPath();
+        ctx.arc(spx, spy, (1.2 + (s % 2) * 0.5) * elScale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
 });
 
 // 215. Brass-and-Steel Artificial Gravity Ring Spinning on Gimbals

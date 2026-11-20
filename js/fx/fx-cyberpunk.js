@@ -1818,24 +1818,34 @@
         }
     });
 
-    // 44. Thermal-Vision Heat Distortion
+    // 44. Thermal-Vision Heat Distortion (Pure 90-deg Top-Down Overhead Battlemap View)
     reg(['cp_thermal_heatmap', 'item_44', 'cp_thermal_distortion'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        // Localized shimmering thermal heat distortion plumes
+        ctx.save();
+        // Dynamic full-field 2D surface thermal heat signatures
         const plumes = 8;
         for (let p = 0; p < plumes; p++) {
-            const px = ((p * 73 + time * 20 * speed) % (W + 60)) - 30;
-            const py = H * 0.7 - Math.sin(time * 3 + p) * 20 * elScale - (p * 15 * elScale);
-            const pr = (24 + (p % 3) * 10 + rough * 8) * elScale;
+            const px = ((p * 97 + time * 24 * speed) % (W + 80)) - 40;
+            const py = H * 0.15 + (p / (plumes - 1)) * (H * 0.7) + Math.sin(time * 2.5 + p * 1.7) * (18 * elScale);
+            const pr = (35 + (p % 3) * 14 + rough * 12) * elScale;
+
             const grad = ctx.createRadialGradient(px, py, 2, px, py, pr);
             grad.addColorStop(0, `rgba(239, 68, 68, ${0.45 * intensity})`);
-            grad.addColorStop(0.4, `rgba(234, 179, 8, ${0.25 * intensity})`);
-            grad.addColorStop(0.8, `rgba(168, 85, 247, ${0.1 * intensity})`);
+            grad.addColorStop(0.35, `rgba(234, 179, 8, ${0.32 * intensity})`);
+            grad.addColorStop(0.7, `rgba(168, 85, 247, ${0.18 * intensity})`);
             grad.addColorStop(1, 'rgba(168, 85, 247, 0)');
             ctx.fillStyle = grad;
             ctx.beginPath();
             ctx.arc(px, py, pr, 0, Math.PI * 2);
             ctx.fill();
+
+            // Shimmering mirage refraction ripples
+            ctx.strokeStyle = `rgba(254, 240, 138, ${0.25 * intensity})`;
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.arc(px, py, pr * 0.55 + Math.sin(time * 6 + p) * 3, 0, Math.PI * 2);
+            ctx.stroke();
         }
+        ctx.restore();
     });
 
     // 45. Gray Nanobot Swarm
@@ -2209,37 +2219,103 @@
         }
     });
 
-    // 54. Burning Trash-Can Fire Barrel
+    // 54. Burning Trash-Can Fire Barrel (Pure 90-deg Top-Down Overhead Battlemap View)
     reg(['cp_trash_firebarrel', 'item_54', 'cp_trashcan_fire_barrel'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-        const cx = W * 0.5, cy = H * 0.58;
-        // 55-gallon steel drum
+        const cx = W * 0.5, cy = H * 0.5;
+        const barrelR = 24 * elScale;
+
+        ctx.save();
+
+        // 1. Ambient Thermal Light Pool on Concrete Floor
+        const flicker = 1.0 + Math.sin(time * 16 * speed) * 0.08 + (FX.hash(Math.floor(time * 24)) - 0.5) * 0.12;
+        const glowRadius = (80 + rough * 25) * elScale * flicker;
+        FX.drawRadialGlow(ctx, cx, cy, barrelR * 0.8, glowRadius, `rgba(249, 115, 22, ${0.45 * intensity})`, 'rgba(180, 83, 9, 0)');
+        FX.drawRadialGlow(ctx, cx, cy, barrelR * 0.4, glowRadius * 0.55, `rgba(254, 215, 170, ${0.65 * intensity})`, 'rgba(234, 88, 12, 0)');
+
+        // Scorched carbon soot ring on ground around the barrel
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, barrelR * 1.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. 55-Gallon Steel Drum Top-Down Body & Chime Rim
+        // Outer chime flange (rolled steel bottom/top seam)
         ctx.fillStyle = '#1e293b';
-        ctx.fillRect(cx - 18 * elScale, cy - 20 * elScale, 36 * elScale, 40 * elScale);
+        ctx.beginPath();
+        ctx.arc(cx, cy, barrelR, 0, Math.PI * 2);
+        ctx.fill();
         ctx.strokeStyle = '#0f172a';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(cx - 18 * elScale, cy - 20 * elScale, 36 * elScale, 40 * elScale);
-        // Venting air holes glowing with internal coals
-        for (let h = -1; h <= 1; h++) {
-            ctx.fillStyle = '#f97316';
+        ctx.lineWidth = 2.2 * elScale;
+        ctx.stroke();
+
+        // Steel drum top lip ring
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.arc(cx, cy, barrelR * 0.92, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner fire cavity (charred interior)
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(cx, cy, barrelR * 0.82, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3. Glowing Coals & Burning Debris Inside Barrel
+        const coalGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, barrelR * 0.8);
+        coalGrad.addColorStop(0, '#fef08a');
+        coalGrad.addColorStop(0.35, '#f97316');
+        coalGrad.addColorStop(0.7, '#ea580c');
+        coalGrad.addColorStop(1, '#7f1d1d');
+        ctx.fillStyle = coalGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, barrelR * 0.78, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Incinerating trash chunks & glowing charcoal lumps
+        for (let c = 0; c < 7; c++) {
+            const ca = (c / 7) * Math.PI * 2 + time * 0.2;
+            const cd = (c % 2 === 0 ? 0.35 : 0.6) * barrelR;
+            const clx = cx + Math.cos(ca) * cd;
+            const cly = cy + Math.sin(ca) * cd;
+            ctx.fillStyle = c % 2 === 0 ? '#450a0a' : '#1c1917';
             ctx.beginPath();
-            ctx.arc(cx + h * 10 * elScale, cy + 10 * elScale, 2.5 * elScale, 0, Math.PI * 2);
+            ctx.arc(clx, cly, (3.5 + (c % 3)) * elScale, 0, Math.PI * 2);
             ctx.fill();
         }
-        // Roaring flames licking out of top
-        const flames = 5;
-        for (let f = 0; f < flames; f++) {
-            const fx = cx - 12 * elScale + f * (6 * elScale) + Math.sin(time * 10 + f) * 3;
-            const fy = cy - 22 * elScale - Math.abs(Math.sin(time * 12 + f * 2)) * 26 * elScale;
-            const fr = (7 + (f % 3) * 3) * elScale;
-            FX.drawRadialGlow(ctx, fx, fy, 1, fr, `rgba(255, 237, 213, ${0.95 * intensity})`, 'rgba(234, 88, 12, 0)');
+
+        // 4. Dancing Overhead Fire Tongues (Swirling from cavity)
+        const flameTongues = 8;
+        for (let f = 0; f < flameTongues; f++) {
+            const fa = (f / flameTongues) * Math.PI * 2 + time * 3.5 * speed + (f % 2) * 0.5;
+            const swirl = Math.sin(time * 12 + f * 3) * 0.25;
+            const fDist = (barrelR * 0.25) + Math.sin(time * 14 * speed + f * 1.7) * (barrelR * 0.55);
+            const fx = cx + Math.cos(fa + swirl) * fDist;
+            const fy = cy + Math.sin(fa + swirl) * fDist;
+            const fr = (6 + (f % 3) * 3) * elScale * (0.8 + Math.sin(time * 18 + f) * 0.2);
+
+            FX.drawRadialGlow(ctx, fx, fy, 1, fr, `rgba(255, 237, 213, ${0.92 * intensity})`, 'rgba(234, 88, 12, 0)');
         }
-        // Rising glowing embers
-        for (let e = 0; e < 6; e++) {
-            const ex = cx + (FX.hash(e * 13) - 0.5) * 30 * elScale;
-            const ey = cy - 25 * elScale - ((time * 40 * speed + e * 18) % 45);
-            ctx.fillStyle = '#fed7aa';
-            ctx.fillRect(ex, ey, 2, 2);
+
+        // 5. Rising Spark Embers Ascending in Z-Axis (Expanding toward camera)
+        const emberCount = Math.round(10 + rough * 8);
+        for (let e = 0; e < emberCount; e++) {
+            const eSeed = e * 19.3;
+            const eAge = ((time * 1.6 * speed + e * 0.12) % 1.0);
+            const eDist = eAge * (barrelR * 1.8);
+            const eAngle = FX.hash(eSeed) * Math.PI * 2 + Math.sin(time * 2 + e) * 0.5;
+            const ex = cx + Math.cos(eAngle) * eDist;
+            const ey = cy + Math.sin(eAngle) * eDist;
+
+            const eRadius = (1.2 + eAge * 2.2) * elScale;
+            const eAlpha = (1.0 - eAge) * intensity;
+
+            ctx.fillStyle = eAge < 0.4 ? `rgba(254, 240, 138, ${eAlpha})` : `rgba(249, 115, 22, ${eAlpha})`;
+            ctx.beginPath();
+            ctx.arc(ex, ey, eRadius, 0, Math.PI * 2);
+            ctx.fill();
         }
+
+        ctx.restore();
     });
 
     // 55. Rotating Amber Warning Beacon

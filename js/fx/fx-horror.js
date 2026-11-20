@@ -1636,36 +1636,124 @@ reg(['ch_rattling_bookshelves', 'item_261'], function(el, ctx, W, H, dt, cfg, ti
     }
 });
 
-// 262. Stainless Steel Morgue Cold-Storage Doors Rattling Violently
+// 262. Stainless Steel Morgue Cold-Storage Doors Rattling Violently (Pure 90-deg Top-Down Overhead Battlemap View)
 reg(['ch_morgue_freezer_rattle', 'item_262'], function(el, ctx, W, H, dt, cfg, time, rough, speed, intensity, elScale) {
-    const doorW = 90 * elScale, doorH = 65 * elScale;
-    const startX = W * 0.5 - doorW, startY = H * 0.5 - doorH;
-    for (let r = 0; r < 2; r++) {
-        for (let c = 0; c < 2; c++) {
-            const dx = startX + c * (doorW + 10 * elScale);
-            const dy = startY + r * (doorH + 10 * elScale);
-            // Violent rattling shake on drawer #3
-            const isViolent = (r === 1 && c === 0);
-            const rattleX = isViolent ? Math.sin(time * 38 * speed) * (3.5 + rough * 3) : 0;
-            const rattleY = isViolent ? Math.cos(time * 32 * speed) * (2.5 + rough * 2) : 0;
-            // Stainless steel door plate
-            ctx.fillStyle = isViolent ? '#94a3b8' : '#cbd5e1';
-            ctx.fillRect(dx + rattleX, dy + rattleY, doorW, doorH);
-            ctx.strokeStyle = '#475569';
-            ctx.lineWidth = 2 * elScale;
-            ctx.strokeRect(dx + rattleX, dy + rattleY, doorW, doorH);
-            // Chrome latch handle
-            ctx.fillStyle = '#0f172a';
-            ctx.fillRect(dx + rattleX + doorW - 20 * elScale, dy + rattleY + doorH * 0.45, 12 * elScale, 6 * elScale);
-            // Blood handprint smearing on rattling door
-            if (isViolent) {
-                ctx.fillStyle = `rgba(185, 28, 28, ${0.8 * intensity})`;
-                ctx.beginPath();
-                ctx.arc(dx + rattleX + doorW * 0.4, dy + rattleY + doorH * 0.4, 8 * elScale, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
+    const cx = W * 0.5, cy = H * 0.5;
+    const trayW = 110 * elScale;
+    const trayH = 38 * elScale;
+
+    ctx.save();
+
+    // 1. Morgue Tiled Floor Base & Soft Shadow
+    const wallX = W * 0.12;
+
+    // Freezer wall vault housing (stainless steel cabinet along left side)
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, wallX, H);
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2 * elScale;
+    ctx.strokeRect(0, 0, wallX, H);
+
+    // Two mortuary tray slots (Top and Bottom)
+    const slot1Y = cy - 42 * elScale;
+    const slot2Y = cy + 42 * elScale;
+
+    // Slot 1 (Top): Closed stainless steel vault door on wall
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(wallX - 6 * elScale, slot1Y - trayH * 0.5, 8 * elScale, trayH);
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(wallX - 6 * elScale, slot1Y - trayH * 0.5, 8 * elScale, trayH);
+    // Chrome latch handle
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(wallX - 8 * elScale, slot1Y - 4 * elScale, 4 * elScale, 8 * elScale);
+
+    // Slot 2 (Bottom): Open vault cavity with violently rattling extended body tray
+    const rattleX = Math.sin(time * 42 * speed) * (3.5 + rough * 3) * elScale;
+    const rattleY = Math.cos(time * 36 * speed) * (2.2 + rough * 2) * elScale;
+
+    // Dark empty freezing cavity inside wall
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(wallX - 10 * elScale, slot2Y - trayH * 0.5, 12 * elScale, trayH);
+
+    // Telescoping stainless steel roller rails extending into room
+    const trayStartX = wallX + 8 * elScale;
+    const trayCurrentX = trayStartX + 35 * elScale + rattleX;
+    const trayCurrentY = slot2Y + rattleY;
+
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 3 * elScale;
+    ctx.beginPath();
+    ctx.moveTo(wallX, slot2Y - trayH * 0.45); ctx.lineTo(trayCurrentX + trayW * 0.8, slot2Y - trayH * 0.45);
+    ctx.moveTo(wallX, slot2Y + trayH * 0.45); ctx.lineTo(trayCurrentX + trayW * 0.8, slot2Y + trayH * 0.45);
+    ctx.stroke();
+
+    // Steel tray drop shadow on floor
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.48)';
+    ctx.beginPath();
+    ctx.roundRect(trayCurrentX + 6 * elScale, trayCurrentY - trayH * 0.5 + 6 * elScale, trayW, trayH, 4 * elScale);
+    ctx.fill();
+
+    // Stainless steel body examination tray
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath();
+    ctx.roundRect(trayCurrentX, trayCurrentY - trayH * 0.5, trayW, trayH, 4 * elScale);
+    ctx.fill();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2 * elScale;
+    ctx.stroke();
+
+    // Raised perimeter fluid-containment rim
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.roundRect(trayCurrentX + 3 * elScale, trayCurrentY - trayH * 0.45, trayW - 6 * elScale, trayH * 0.9, 3 * elScale);
+    ctx.fill();
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Drainage trough at head end
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.ellipse(trayCurrentX + trayW - 12 * elScale, trayCurrentY, 4 * elScale, 8 * elScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // White mortuary shroud sheet covering body silhouette
+    ctx.fillStyle = '#e2e8f0';
+    ctx.beginPath();
+    ctx.roundRect(trayCurrentX + 16 * elScale, trayCurrentY - trayH * 0.35, trayW - 38 * elScale, trayH * 0.7, 6 * elScale);
+    ctx.fill();
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.0;
+    ctx.stroke();
+
+    // Bloody smeared handprints on stainless steel tray
+    ctx.fillStyle = `rgba(185, 28, 28, ${0.85 * intensity})`;
+    ctx.beginPath();
+    // Handprint 1
+    ctx.ellipse(trayCurrentX + 35 * elScale, trayCurrentY - trayH * 0.38, 5 * elScale, 3.5 * elScale, -0.4, 0, Math.PI * 2);
+    // Finger smears
+    ctx.rect(trayCurrentX + 28 * elScale, trayCurrentY - trayH * 0.45, 12 * elScale, 2 * elScale);
+    // Handprint 2 on tray rim
+    ctx.ellipse(trayCurrentX + 65 * elScale, trayCurrentY + trayH * 0.38, 6 * elScale, 4 * elScale, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Escaping sub-zero freezing morgue fog mist billowing out of cavity
+    const numMist = Math.round(10 + rough * 8);
+    for (let m = 0; m < numMist; m++) {
+        const mProg = ((time * 1.5 * speed + m / numMist) % 1.0);
+        const mx = wallX + mProg * (trayW * 0.9);
+        const my = slot2Y + (FX.hash(m * 17) - 0.5) * (trayH * 1.1);
+        const mRad = (10 + mProg * 22) * elScale;
+        const mAlpha = (1.0 - mProg) * (0.42 * intensity);
+
+        ctx.fillStyle = `rgba(241, 245, 249, ${mAlpha})`;
+        ctx.beginPath();
+        ctx.arc(mx, my, mRad, 0, Math.PI * 2);
+        ctx.fill();
     }
+
+    ctx.restore();
 });
 
 // 263. Padded Asylum Cell Walls Expanding & Contracting Like Lungs
